@@ -4,15 +4,39 @@ import Foundation
 /// Everything configurable, in one value type.
 ///
 /// The settings UI is generated from this, so adding an option means adding a
-/// property here and nothing else.
+/// property here and a control that binds to it, never a third place to keep
+/// in sync.
 struct Settings: Codable, Equatable, Sendable {
+    // Layout
     var edge: DockEdge = .bottom
-    var iconSize: Double = 48
+    var alignment: DockAlignment = .center
     var margin: Double = 8
+
+    // Appearance
+    var iconSize: Double = 48
     var itemSpacing: Double = 6
+    var chromeStyle: ChromeStyle = .glass
+    var chromeOpacity: Double = 1
+    var cornerRadiusScale: Double = 0.28
+    var indicatorStyle: IndicatorStyle = .dot
+
+    // Magnification
+    var isMagnificationEnabled: Bool = false
+    var magnificationScale: Double = 1.6
+    var hoverScale: Double = 1.12
+
+    // Behaviour
     var showRunningApps: Bool = true
     var showOnPrimaryDisplay: Bool = true
+    var autoHide: Bool = false
+    var autoHideDelay: Double = 0.4
+    var hideDuringFullscreen: Bool = true
+    var activeClickBehavior: ActiveClickBehavior = .hide
+    var launchAtLogin: Bool = false
+
+    // Contents
     var pinnedBundleIdentifiers: [String] = Settings.defaultPins
+    var hiddenBundleIdentifiers: [String] = []
 
     /// Per-display overrides, keyed by `CGDirectDisplayID` rendered as a string
     /// because JSON object keys cannot be numbers.
@@ -27,45 +51,127 @@ struct Settings: Codable, Equatable, Sendable {
 
     func resolved(for display: Display) -> ResolvedDockConfiguration {
         let override = perDisplay[String(display.id)]
-        let enabled = override?.isEnabled ?? (display.isPrimary ? showOnPrimaryDisplay : true)
+        let inheritedEnabled = display.isPrimary ? showOnPrimaryDisplay : true
 
         return ResolvedDockConfiguration(
-            isEnabled: enabled,
+            isEnabled: override?.isEnabled ?? inheritedEnabled,
             edge: override?.edge ?? edge,
-            iconSize: CGFloat(override?.iconSize ?? iconSize),
+            alignment: override?.alignment ?? alignment,
             margin: CGFloat(margin),
+            iconSize: CGFloat(override?.iconSize ?? iconSize),
             itemSpacing: CGFloat(itemSpacing),
+            chromeStyle: chromeStyle,
+            chromeOpacity: chromeOpacity,
+            cornerRadiusScale: cornerRadiusScale,
+            indicatorStyle: indicatorStyle,
+            isMagnificationEnabled: isMagnificationEnabled,
+            magnificationScale: CGFloat(magnificationScale),
+            hoverScale: CGFloat(hoverScale),
             showRunningApps: override?.showRunningApps ?? showRunningApps,
+            activeClickBehavior: activeClickBehavior,
+            hiddenBundleIdentifiers: Set(hiddenBundleIdentifiers),
             allowedBundleIdentifiers: override?.allowedBundleIdentifiers
         )
+    }
+
+    func override(forDisplay id: CGDirectDisplayID) -> DisplayOverride {
+        perDisplay[String(id)] ?? DisplayOverride()
+    }
+
+    mutating func setOverride(_ override: DisplayOverride, forDisplay id: CGDirectDisplayID) {
+        perDisplay[String(id)] = override
     }
 }
 
 /// A per-display deviation. Every field is optional; nil means "inherit".
+///
+/// Only options that are genuinely per-screen live here. Making every setting
+/// overridable doubles the surface area and buys almost nothing.
 struct DisplayOverride: Codable, Equatable, Sendable {
     var isEnabled: Bool?
     var edge: DockEdge?
+    var alignment: DockAlignment?
     var iconSize: Double?
     var showRunningApps: Bool?
 
     /// nil shows every app. A non-nil list shows only those, which is how one
     /// screen carries comms and another carries tools.
     var allowedBundleIdentifiers: [String]?
+
+    var isDefault: Bool {
+        self == DisplayOverride()
+    }
 }
 
 /// Global settings collapsed with one display's overrides, so panel code never
-/// has to reason about inheritance.
+/// reasons about inheritance.
 struct ResolvedDockConfiguration: Equatable, Sendable {
     let isEnabled: Bool
     let edge: DockEdge
-    let iconSize: CGFloat
+    let alignment: DockAlignment
     let margin: CGFloat
+    let iconSize: CGFloat
     let itemSpacing: CGFloat
+    let chromeStyle: ChromeStyle
+    let chromeOpacity: Double
+    let cornerRadiusScale: Double
+    let indicatorStyle: IndicatorStyle
+    let isMagnificationEnabled: Bool
+    let magnificationScale: CGFloat
+    let hoverScale: CGFloat
     let showRunningApps: Bool
+    let activeClickBehavior: ActiveClickBehavior
+    let hiddenBundleIdentifiers: Set<String>
     let allowedBundleIdentifiers: [String]?
 
     func allows(bundleIdentifier: String) -> Bool {
+        guard !hiddenBundleIdentifiers.contains(bundleIdentifier) else { return false }
         guard let allowedBundleIdentifiers else { return true }
         return allowedBundleIdentifiers.contains(bundleIdentifier)
+    }
+}
+
+extension Settings {
+    /// Tolerant decoding.
+    ///
+    /// Swift's synthesised `Decodable` ignores property default values and
+    /// throws on any missing key, so adding one setting would make every
+    /// existing settings file unreadable and silently reset the user's pins,
+    /// their per-display overrides, everything. Each key is therefore decoded
+    /// independently and falls back to its default.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fallback = Settings()
+
+        func value<Value: Decodable>(_ key: CodingKeys, _ default: Value) -> Value {
+            (try? container.decodeIfPresent(Value.self, forKey: key)) .flatMap { $0 } ?? `default`
+        }
+
+        edge = value(.edge, fallback.edge)
+        alignment = value(.alignment, fallback.alignment)
+        margin = value(.margin, fallback.margin)
+
+        iconSize = value(.iconSize, fallback.iconSize)
+        itemSpacing = value(.itemSpacing, fallback.itemSpacing)
+        chromeStyle = value(.chromeStyle, fallback.chromeStyle)
+        chromeOpacity = value(.chromeOpacity, fallback.chromeOpacity)
+        cornerRadiusScale = value(.cornerRadiusScale, fallback.cornerRadiusScale)
+        indicatorStyle = value(.indicatorStyle, fallback.indicatorStyle)
+
+        isMagnificationEnabled = value(.isMagnificationEnabled, fallback.isMagnificationEnabled)
+        magnificationScale = value(.magnificationScale, fallback.magnificationScale)
+        hoverScale = value(.hoverScale, fallback.hoverScale)
+
+        showRunningApps = value(.showRunningApps, fallback.showRunningApps)
+        showOnPrimaryDisplay = value(.showOnPrimaryDisplay, fallback.showOnPrimaryDisplay)
+        autoHide = value(.autoHide, fallback.autoHide)
+        autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
+        hideDuringFullscreen = value(.hideDuringFullscreen, fallback.hideDuringFullscreen)
+        activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
+        launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
+
+        pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
+        hiddenBundleIdentifiers = value(.hiddenBundleIdentifiers, fallback.hiddenBundleIdentifiers)
+        perDisplay = value(.perDisplay, fallback.perDisplay)
     }
 }

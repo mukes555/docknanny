@@ -1,20 +1,39 @@
 import AppKit
 
-/// Launches or focuses the application behind a dock tile.
-///
-/// Phase 1 deliberately stops at launch and activate. Window cycling,
-/// minimise and move-to-this-display arrive with `WindowIndex` in Phase 3,
-/// once window identity is resolved properly rather than guessed from titles.
+/// Launches, focuses or hides the application behind a dock tile.
 @MainActor
 enum AppActivator {
-    static func activate(bundleIdentifier: String) {
-        if let running = runningApplication(withBundleIdentifier: bundleIdentifier) {
-            let didActivate = running.activate()
-            guard !didActivate else { return }
+    static func activate(bundleIdentifier: String, whenActive behavior: ActiveClickBehavior) {
+        guard let running = runningApplication(withBundleIdentifier: bundleIdentifier) else {
+            launch(bundleIdentifier: bundleIdentifier)
+            return
+        }
+
+        if running.isActive {
+            applyActiveBehavior(behavior, to: running)
+            return
+        }
+
+        // A hidden app stays hidden through activate(), so unhide first.
+        if running.isHidden {
+            running.unhide()
+        }
+        guard running.activate() else {
             Log.workspace.notice("Activation refused for \(bundleIdentifier, privacy: .public)")
             return
         }
-        launch(bundleIdentifier: bundleIdentifier)
+    }
+
+    private static func applyActiveBehavior(
+        _ behavior: ActiveClickBehavior,
+        to application: NSRunningApplication
+    ) {
+        switch behavior {
+        case .doNothing:
+            return
+        case .hide:
+            application.hide()
+        }
     }
 
     private static func launch(bundleIdentifier: String) {
