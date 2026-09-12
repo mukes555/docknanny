@@ -9,8 +9,8 @@ import SwiftUI
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
 
-    init(store: SettingsStore, displays: DisplayRegistry) {
-        let root = SettingsRootView(store: store, displays: displays)
+    init(store: SettingsStore, displays: DisplayRegistry, section: SettingsSection = .layout) {
+        let root = SettingsRootView(store: store, displays: displays, initialSection: section)
         self.window = NSWindow(contentViewController: NSHostingController(rootView: root))
 
         super.init()

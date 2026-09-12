@@ -8,16 +8,23 @@ struct AppsSettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if store.settings.pinnedBundleIdentifiers.isEmpty {
+            if isEmpty {
                 emptyState
             } else {
                 list
+                Divider()
+                toolbar
             }
-            Divider()
-            toolbar
         }
     }
 
+    private var isEmpty: Bool {
+        store.settings.pinnedBundleIdentifiers.isEmpty
+    }
+
+    /// The empty state carries its own call to action, so the toolbar below it
+    /// would be a second Add button beside instructions for reordering a list
+    /// that has nothing in it.
     private var emptyState: some View {
         ContentUnavailableView {
             Label("No pinned apps", systemImage: "square.grid.2x2")

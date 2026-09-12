@@ -34,7 +34,9 @@ struct SettingsRootView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
 
-    @State private var selection: SettingsSection? = .layout
+    var initialSection: SettingsSection = .layout
+
+    @State private var selection: SettingsSection?
 
     var body: some View {
         NavigationSplitView {
@@ -50,6 +52,7 @@ struct SettingsRootView: View {
                 .navigationTitle(selection?.title ?? "Settings")
         }
         .frame(minWidth: 720, minHeight: 480)
+        .onAppear { selection = selection ?? initialSection }
     }
 
     @ViewBuilder
