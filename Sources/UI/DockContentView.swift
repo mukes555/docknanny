@@ -2,16 +2,18 @@ import SwiftUI
 
 /// The contents of one dock: a row or column of tiles on a slab.
 ///
-/// The slab is pinned to the anchored edge and the panel is larger than the
-/// slab, so magnified tiles grow into empty space rather than being clipped.
-/// All sizing arrives precomputed in ``DockFit``; this view never derives its
-/// own, because the window frame is built from the same numbers and the two
-/// drifting apart is what put tiles off-screen before.
+/// The slab is pinned to the anchored edge and the panel is larger than it, so
+/// magnified tiles grow into empty space rather than being clipped. All sizing
+/// arrives precomputed in ``DockFit``; this view never derives its own, because
+/// the window frame is built from the same numbers and the two drifting apart
+/// is what put tiles off-screen before.
 struct DockContentView: View {
     let items: [DockItem]
     let fit: DockFit
     let configuration: ResolvedDockConfiguration
+    var isRevealed: Bool = true
     let actions: DockActions
+    var onPointerInside: (Bool) -> Void = { _ in }
 
     @State private var pointerAxisPosition: CGFloat?
     @State private var isDropTarget = false
@@ -21,16 +23,12 @@ struct DockContentView: View {
     }
 
     var body: some View {
-        ZStack(alignment: anchorAlignment) {
-            DockChrome(
-                style: configuration.chromeStyle,
-                cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
-                opacity: configuration.chromeOpacity
-            )
-            .frame(width: fit.slabSize.width, height: fit.slabSize.height)
-            .overlay { dropHighlight }
-
-            tiles
+        Group {
+            if isRevealed {
+                dock
+            } else {
+                sliver
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: anchorAlignment)
         .dropDestination(for: URL.self) { urls, _ in
@@ -41,9 +39,34 @@ struct DockContentView: View {
         } isTargeted: { isDropTarget = $0 }
     }
 
+    /// What auto-hide leaves behind: invisible, but present enough to catch a
+    /// pointer pushed against the screen edge.
+    private var sliver: some View {
+        Color.white.opacity(0.001)
+            .contentShape(.rect)
+            .onContinuousHover { phase in
+                if case .active = phase { onPointerInside(true) }
+            }
+    }
+
+    private var dock: some View {
+        ZStack(alignment: anchorAlignment) {
+            DockChrome(
+                style: configuration.chromeStyle,
+                cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
+                opacity: configuration.chromeOpacity
+            )
+            .frame(width: fit.slabSize.width, height: fit.slabSize.height)
+            .overlay { dropHighlight }
+            .overlay { GroupSeparator(fit: fit, configuration: configuration, items: visibleItems) }
+
+            tiles
+        }
+        .overlay(alignment: anchorAlignment) { hoverLabel }
+    }
+
     /// Dropping an app onto a dock pins it. Without a target highlight the drag
-    /// gives no sign it will land, which reads as the app being unable to
-    /// accept it.
+    /// gives no sign it will land.
     @ViewBuilder
     private var dropHighlight: some View {
         if isDropTarget {
@@ -52,7 +75,6 @@ struct DockContentView: View {
                 style: .continuous
             )
             .strokeBorder(.tint, lineWidth: 2)
-            .transition(.opacity)
         }
     }
 
@@ -72,8 +94,10 @@ struct DockContentView: View {
                 switch phase {
                 case .active(let location):
                     pointerAxisPosition = configuration.edge.isVertical ? location.y : location.x
+                    onPointerInside(true)
                 case .ended:
                     pointerAxisPosition = nil
+                    onPointerInside(false)
                 }
             }
     }
@@ -119,6 +143,41 @@ struct DockContentView: View {
             }
             .help("\(fit.overflowCount) more apps do not fit on this display")
             .accessibilityLabel("\(fit.overflowCount) more apps")
+    }
+
+    @ViewBuilder
+    private var hoverLabel: some View {
+        if let index = hoveredIndex, index < visibleItems.count {
+            TileLabel(text: visibleItems[index].name)
+                .offset(labelOffset(forTileAt: index))
+                .allowsHitTesting(false)
+                .transition(.opacity)
+        }
+    }
+
+    private var hoveredIndex: Int? {
+        guard let pointerAxisPosition else { return nil }
+        let reach = (fit.iconSize + configuration.itemSpacing) / 2
+
+        return visibleItems.indices.first { index in
+            abs(pointerAxisPosition - centre(ofTileAt: index)) <= reach
+        }
+    }
+
+    /// Places the label beside the hovered tile, pushed clear of the slab.
+    private func labelOffset(forTileAt index: Int) -> CGSize {
+        let slabLength = configuration.edge.isVertical ? fit.slabSize.height : fit.slabSize.width
+        let alongAxis = centre(ofTileAt: index) - slabLength / 2
+        let clearance = DockMetrics.slabThickness(
+            iconSize: fit.iconSize,
+            spacing: configuration.itemSpacing
+        ) + 6
+
+        switch configuration.edge {
+        case .bottom: return CGSize(width: alongAxis, height: -clearance)
+        case .left: return CGSize(width: clearance, height: alongAxis)
+        case .right: return CGSize(width: -clearance, height: alongAxis)
+        }
     }
 
     /// Distance from the slab's leading edge to the centre of tile `index`,

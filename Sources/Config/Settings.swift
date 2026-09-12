@@ -28,6 +28,8 @@ struct Settings: Codable, Equatable, Sendable {
     // Behaviour
     var showRunningApps: Bool = true
     var showOnPrimaryDisplay: Bool = true
+    var autoHide: Bool = false
+    var autoHideDelay: Double = 0.15
     var activeClickBehavior: ActiveClickBehavior = .hide
     var launchAtLogin: Bool = false
 
@@ -65,6 +67,8 @@ struct Settings: Codable, Equatable, Sendable {
             magnificationScale: CGFloat(magnificationScale.clamped(to: Limits.scale)),
             hoverScale: CGFloat(hoverScale.clamped(to: Limits.scale)),
             showRunningApps: override?.showRunningApps ?? showRunningApps,
+            autoHide: autoHide,
+            autoHideDelay: autoHideDelay.clamped(to: Limits.revealDelay),
             activeClickBehavior: activeClickBehavior,
             hiddenBundleIdentifiers: Set(hiddenBundleIdentifiers),
             allowedBundleIdentifiers: override?.allowedBundleIdentifiers
@@ -117,6 +121,8 @@ struct ResolvedDockConfiguration: Equatable, Sendable {
     let magnificationScale: CGFloat
     let hoverScale: CGFloat
     let showRunningApps: Bool
+    let autoHide: Bool
+    let autoHideDelay: Double
     let activeClickBehavior: ActiveClickBehavior
     let hiddenBundleIdentifiers: Set<String>
     let allowedBundleIdentifiers: [String]?
@@ -161,6 +167,8 @@ extension Settings {
 
         showRunningApps = value(.showRunningApps, fallback.showRunningApps)
         showOnPrimaryDisplay = value(.showOnPrimaryDisplay, fallback.showOnPrimaryDisplay)
+        autoHide = value(.autoHide, fallback.autoHide)
+        autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
 
@@ -182,6 +190,7 @@ extension Settings {
         static let scale: ClosedRange<Double> = 1.0...2.5
         static let chromeOpacity: ClosedRange<Double> = 0.2...1
         static let cornerRadiusScale: ClosedRange<Double> = 0...0.5
+        static let revealDelay: ClosedRange<Double> = 0...1.5
     }
 
     private static func decodePerDisplay(

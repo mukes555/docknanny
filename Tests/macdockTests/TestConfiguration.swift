@@ -14,6 +14,7 @@ enum TestConfiguration {
         magnificationScale: CGFloat = 1.6,
         hoverScale: CGFloat = 1.12,
         showRunningApps: Bool = true,
+        autoHide: Bool = false,
         hidden: Set<String> = [],
         allowed: [String]? = nil
     ) -> ResolvedDockConfiguration {
@@ -32,6 +33,8 @@ enum TestConfiguration {
             magnificationScale: magnificationScale,
             hoverScale: hoverScale,
             showRunningApps: showRunningApps,
+            autoHide: autoHide,
+            autoHideDelay: 0.15,
             activeClickBehavior: .hide,
             hiddenBundleIdentifiers: hidden,
             allowedBundleIdentifiers: allowed
