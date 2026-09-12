@@ -10,8 +10,14 @@ final class StatusItemController {
     private let statusItem: NSStatusItem
     private let onQuit: () -> Void
     private let onOpenSetup: () -> Void
+    private let onOpenSettings: () -> Void
 
-    init(onOpenSetup: @escaping () -> Void, onQuit: @escaping () -> Void) {
+    init(
+        onOpenSettings: @escaping () -> Void,
+        onOpenSetup: @escaping () -> Void,
+        onQuit: @escaping () -> Void
+    ) {
+        self.onOpenSettings = onOpenSettings
         self.onOpenSetup = onOpenSetup
         self.onQuit = onQuit
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -37,6 +43,10 @@ final class StatusItemController {
         menu.addItem(about)
         menu.addItem(.separator())
 
+        let settings = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+
         let setup = NSMenuItem(title: "Set Up macdock...", action: #selector(openSetup), keyEquivalent: "")
         setup.target = self
         menu.addItem(setup)
@@ -51,6 +61,11 @@ final class StatusItemController {
         menu.addItem(quit)
 
         return menu
+    }
+
+    @objc
+    private func openSettings() {
+        onOpenSettings()
     }
 
     @objc
