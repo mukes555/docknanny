@@ -1,0 +1,110 @@
+# macdock lint policy.
+#
+# File-size thresholds intentionally mirror the project's cognitive-load rule:
+# aim for ~300 lines, split at ~500, and treat 1000 as a hard ceiling for
+# logic files. SwiftLint warns at the aim and fails the build at the ceiling.
+
+included:
+  - Sources
+  - Spike/Sources
+  - Tests
+
+excluded:
+  - .build
+  - .tmp
+  - DerivedData
+
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+opt_in_rules:
+  - array_init
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - explicit_init
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - joined_default_parameter
+  - last_where
+  - literal_expression_end_indentation
+  - modifier_order
+  - operator_usage_whitespace
+  - overridden_super_call
+  - prefer_self_type_over_type_of_self
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
+
+disabled_rules:
+  - todo
+
+file_length:
+  warning: 300
+  error: 1000
+  ignore_comment_only_lines: true
+
+type_body_length:
+  warning: 250
+  error: 400
+
+function_body_length:
+  warning: 40
+  error: 100
+
+function_parameter_count:
+  warning: 5
+  error: 8
+
+# Deeply nested conditionals are the exact thing the project style forbids.
+cyclomatic_complexity:
+  warning: 8
+  error: 15
+
+nesting:
+  type_level: 2
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_urls: true
+  ignores_comments: false
+
+identifier_name:
+  min_length:
+    warning: 3
+    error: 2
+  excluded: [id, x, y, dx, dy, to, of, on, up]
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 45
+    error: 60
+
+force_cast: error
+force_try: error
+force_unwrapping: error
+
+custom_rules:
+  no_print_in_sources:
+    included: ".*Sources/.*\\.swift"
+    excluded: ".*/Spike/.*"
+    regex: "(^|\\s)print\\("
+    message: "Use the Log facility instead of print() in app sources."
+    severity: warning
+  no_em_dash:
+    regex: "[—–]"
+    message: "Use a comma, colon, period or parentheses instead of an em/en dash."
+    severity: warning
