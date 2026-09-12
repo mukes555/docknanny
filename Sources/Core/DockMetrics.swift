@@ -46,12 +46,11 @@ enum DockMetrics {
     /// label sits at 66pt, so it never rendered once.
     static let labelClearance: CGFloat = 26
 
-    /// How far a tile grows past the slab at its largest.
+    /// How far a tile grows past the slab at its largest. One magnitude serves
+    /// both modes, so the reserved room does not change when magnification is
+    /// switched on: only how many tiles reach it does.
     static func headroom(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
-        let peak = configuration.isMagnificationEnabled
-            ? configuration.magnificationScale
-            : configuration.hoverScale
-        return iconSize * max(0, peak - 1)
+        iconSize * max(0, configuration.magnificationScale - 1)
     }
 
     static func fit(
@@ -105,8 +104,10 @@ enum DockMetrics {
         )
     }
 
+    /// Concentric with the tiles' own corners, which is the only radius that
+    /// ever looks settled. It was a slider; nobody needs to choose this.
     static func cornerRadius(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
-        slabThickness(iconSize: iconSize, spacing: configuration.itemSpacing) * configuration.cornerRadiusScale
+        iconSize * 0.2237 + configuration.itemSpacing
     }
 
     /// Largest tile size at which `tileCount` tiles plus their magnification
@@ -139,10 +140,7 @@ enum DockMetrics {
     }
 
     private static func growthFactor(for configuration: ResolvedDockConfiguration) -> CGFloat {
-        let peak = configuration.isMagnificationEnabled
-            ? configuration.magnificationScale
-            : configuration.hoverScale
-        return max(0, peak - 1)
+        max(0, configuration.magnificationScale - 1)
     }
 
     private static func assemble(

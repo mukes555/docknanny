@@ -54,7 +54,7 @@ struct DockContentView: View {
             DockChrome(
                 style: configuration.chromeStyle,
                 cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
-                opacity: configuration.chromeOpacity
+                tint: configuration.tint
             )
             .frame(width: fit.slabSize.width, height: fit.slabSize.height)
             .overlay { dropHighlight }
@@ -192,14 +192,15 @@ struct DockContentView: View {
         guard let pointerAxisPosition else { return 1 }
         let distance = abs(pointerAxisPosition - centre(ofTileAt: index))
 
-        guard configuration.isMagnificationEnabled else {
-            let isUnderPointer = distance <= fit.iconSize / 2
-            return isUnderPointer ? configuration.hoverScale : 1
-        }
+        // The mode changes reach, not magnitude: without magnification only
+        // the tile under the pointer responds, with it the neighbours do too.
+        let radius = configuration.isMagnificationEnabled
+            ? fit.iconSize * 2.5
+            : fit.iconSize * 0.5
 
         return Magnification.scale(
             distance: distance,
-            influenceRadius: fit.iconSize * 2.5,
+            influenceRadius: radius,
             maximumScale: configuration.magnificationScale
         )
     }

@@ -108,7 +108,7 @@ struct DockPreview: View {
 
     private func reload() {
         items = DockContents.items(
-            pinned: Array(settings.pinnedBundleIdentifiers.prefix(8)),
+            pinned: Array(configuration.pinnedBundleIdentifiers.prefix(8)),
             running: [],
             configuration: configuration,
             iconProvider: DockContents.icon(forBundleIdentifier:)

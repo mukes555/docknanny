@@ -134,7 +134,7 @@ final class DockCoordinator {
 
     private func buildItems(for configuration: ResolvedDockConfiguration) -> [DockItem] {
         DockContents.items(
-            pinned: settings.settings.pinnedBundleIdentifiers,
+            pinned: configuration.pinnedBundleIdentifiers,
             running: apps.apps,
             configuration: configuration,
             iconProvider: DockContents.icon(forBundleIdentifier:)

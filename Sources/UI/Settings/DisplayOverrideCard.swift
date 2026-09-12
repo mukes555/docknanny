@@ -38,6 +38,23 @@ struct DisplayOverrideCard: View {
                 range: Settings.Limits.iconSize
             )
             SettingsDivider()
+            SettingsToggle(
+                title: "Hide automatically",
+                isOn: Binding(
+                    get: { override.autoHide ?? globalSettings.autoHide },
+                    set: { override.autoHide = $0 }
+                )
+            )
+            SettingsDivider()
+            TintRow(
+                title: "Tint",
+                subtitle: "Tell this screen's dock apart from the others.",
+                selection: Binding(
+                    get: { override.tint ?? globalSettings.tint },
+                    set: { override.tint = $0 }
+                )
+            )
+            SettingsDivider()
             appFilterRow
             SettingsDivider()
             resetRow
