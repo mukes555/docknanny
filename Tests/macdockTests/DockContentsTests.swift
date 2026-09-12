@@ -3,23 +3,6 @@ import Testing
 
 @testable import macdock
 
-private extension ResolvedDockConfiguration {
-    static func make(
-        showRunningApps: Bool = true,
-        allowed: [String]? = nil
-    ) -> ResolvedDockConfiguration {
-        ResolvedDockConfiguration(
-            isEnabled: true,
-            edge: .bottom,
-            iconSize: 48,
-            margin: 8,
-            itemSpacing: 6,
-            showRunningApps: showRunningApps,
-            allowedBundleIdentifiers: allowed
-        )
-    }
-}
-
 private func runningApp(_ identifier: String, isActive: Bool = false) -> RunningApp {
     RunningApp(
         id: identifier,
@@ -39,7 +22,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["a", "b", "c"],
             running: [runningApp("c"), runningApp("a")],
-            configuration: .make(),
+            configuration: TestConfiguration.make(),
             iconProvider: noIcons
         )
 
@@ -51,7 +34,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["a"],
             running: [runningApp("z"), runningApp("a")],
-            configuration: .make(),
+            configuration: TestConfiguration.make(),
             iconProvider: noIcons
         )
 
@@ -65,7 +48,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["ghost"],
             running: [],
-            configuration: .make(),
+            configuration: TestConfiguration.make(),
             iconProvider: noIcons
         )
 
@@ -78,7 +61,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["a"],
             running: [runningApp("z")],
-            configuration: .make(showRunningApps: false),
+            configuration: TestConfiguration.make(showRunningApps: false),
             iconProvider: noIcons
         )
 
@@ -90,7 +73,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["a", "b"],
             running: [runningApp("z")],
-            configuration: .make(allowed: ["a"]),
+            configuration: TestConfiguration.make(allowed: ["a"]),
             iconProvider: noIcons
         )
 
@@ -102,7 +85,7 @@ struct DockContentsTests {
         let items = DockContents.items(
             pinned: ["a"],
             running: [runningApp("a", isActive: true)],
-            configuration: .make(),
+            configuration: TestConfiguration.make(),
             iconProvider: noIcons
         )
 

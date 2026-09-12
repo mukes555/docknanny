@@ -20,8 +20,9 @@ final class DockPanelController {
         self.display = display
         self.configuration = configuration
 
-        let content = DockContentView(items: items, configuration: configuration, onActivate: Self.activate)
-        self.hosting = NSHostingView(rootView: content)
+        self.hosting = NSHostingView(
+            rootView: Self.content(items: items, configuration: configuration)
+        )
         let initialFrame = Self.frame(
             for: display,
             configuration: configuration,
@@ -40,11 +41,7 @@ final class DockPanelController {
         self.display = display
         self.configuration = configuration
 
-        hosting.rootView = DockContentView(
-            items: items,
-            configuration: configuration,
-            onActivate: Self.activate
-        )
+        hosting.rootView = Self.content(items: items, configuration: configuration)
 
         let frame = Self.frame(for: display, configuration: configuration, itemCount: items.count)
         guard frame != panel.frame else { return }
@@ -57,8 +54,16 @@ final class DockPanelController {
         Log.panel.info("Dock panel closed on display \(self.displayID, privacy: .public)")
     }
 
-    private static func activate(_ item: DockItem) {
-        AppActivator.activate(bundleIdentifier: item.id)
+    private static func content(
+        items: [DockItem],
+        configuration: ResolvedDockConfiguration
+    ) -> DockContentView {
+        DockContentView(items: items, configuration: configuration) { item in
+            AppActivator.activate(
+                bundleIdentifier: item.id,
+                whenActive: configuration.activeClickBehavior
+            )
+        }
     }
 
     private static func frame(
@@ -74,7 +79,8 @@ final class DockPanelController {
             of: display.visibleFrame,
             thickness: configuration.edge.isVertical ? size.width : size.height,
             length: length,
-            margin: configuration.margin
+            margin: configuration.margin,
+            alignment: configuration.alignment
         )
     }
 }

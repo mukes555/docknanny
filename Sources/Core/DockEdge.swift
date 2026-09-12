@@ -45,11 +45,18 @@ enum DockPlacement {
         of visibleFrame: CGRect,
         thickness: CGFloat,
         length: CGFloat,
-        margin: CGFloat
+        margin: CGFloat,
+        alignment: DockAlignment = .center
     ) -> CGRect {
         let clampedLength = min(length, availableLength(againstEdge: edge, of: visibleFrame, margin: margin))
         let size = size(for: edge, thickness: thickness, length: clampedLength)
-        let origin = origin(for: edge, in: visibleFrame, size: size, margin: margin)
+        let origin = origin(
+            for: edge,
+            in: visibleFrame,
+            size: size,
+            margin: margin,
+            alignment: alignment
+        )
         return CGRect(origin: origin, size: size)
     }
 
@@ -63,18 +70,40 @@ enum DockPlacement {
         for edge: DockEdge,
         in visibleFrame: CGRect,
         size: CGSize,
-        margin: CGFloat
+        margin: CGFloat,
+        alignment: DockAlignment
     ) -> CGPoint {
-        let centredHorizontally = visibleFrame.midX - size.width / 2
-        let centredVertically = visibleFrame.midY - size.height / 2
-
         switch edge {
         case .bottom:
-            return CGPoint(x: centredHorizontally, y: visibleFrame.minY + margin)
+            let x = alignedOffset(
+                span: visibleFrame.width, length: size.width, margin: margin, alignment: alignment
+            )
+            return CGPoint(x: visibleFrame.minX + x, y: visibleFrame.minY + margin)
         case .left:
-            return CGPoint(x: visibleFrame.minX + margin, y: centredVertically)
+            let y = alignedOffset(
+                span: visibleFrame.height, length: size.height, margin: margin, alignment: alignment
+            )
+            return CGPoint(x: visibleFrame.minX + margin, y: visibleFrame.minY + y)
         case .right:
-            return CGPoint(x: visibleFrame.maxX - margin - size.width, y: centredVertically)
+            let y = alignedOffset(
+                span: visibleFrame.height, length: size.height, margin: margin, alignment: alignment
+            )
+            return CGPoint(x: visibleFrame.maxX - margin - size.width, y: visibleFrame.minY + y)
+        }
+    }
+
+    /// Offset along the anchored edge. `start` means bottom for a vertical dock
+    /// and left for a horizontal one, matching AppKit's bottom-left origin.
+    private static func alignedOffset(
+        span: CGFloat,
+        length: CGFloat,
+        margin: CGFloat,
+        alignment: DockAlignment
+    ) -> CGFloat {
+        switch alignment {
+        case .start: margin
+        case .center: (span - length) / 2
+        case .end: span - length - margin
         }
     }
 }
