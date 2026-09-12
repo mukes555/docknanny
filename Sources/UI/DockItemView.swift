@@ -21,7 +21,7 @@ struct DockItemView: View {
             .overlay(alignment: indicatorAlignment) { indicator }
             .contentShape(.rect)
             .onTapGesture { actions.activate(item) }
-            .contextMenu { menu }
+            .background { TileContextMenu(build: makeMenu) }
             .help(item.name)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
@@ -32,19 +32,23 @@ struct DockItemView: View {
         return item.isActive ? "\(item.name), active" : "\(item.name), running"
     }
 
-    @ViewBuilder
-    private var menu: some View {
-        Button("Show in Finder") { actions.reveal(item) }
+    private func makeMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(ClosureMenuItem(title: item.name) {})
+        menu.items.first?.isEnabled = false
+        menu.addItem(.separator())
 
-        Button(item.isPinned ? "Remove from Dock" : "Keep in Dock") {
-            actions.togglePin(item)
-        }
+        menu.addItem(ClosureMenuItem(title: "Show in Finder") { actions.reveal(item) })
+        menu.addItem(ClosureMenuItem(
+            title: item.isPinned ? "Remove from Dock" : "Keep in Dock"
+        ) { actions.togglePin(item) })
 
-        if item.isRunning {
-            Divider()
-            Button("Hide") { actions.hide(item) }
-            Button("Quit") { actions.quit(item) }
-        }
+        guard item.isRunning else { return menu }
+
+        menu.addItem(.separator())
+        menu.addItem(ClosureMenuItem(title: "Hide") { actions.hide(item) })
+        menu.addItem(ClosureMenuItem(title: "Quit") { actions.quit(item) })
+        return menu
     }
 
     /// Tiles grow away from the screen edge, never through it.
