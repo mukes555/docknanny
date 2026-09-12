@@ -13,13 +13,13 @@ struct LayoutSettingsView: View {
                     subtitle: "Which side of each display the dock hugs.",
                     selection: $store.settings.edge
                 )
-                Divider()
+                SettingsDivider()
                 SettingsPicker(
                     title: "Alignment",
                     subtitle: "Where along that edge it sits.",
                     selection: $store.settings.alignment
                 )
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: "Margin",
                     subtitle: "Gap between the dock and the screen edge.",

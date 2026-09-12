@@ -39,6 +39,13 @@ enum DockMetrics {
         iconSize + spacing * 2
     }
 
+    /// Room reserved beyond the slab for the hovered tile's name.
+    ///
+    /// Without this the label is offset past the edge of its own window and
+    /// clipped away: at default settings the panel is 65.76pt thick and the
+    /// label sits at 66pt, so it never rendered once.
+    static let labelClearance: CGFloat = 26
+
     /// How far a tile grows past the slab at its largest.
     static func headroom(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
         let peak = configuration.isMagnificationEnabled
@@ -152,7 +159,15 @@ enum DockMetrics {
         let slab = configuration.edge.isVertical
             ? CGSize(width: thickness, height: length)
             : CGSize(width: length, height: thickness)
-        let panel = CGSize(width: slab.width + growth, height: slab.height + growth)
+
+        // Magnification grows a tile on both axes, so its headroom applies to
+        // both. The label only ever appears beside the dock, never past its
+        // ends, so its clearance belongs to the thickness axis alone. Adding it
+        // to the length is what blew the screen budget the fit function had
+        // just carefully computed.
+        let panel = configuration.edge.isVertical
+            ? CGSize(width: slab.width + growth + labelClearance, height: slab.height + growth)
+            : CGSize(width: slab.width + growth, height: slab.height + growth + labelClearance)
 
         return DockFit(
             visibleItemCount: visible,

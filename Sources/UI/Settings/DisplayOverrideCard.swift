@@ -15,19 +15,19 @@ struct DisplayOverrideCard: View {
                     set: { override.isEnabled = $0 }
                 )
             )
-            Divider()
+            SettingsDivider()
             SettingsOptionalPicker(
                 title: "Edge",
                 selection: $override.edge,
                 inheritedName: globalSettings.edge.localizedName
             )
-            Divider()
+            SettingsDivider()
             SettingsOptionalPicker(
                 title: "Alignment",
                 selection: $override.alignment,
                 inheritedName: globalSettings.alignment.localizedName
             )
-            Divider()
+            SettingsDivider()
             SettingsSlider(
                 title: "Icon size",
                 subtitle: override.iconSize == nil ? "Following the global size." : nil,
@@ -37,9 +37,9 @@ struct DisplayOverrideCard: View {
                 ),
                 range: Settings.Limits.iconSize
             )
-            Divider()
+            SettingsDivider()
             appFilterRow
-            Divider()
+            SettingsDivider()
             resetRow
         }
     }

@@ -25,7 +25,7 @@ struct BehaviorSettingsView: View {
                     subtitle: "The dock retreats to a sliver at the screen edge until you point at it.",
                     isOn: $store.settings.autoHide
                 )
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: "Reveal delay",
                     subtitle: "How long the pointer must rest at the edge.",

@@ -21,7 +21,10 @@ final class DockPanel: NSPanel {
         hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // The slab draws its own shadow, which follows its rounded outline. A
+        // window shadow would follow the rectangular frame instead, boxing the
+        // transparent headroom above the dock.
+        hasShadow = false
         isMovable = false
         isMovableByWindowBackground = false
 

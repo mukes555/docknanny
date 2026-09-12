@@ -11,39 +11,45 @@ extension ChromeStyle: SettingsOption { var id: String { rawValue } }
 extension IndicatorStyle: SettingsOption { var id: String { rawValue } }
 extension ActiveClickBehavior: SettingsOption { var id: String { rawValue } }
 
-/// One labelled row: title and optional explanation on the left, control on
-/// the right.
-///
-/// Every pane is built from these, which is what keeps a pane a short list of
-/// declarations instead of a thousand lines of bespoke layout.
+/// One row: label and optional explanation on the left, control on the right,
+/// at a fixed height so a column of them reads as a ruled list rather than a
+/// stack of differently sized cards.
 struct SettingRow<Control: View>: View {
     let title: String
     var subtitle: String?
     @ViewBuilder let control: () -> Control
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .font(.system(size: 12))
+                    .settingsText(Theme.Text.row, Theme.Ink.primary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.secondary)
+                        .settingsText(Theme.Text.caption, Theme.Ink.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            // Read as one phrase. Left alone, VoiceOver announces the title and
-            // the explanation as two unrelated items, with the control it
-            // describes a third.
             .accessibilityElement(children: .combine)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 10)
 
             control()
-                .frame(minWidth: 150, maxWidth: 190, alignment: .trailing)
+                .frame(width: Theme.Metric.controlWidth, alignment: .trailing)
         }
-        .padding(.vertical, 5)
+        .padding(.horizontal, Theme.Metric.rowPadding)
+        .frame(minHeight: subtitle == nil ? Theme.Metric.rowHeight : Theme.Metric.rowHeight + 12)
+    }
+}
+
+/// The rule between rows. Inset from the left so it reads as a list separator
+/// rather than a box edge.
+struct SettingsDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Theme.Line.hairline)
+            .frame(height: 1)
+            .padding(.leading, Theme.Metric.rowPadding)
     }
 }
 
@@ -57,7 +63,8 @@ struct SettingsToggle: View {
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .controlSize(.small)
+                .controlSize(.mini)
+                .tint(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityLabel(title)
                 .accessibilityHint(subtitle ?? "")
@@ -85,69 +92,6 @@ struct SettingsPicker<Option: SettingsOption>: View where Option.AllCases: Rando
     }
 }
 
-struct SettingsSlider: View {
-    let title: String
-    var subtitle: String?
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    var step: Double = 1
-    var format: (Double) -> String = { "\(Int($0))" }
-
-    var body: some View {
-        SettingRow(title: title, subtitle: subtitle) {
-            HStack(spacing: 8) {
-                Slider(value: $value, in: range, step: step)
-                    .controlSize(.small)
-                    .accessibilityLabel(title)
-                    .accessibilityValue(format(value))
-                Text(format(value))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 38, alignment: .trailing)
-            }
-        }
-    }
-}
-
-/// A titled group of rows.
-struct SettingsGroup<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 2)
-                .accessibilityAddTraits(.isHeader)
-
-            VStack(spacing: 0) {
-                content()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 9))
-        }
-    }
-}
-
-/// The scrolling body shared by every pane.
-struct SettingsPane<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                content()
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-/// A picker whose nil case means "inherit the global setting".
 struct SettingsOptionalPicker<Option: SettingsOption>: View
 where Option.AllCases: RandomAccessCollection {
     let title: String
@@ -158,7 +102,7 @@ where Option.AllCases: RandomAccessCollection {
     var body: some View {
         SettingRow(title: title, subtitle: subtitle) {
             Picker("", selection: $selection) {
-                Text("Same as global (\(inheritedName))").tag(Option?.none)
+                Text("Global (\(inheritedName))").tag(Option?.none)
                 Divider()
                 ForEach(Option.allCases) { option in
                     Text(option.localizedName).tag(Option?.some(option))
@@ -167,7 +111,86 @@ where Option.AllCases: RandomAccessCollection {
             .labelsHidden()
             .controlSize(.small)
             .accessibilityLabel(title)
-            .accessibilityValue(selection?.localizedName ?? "same as global")
+            .accessibilityValue(selection?.localizedName ?? "global")
         }
+    }
+}
+
+struct SettingsSlider: View {
+    let title: String
+    var subtitle: String?
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 1
+    var format: (Double) -> String = { "\(Int($0))" }
+
+    var body: some View {
+        SettingRow(title: title, subtitle: subtitle) {
+            HStack(spacing: 10) {
+                Slider(value: $value, in: range, step: step)
+                    .controlSize(.mini)
+                    .tint(Theme.accent)
+                    .accessibilityLabel(title)
+                    .accessibilityValue(format(value))
+                ValueChip(text: format(value))
+            }
+        }
+    }
+}
+
+/// The numeric readout beside a slider, given the inset treatment that makes it
+/// read as a value rather than as a label.
+struct ValueChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+            .foregroundStyle(Theme.Ink.secondary)
+            .frame(minWidth: 42)
+            .padding(.vertical, 3)
+            .background(Theme.Surface.control, in: .rect(cornerRadius: 5))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Theme.Line.hairline, lineWidth: 1)
+            }
+    }
+}
+
+/// A titled group of rows.
+struct SettingsGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title.uppercased())
+                .settingsText(Theme.Text.section, Theme.Ink.tertiary)
+                .padding(.leading, 2)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .raisedSurface()
+        }
+    }
+}
+
+/// The scrolling body shared by every pane.
+struct SettingsPane<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Metric.gutter) {
+                content()
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.Surface.canvas)
     }
 }

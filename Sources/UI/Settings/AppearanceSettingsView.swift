@@ -9,9 +9,9 @@ struct AppearanceSettingsView: View {
 
             SettingsGroup(title: "Tiles") {
                 SettingsSlider(title: "Icon size", value: $store.settings.iconSize, range: Settings.Limits.iconSize)
-                Divider()
+                SettingsDivider()
                 SettingsSlider(title: "Spacing", value: $store.settings.itemSpacing, range: Settings.Limits.itemSpacing)
-                Divider()
+                SettingsDivider()
                 SettingsPicker(
                     title: "Running indicator",
                     selection: $store.settings.indicatorStyle
@@ -24,7 +24,7 @@ struct AppearanceSettingsView: View {
                     subtitle: "Tiles swell as the pointer approaches, like the system Dock.",
                     isOn: $store.settings.isMagnificationEnabled
                 )
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: store.settings.isMagnificationEnabled ? "Magnified size" : "Hover size",
                     value: magnitudeBinding,
@@ -36,7 +36,7 @@ struct AppearanceSettingsView: View {
 
             SettingsGroup(title: "Background") {
                 SettingsPicker(title: "Style", selection: $store.settings.chromeStyle)
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: "Opacity",
                     value: $store.settings.chromeOpacity,
@@ -44,7 +44,7 @@ struct AppearanceSettingsView: View {
                     step: 0.05,
                     format: { "\(Int($0 * 100))%" }
                 )
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: "Corner radius",
                     value: $store.settings.cornerRadiusScale,

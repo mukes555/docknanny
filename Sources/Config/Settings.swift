@@ -32,6 +32,7 @@ struct Settings: Codable, Equatable, Sendable {
     var autoHideDelay: Double = 0.15
     var activeClickBehavior: ActiveClickBehavior = .hide
     var launchAtLogin: Bool = false
+    var hasSeenWelcome: Bool = false
 
     // Contents
     var pinnedBundleIdentifiers: [String] = Settings.defaultPins
@@ -171,6 +172,7 @@ extension Settings {
         autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
+        hasSeenWelcome = value(.hasSeenWelcome, fallback.hasSeenWelcome)
 
         pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
         hiddenBundleIdentifiers = value(.hiddenBundleIdentifiers, fallback.hiddenBundleIdentifiers)

@@ -14,7 +14,8 @@ struct DockPreview: View {
     /// are resolved only when the pinned set actually changes.
     @State private var items: [DockItem] = []
 
-    private static let boxHeight: CGFloat = 150
+    /// Tall enough that a vertical dock is legible rather than a sliver.
+    private static let boxHeight: CGFloat = 190
     private static let boxInset: CGFloat = 14
 
     /// A synthetic display, so the preview reflects global settings rather than
@@ -66,14 +67,20 @@ struct DockPreview: View {
     }
 
     private func dock(in box: CGSize) -> some View {
-        DockContentView(
+        let factor = scale(toFit: box)
+
+        return DockContentView(
             items: items,
             fit: fit,
             configuration: configuration,
             actions: .inert
         )
         .frame(width: fit.panelSize.width, height: fit.panelSize.height)
-        .scaleEffect(scale(toFit: box), anchor: .center)
+        .scaleEffect(factor, anchor: .center)
+        // scaleEffect is a render-time transform: the view still claims its
+        // unscaled size in layout. Without restating the real occupied size the
+        // shrunken dock still overflowed the box and was clipped.
+        .frame(width: fit.panelSize.width * factor, height: fit.panelSize.height * factor)
         .allowsHitTesting(false)
         .padding(Self.boxInset)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: fit.panelSize)

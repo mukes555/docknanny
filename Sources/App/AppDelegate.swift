@@ -8,7 +8,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var apps: RunningAppsMonitor?
     private var coordinator: DockCoordinator?
     private var statusItem: StatusItemController?
-    private var permissions: PermissionsService?
     private var onboarding: OnboardingWindowController?
     private var settingsWindow: SettingsWindowController?
 
@@ -39,9 +38,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         self.displays = displays
         self.apps = apps
-        let permissions = PermissionsService()
-        self.permissions = permissions
-
         self.coordinator = DockCoordinator(displays: displays, apps: apps, settings: settings)
         self.statusItem = StatusItemController(
             onOpenSettings: { [weak self] in self?.showSettings() },
@@ -53,9 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard !openWindowRequestedOnCommandLine() else { return }
 
-        // The dock is usable without Accessibility (launching and focusing apps
-        // needs no permission), so the wizard informs rather than blocks.
-        guard !permissions.isSatisfied else { return }
+        // Shown once, and only to say that nothing needs granting.
+        guard !settings.settings.hasSeenWelcome else { return }
+        settings.settings.hasSeenWelcome = true
         showOnboarding()
     }
 
@@ -105,8 +101,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showOnboarding() {
-        guard let permissions else { return }
-        let controller = onboarding ?? OnboardingWindowController(permissions: permissions)
+        let controller = onboarding ?? OnboardingWindowController(
+            onOpenSettings: { [weak self] in self?.showSettings() }
+        )
         onboarding = controller
         controller.show()
     }
