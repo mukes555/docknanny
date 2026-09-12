@@ -126,6 +126,60 @@ func drawRobotEye(in context: CGContext, lens: CGRect, scale: CGFloat) {
     }
 }
 
+/// The menu bar mark: the glasses reduced until they survive 18 points.
+///
+/// A template image is alpha only, so this is drawn in flat black and macOS
+/// recolours it for light, dark and tinted menu bars. The robot eyes, the temple
+/// arms and the lens fill all disappear here: at this size they turn to mud, and
+/// what is left, two rounded rectangles and a bridge, still reads as glasses.
+func drawMenuBarMark(size: CGFloat) -> CGImage? {
+    let scale = size / 36
+    guard let context = CGContext(
+        data: nil,
+        width: Int(size), height: Int(size),
+        bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+
+    context.setShouldAntialias(true)
+
+    let lensWidth = 13 * scale
+    let lensHeight = 11 * scale
+    let bridge = 3 * scale
+    let stroke = 2.6 * scale
+    let corner = 3.4 * scale
+
+    let totalWidth = lensWidth * 2 + bridge
+    let left = size / 2 - totalWidth / 2
+    let top = size / 2 - lensHeight / 2
+
+    context.setStrokeColor(CGColor(gray: 0, alpha: 1))
+    context.setFillColor(CGColor(gray: 0, alpha: 1))
+    context.setLineWidth(stroke)
+
+    for index in 0..<2 {
+        let rect = CGRect(
+            x: left + CGFloat(index) * (lensWidth + bridge),
+            y: top, width: lensWidth, height: lensHeight
+        )
+        context.addPath(CGPath(
+            roundedRect: rect.insetBy(dx: stroke / 2, dy: stroke / 2),
+            cornerWidth: corner, cornerHeight: corner, transform: nil
+        ))
+        context.strokePath()
+    }
+
+    context.fill(CGRect(
+        x: left + lensWidth - stroke / 2,
+        y: top + lensHeight - stroke * 1.5,
+        width: bridge + stroke,
+        height: stroke
+    ))
+
+    return context.makeImage()
+}
+
 func write(_ image: CGImage, to url: URL) throws {
     let rep = NSBitmapImageRep(cgImage: image)
     guard let data = rep.representation(using: .png, properties: [:]) else {
@@ -164,4 +218,10 @@ if let foreground = drawMark(size: 1024, includeGround: false) {
     try write(foreground, to: outputDirectory.appending(path: "mark-foreground-1024.png"))
 }
 
-print("wrote \(rungs.count) rungs plus composite and foreground to \(outputDirectory.path)")
+// Menu bar rungs. 18pt is the standard status-item height.
+for (name, pixels) in [("menubar", CGFloat(18)), ("menubar@2x", 36), ("menubar@3x", 54)] {
+    guard let image = drawMenuBarMark(size: pixels) else { continue }
+    try write(image, to: outputDirectory.appending(path: "\(name).png"))
+}
+
+print("wrote \(rungs.count) rungs, the menu bar mark, composite and foreground to \(outputDirectory.path)")

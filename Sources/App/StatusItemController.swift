@@ -28,11 +28,15 @@ final class StatusItemController {
 
     private func configureButton() {
         guard let button = statusItem.button else { return }
-        button.image = NSImage(
-            systemSymbolName: "menubar.dock.rectangle",
-            accessibilityDescription: "macdock"
-        )
+
+        // The brand mark, not a system glyph: this is the most-seen piece of
+        // branding the app has. Template rendering is declared in the asset
+        // catalogue, which is what lets macOS tint it for light, dark and
+        // tinted menu bars.
+        button.image = NSImage(named: "MenuBarIcon")
+            ?? NSImage(systemSymbolName: "menubar.dock.rectangle", accessibilityDescription: nil)
         button.image?.isTemplate = true
+        button.image?.accessibilityDescription = "macdock"
     }
 
     private func makeMenu() -> NSMenu {
