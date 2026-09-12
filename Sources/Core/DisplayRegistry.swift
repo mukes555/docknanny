@@ -65,7 +65,12 @@ final class DisplayRegistry {
 
     private func rebuild() {
         let rebuilt = NSScreen.screens.compactMap(Self.describe)
-        primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        // Keep the last known pivot when the screen list is momentarily empty
+        // (it is, during a display switch). Zeroing it would send every
+        // Accessibility coordinate conversion to the wrong place.
+        if let height = NSScreen.screens.first?.frame.height {
+            primaryHeight = height
+        }
 
         guard rebuilt != displays else { return }
         displays = rebuilt

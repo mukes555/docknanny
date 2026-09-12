@@ -11,15 +11,21 @@ enum LaunchAtLogin {
         SMAppService.mainApp.status == .enabled
     }
 
-    static func set(_ enabled: Bool) {
+    /// Returns whether the change actually took. macOS can refuse registration
+    /// (an unsigned build, a user-disabled login item), and a toggle that snaps
+    /// back with no explanation is worse than one that says why.
+    @discardableResult
+    static func set(_ enabled: Bool) -> Bool {
         do {
             if enabled {
                 try SMAppService.mainApp.register()
             } else {
                 try SMAppService.mainApp.unregister()
             }
+            return true
         } catch {
             Log.app.error("Launch at login change failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 }

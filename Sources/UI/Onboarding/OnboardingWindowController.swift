@@ -3,10 +3,8 @@ import SwiftUI
 
 /// Hosts the first-run wizard.
 ///
-/// macdock normally runs as an accessory app, which cannot take keyboard focus
-/// or appear in the command-tab switcher. The policy is raised to `.regular`
-/// for as long as this window is open, then dropped again, so the wizard
-/// behaves like a normal window without giving macdock a permanent Dock tile.
+/// Focus is arbitrated by ``ActivationPolicy`` rather than set here, so closing
+/// the wizard while the settings window is open does not strand it unfocusable.
 @MainActor
 final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
@@ -32,8 +30,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        ActivationPolicy.windowDidOpen()
         window.center()
         window.makeKeyAndOrderFront(nil)
     }
@@ -44,7 +41,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         permissions.stopPolling()
-        NSApp.setActivationPolicy(.accessory)
+        ActivationPolicy.windowDidClose()
     }
 
     private func configureWindow() {

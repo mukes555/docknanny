@@ -6,9 +6,9 @@ struct AppearanceSettingsView: View {
     var body: some View {
         SettingsPane {
             SettingsGroup(title: "Tiles") {
-                SettingsSlider(title: "Icon size", value: $store.settings.iconSize, range: 24...96)
+                SettingsSlider(title: "Icon size", value: $store.settings.iconSize, range: Settings.Limits.iconSize)
                 Divider()
-                SettingsSlider(title: "Spacing", value: $store.settings.itemSpacing, range: 0...24)
+                SettingsSlider(title: "Spacing", value: $store.settings.itemSpacing, range: Settings.Limits.itemSpacing)
                 Divider()
                 SettingsPicker(
                     title: "Running indicator",
@@ -26,7 +26,7 @@ struct AppearanceSettingsView: View {
                 SettingsSlider(
                     title: store.settings.isMagnificationEnabled ? "Magnified size" : "Hover size",
                     value: magnitudeBinding,
-                    range: 1.0...2.5,
+                    range: Settings.Limits.scale,
                     step: 0.05,
                     format: { String(format: "%.2fx", $0) }
                 )
@@ -38,7 +38,7 @@ struct AppearanceSettingsView: View {
                 SettingsSlider(
                     title: "Opacity",
                     value: $store.settings.chromeOpacity,
-                    range: 0.2...1,
+                    range: Settings.Limits.chromeOpacity,
                     step: 0.05,
                     format: { "\(Int($0 * 100))%" }
                 )
@@ -46,7 +46,7 @@ struct AppearanceSettingsView: View {
                 SettingsSlider(
                     title: "Corner radius",
                     value: $store.settings.cornerRadiusScale,
-                    range: 0...0.5,
+                    range: Settings.Limits.cornerRadiusScale,
                     step: 0.02,
                     format: { String(format: "%.2f", $0) }
                 )

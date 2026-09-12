@@ -74,7 +74,7 @@ struct AppsSettingsView: View {
 
             Spacer()
 
-            Text("Drag to reorder. Swipe or press delete to remove.")
+            Text("Drag to reorder. Swipe left on a row to remove it.")
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }

@@ -3,77 +3,129 @@ import Testing
 
 @testable import macdock
 
-@Suite("Dock metrics")
+/// A generous screen: everything fits at the configured size.
+private let roomy: CGFloat = 2000
+/// The short axis of a laptop display once margins are taken.
+private let cramped: CGFloat = 400
+
+@Suite("Dock fit")
 struct DockMetricsTests {
-    // MARK: Slab, the visible bar behind the tiles
+    @Test("When everything fits, nothing is shrunk and nothing overflows")
+    func idealCaseIsUntouched() {
+        let configuration = TestConfiguration.make(iconSize: 48)
+        let fit = DockMetrics.fit(itemCount: 6, configuration: configuration, availableLength: roomy)
 
-    @Test("A horizontal slab grows along its width and keeps a fixed thickness")
-    func horizontalSlabGrowsInWidth() {
-        let configuration = TestConfiguration.make(edge: .bottom)
-        let one = DockMetrics.slabSize(itemCount: 1, configuration: configuration)
-        let five = DockMetrics.slabSize(itemCount: 5, configuration: configuration)
-        let expectedThickness: CGFloat = 48 + 12
-
-        #expect(five.width > one.width)
-        #expect(five.height == one.height)
-        #expect(one.height == expectedThickness)
+        #expect(fit.iconSize == 48)
+        #expect(fit.visibleItemCount == 6)
+        #expect(fit.overflowCount == 0)
     }
 
-    @Test("A vertical slab grows along its height instead")
-    func verticalSlabGrowsInHeight() {
-        let configuration = TestConfiguration.make(edge: .left)
-        let one = DockMetrics.slabSize(itemCount: 1, configuration: configuration)
-        let five = DockMetrics.slabSize(itemCount: 5, configuration: configuration)
+    @Test("A crowded display shrinks tiles before it drops any")
+    func shrinkComesBeforeDropping() {
+        let configuration = TestConfiguration.make(iconSize: 96)
+        let fit = DockMetrics.fit(itemCount: 12, configuration: configuration, availableLength: cramped)
 
-        #expect(five.height > one.height)
-        #expect(five.width == one.width)
+        #expect(fit.iconSize < 96)
+        #expect(fit.iconSize >= DockMetrics.minimumIconSize)
+        #expect(fit.overflowCount == 0)
+        #expect(fit.visibleItemCount == 12)
     }
 
-    @Test("An empty dock keeps the size of a single tile, so it never collapses")
-    func emptyDockKeepsMinimumSize() {
-        let configuration = TestConfiguration.make()
-        let empty = DockMetrics.slabSize(itemCount: 0, configuration: configuration)
-        let one = DockMetrics.slabSize(itemCount: 1, configuration: configuration)
+    @Test("Past the smallest legible tile, items overflow instead of shrinking further")
+    func overflowTakesOverAtTheFloor() {
+        let configuration = TestConfiguration.make(iconSize: 64)
+        let fit = DockMetrics.fit(itemCount: 200, configuration: configuration, availableLength: cramped)
 
-        #expect(empty == one)
+        #expect(fit.iconSize == DockMetrics.minimumIconSize)
+        #expect(fit.overflowCount > 0)
+        #expect(fit.visibleItemCount + fit.overflowCount == 200)
+    }
+
+    @Test("At least one real tile always survives")
+    func neverDropsEverything() {
+        let configuration = TestConfiguration.make(iconSize: 96)
+        let fit = DockMetrics.fit(itemCount: 500, configuration: configuration, availableLength: 40)
+
+        #expect(fit.visibleItemCount >= 1)
+    }
+
+    /// The defect this whole type exists to prevent: the window was clamped to
+    /// the screen while the content was laid out at full size, so end tiles
+    /// rendered outside the panel and could not be clicked.
+    @Test("The panel never claims more length than the screen offers")
+    func panelAlwaysFitsTheScreen() {
+        for count in [0, 1, 3, 9, 27, 81, 200] {
+            for iconSize in [24.0, 48.0, 96.0] as [CGFloat] {
+                for magnified in [false, true] {
+                    for available in [cramped, 900, roomy] as [CGFloat] {
+                        let configuration = TestConfiguration.make(
+                            iconSize: iconSize,
+                            magnified: magnified,
+                            magnificationScale: 2.5
+                        )
+                        let fit = DockMetrics.fit(
+                            itemCount: count,
+                            configuration: configuration,
+                            availableLength: available
+                        )
+                        let length = configuration.edge.isVertical ? fit.panelSize.height : fit.panelSize.width
+
+                        #expect(
+                            length <= available + 0.5,
+                            "count \(count) icon \(iconSize) magnified \(magnified): \(length) > \(available)"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test("The overflow indicator occupies a real slot")
+    func overflowTileIsCountedInLayout() {
+        let configuration = TestConfiguration.make(iconSize: 64)
+        let crowded = DockMetrics.fit(itemCount: 200, configuration: configuration, availableLength: cramped)
+        let roomyFit = DockMetrics.fit(itemCount: 3, configuration: configuration, availableLength: roomy)
+
+        #expect(crowded.drawnTileCount == crowded.visibleItemCount + 1)
+        #expect(roomyFit.drawnTileCount == roomyFit.visibleItemCount)
+    }
+
+    @Test("The panel is larger than the slab so magnified tiles are not clipped")
+    func panelLeavesRoomForGrowth() {
+        let configuration = TestConfiguration.make(magnified: true, magnificationScale: 1.6)
+        let fit = DockMetrics.fit(itemCount: 4, configuration: configuration, availableLength: roomy)
+
+        #expect(fit.panelSize.width > fit.slabSize.width)
+        #expect(fit.panelSize.height > fit.slabSize.height)
+    }
+
+    @Test("Headroom follows whichever scale is in play, and vanishes when neither is")
+    func headroomTracksTheActiveScale() {
+        let magnified = TestConfiguration.make(magnified: true, magnificationScale: 2, hoverScale: 1.1)
+        let plain = TestConfiguration.make(magnified: false, magnificationScale: 2, hoverScale: 1.1)
+        let still = TestConfiguration.make(magnified: false, hoverScale: 1)
+
+        #expect(DockMetrics.headroom(iconSize: 48, configuration: magnified) == 48)
+        #expect(DockMetrics.headroom(iconSize: 48, configuration: plain) > 0)
+        #expect(DockMetrics.headroom(iconSize: 48, configuration: still) == 0)
     }
 
     @Test("Tile spacing is counted between tiles, not after the last one")
     func spacingIsCountedBetweenTilesOnly() {
-        let three = DockMetrics.slabSize(itemCount: 3, configuration: TestConfiguration.make())
+        let length = DockMetrics.slabLength(tileCount: 3, iconSize: 48, spacing: 6)
 
         let icons: CGFloat = 3 * 48
         let gapsBetween: CGFloat = 2 * 6
         let paddingEachEnd: CGFloat = 2 * 6
 
-        #expect(three.width == icons + gapsBetween + paddingEachEnd)
+        #expect(length == icons + gapsBetween + paddingEachEnd)
     }
 
-    // MARK: Panel, the window, which must leave room for tiles to swell
+    @Test("An empty dock keeps the size of a single tile, so it never collapses")
+    func emptyDockKeepsMinimumSize() {
+        let empty = DockMetrics.slabLength(tileCount: 0, iconSize: 48, spacing: 6)
+        let one = DockMetrics.slabLength(tileCount: 1, iconSize: 48, spacing: 6)
 
-    @Test("The panel is larger than the slab, so magnified tiles are not clipped")
-    func panelLeavesRoomForGrowth() {
-        let configuration = TestConfiguration.make(magnified: true, magnificationScale: 1.6)
-        let slab = DockMetrics.slabSize(itemCount: 4, configuration: configuration)
-        let panel = DockMetrics.panelSize(itemCount: 4, configuration: configuration)
-
-        #expect(panel.height > slab.height)
-        #expect(panel.width > slab.width)
-    }
-
-    @Test("Headroom follows whichever scale is actually in play")
-    func headroomTracksTheActiveScale() {
-        let magnified = TestConfiguration.make(magnified: true, magnificationScale: 2, hoverScale: 1.1)
-        let plain = TestConfiguration.make(magnified: false, magnificationScale: 2, hoverScale: 1.1)
-
-        #expect(DockMetrics.headroom(for: magnified) == 48)
-        #expect(DockMetrics.headroom(for: plain) > 0)
-        #expect(DockMetrics.headroom(for: plain) < DockMetrics.headroom(for: magnified))
-    }
-
-    @Test("A dock that never scales needs no headroom")
-    func noScalingMeansNoHeadroom() {
-        let still = TestConfiguration.make(magnified: false, hoverScale: 1)
-        #expect(DockMetrics.headroom(for: still) == 0)
+        #expect(empty == one)
     }
 }

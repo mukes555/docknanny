@@ -18,9 +18,8 @@ enum AppActivator {
         if running.isHidden {
             running.unhide()
         }
-        guard running.activate() else {
-            Log.workspace.notice("Activation refused for \(bundleIdentifier, privacy: .public)")
-            return
+        if !running.activate() {
+            Log.workspace.notice("Activation refused for \(bundleIdentifier, privacy: .private)")
         }
     }
 
@@ -38,7 +37,10 @@ enum AppActivator {
 
     private static func launch(bundleIdentifier: String) {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
-            Log.workspace.error("No application installed for \(bundleIdentifier, privacy: .public)")
+            // Which apps a user pins is their business, so identifiers are
+            // redacted in the unified log rather than published to anyone who
+            // can read it.
+            Log.workspace.error("No application installed for \(bundleIdentifier, privacy: .private)")
             return
         }
 

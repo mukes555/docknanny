@@ -34,7 +34,12 @@ enum DockContents {
             uniquingKeysWith: { first, _ in first }
         )
 
-        let pinnedItems = pinned
+        // A bundle id may appear more than once on both sides: an app can run
+        // several processes (helpers, a relaunch mid-quit), and a hand-edited
+        // settings file can repeat a pin. Two tiles sharing an id give ForEach
+        // duplicate identity, which corrupts SwiftUI's diffing rather than
+        // merely looking wrong.
+        let pinnedItems = uniqued(pinned)
             .filter(configuration.allows)
             .map { identifier in
                 makeItem(
@@ -48,13 +53,21 @@ enum DockContents {
         guard configuration.showRunningApps else { return pinnedItems }
 
         let pinnedSet = Set(pinned)
-        let extras = running
-            .filter { !pinnedSet.contains($0.id) && configuration.allows(bundleIdentifier: $0.id) }
-            .map { app in
-                makeItem(identifier: app.id, running: app, isPinned: false, iconProvider: iconProvider)
-            }
+        var emitted = pinnedSet
+        var extras: [DockItem] = []
+
+        for app in running where !pinnedSet.contains(app.id) && configuration.allows(bundleIdentifier: app.id) {
+            guard emitted.insert(app.id).inserted else { continue }
+            extras.append(makeItem(identifier: app.id, running: app, isPinned: false, iconProvider: iconProvider))
+        }
 
         return pinnedItems + extras
+    }
+
+    /// Order-preserving deduplication.
+    private static func uniqued(_ identifiers: [String]) -> [String] {
+        var seen = Set<String>()
+        return identifiers.filter { seen.insert($0).inserted }
     }
 
     private static func makeItem(

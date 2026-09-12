@@ -2,16 +2,19 @@ import AppKit
 import ApplicationServices
 
 /// A permission macdock needs, and how badly it needs it.
+///
+/// A case here becomes a consent prompt the moment it exists, because the
+/// onboarding UI is driven from `allCases`. Only add one in the same change
+/// that adds the code consuming it: asking for a capability no code path uses
+/// is a promise the app cannot keep.
 enum Permission: String, CaseIterable, Identifiable {
     case accessibility
-    case screenRecording
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .accessibility: "Accessibility"
-        case .screenRecording: "Screen Recording"
         }
     }
 
@@ -23,8 +26,6 @@ enum Permission: String, CaseIterable, Identifiable {
         switch self {
         case .accessibility:
             "Lets macdock raise, move and minimise windows when you click a dock icon."
-        case .screenRecording:
-            "Only used for live window previews. Skip it and you get a titles-only list instead."
         }
     }
 
@@ -32,7 +33,6 @@ enum Permission: String, CaseIterable, Identifiable {
     var settingsURL: URL? {
         let pane = switch self {
         case .accessibility: "Privacy_Accessibility"
-        case .screenRecording: "Privacy_ScreenCapture"
         }
         return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)")
     }
@@ -65,7 +65,6 @@ final class PermissionsService {
     func refresh() {
         var current: Set<Permission> = []
         if AXIsProcessTrusted() { current.insert(.accessibility) }
-        if CGPreflightScreenCaptureAccess() { current.insert(.screenRecording) }
 
         guard current != granted else { return }
         granted = current
@@ -76,6 +75,9 @@ final class PermissionsService {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
+                // Sleeping is where cancellation lands, so re-check before
+                // doing another round of work.
+                guard !Task.isCancelled else { return }
                 self?.refresh()
             }
         }
@@ -97,8 +99,6 @@ final class PermissionsService {
             // since the API shipped.
             let promptKey = "AXTrustedCheckOptionPrompt"
             _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
-        case .screenRecording:
-            _ = CGRequestScreenCaptureAccess()
         }
         openSettings(for: permission)
     }

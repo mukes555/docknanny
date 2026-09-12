@@ -73,4 +73,34 @@ struct SettingsDecodingTests {
 
         #expect(decoded == original)
     }
+
+    @Test("One corrupt display override does not discard the others")
+    func oneBadOverrideDoesNotTakeTheRestWithIt() throws {
+        let json = """
+        {
+          "perDisplay": {
+            "1": { "edge": "left" },
+            "2": { "edge": 12345 },
+            "3": { "iconSize": 72 }
+          }
+        }
+        """
+
+        let settings = try decode(json)
+
+        #expect(settings.perDisplay["1"]?.edge == .left)
+        #expect(settings.perDisplay["3"]?.iconSize == 72)
+        #expect(settings.perDisplay["2"] == nil)
+        #expect(settings.perDisplay.count == 2)
+    }
+
+    @Test("A wholly unreadable perDisplay value falls back without losing the rest of the file")
+    func unreadablePerDisplayKeepsOtherSettings() throws {
+        let settings = try decode("""
+        {"iconSize": 80, "perDisplay": "not an object"}
+        """)
+
+        #expect(settings.iconSize == 80)
+        #expect(settings.perDisplay.isEmpty)
+    }
 }

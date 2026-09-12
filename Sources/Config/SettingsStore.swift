@@ -35,10 +35,10 @@ final class SettingsStore {
 
     private func scheduleSave() {
         saveTask?.cancel()
-        saveTask = Task { [writeDelay, settings] in
+        saveTask = Task { [weak self, writeDelay, settings] in
             try? await Task.sleep(for: writeDelay)
             guard !Task.isCancelled else { return }
-            self.write(settings)
+            self?.write(settings)
         }
     }
 
