@@ -8,13 +8,13 @@ struct LayoutSettingsView: View {
             DockPreview(settings: store.settings)
 
             SettingsGroup(title: "Placement") {
-                SettingsPicker(
+                SettingsSegmented(
                     title: "Edge",
                     subtitle: "Which side of each display the dock hugs.",
                     selection: $store.settings.edge
                 )
                 SettingsDivider()
-                SettingsPicker(
+                SettingsSegmented(
                     title: "Alignment",
                     subtitle: "Where along that edge it sits.",
                     selection: $store.settings.alignment

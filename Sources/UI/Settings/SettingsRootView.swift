@@ -53,6 +53,20 @@ struct SettingsRootView: View {
         // would be a different design.
         .preferredColorScheme(.dark)
         .onAppear { selection = initialSection }
+        .background(tabShortcuts)
+    }
+
+    /// Zero-sized buttons exist purely to register key equivalents: SwiftUI has
+    /// no way to attach a shortcut to a view that is not a control.
+    private var tabShortcuts: some View {
+        ForEach(Array(SettingsSection.allCases.enumerated()), id: \.element.id) { index, section in
+            Button("") { selection = section }
+                .keyboardShortcut(
+                    KeyEquivalent(Character("\(index + 1)")),
+                    modifiers: .command
+                )
+                .hidden()
+        }
     }
 
     @ViewBuilder

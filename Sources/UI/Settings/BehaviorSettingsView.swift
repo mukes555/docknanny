@@ -37,7 +37,7 @@ struct BehaviorSettingsView: View {
             }
 
             SettingsGroup(title: "Clicking") {
-                SettingsPicker(
+                SettingsSegmented(
                     title: "When the app is already active",
                     selection: $store.settings.activeClickBehavior
                 )

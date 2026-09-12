@@ -12,7 +12,7 @@ struct AppearanceSettingsView: View {
                 SettingsDivider()
                 SettingsSlider(title: "Spacing", value: $store.settings.itemSpacing, range: Settings.Limits.itemSpacing)
                 SettingsDivider()
-                SettingsPicker(title: "Running indicator", selection: $store.settings.indicatorStyle)
+                SettingsSegmented(title: "Running indicator", selection: $store.settings.indicatorStyle)
             }
 
             SettingsGroup(title: "Magnification") {
@@ -32,7 +32,7 @@ struct AppearanceSettingsView: View {
             }
 
             SettingsGroup(title: "Background") {
-                SettingsPicker(title: "Style", selection: $store.settings.chromeStyle)
+                SettingsSegmented(title: "Style", selection: $store.settings.chromeStyle)
                 SettingsDivider()
                 TintRow(
                     title: "Tint",

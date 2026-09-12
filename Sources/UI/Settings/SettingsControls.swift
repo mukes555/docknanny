@@ -194,3 +194,76 @@ struct SettingsPane<Content: View>: View {
         .background(Theme.Surface.canvas)
     }
 }
+
+/// A segmented pill, for choices small enough to show all at once.
+///
+/// A dropdown hides every option but one and costs a click to reveal them. With
+/// three or four choices there is no reason for that: showing them is faster to
+/// read, faster to change, and makes the shape of the decision obvious. Reserved
+/// for short enums; anything longer stays a menu.
+struct SettingsSegmented<Option: SettingsOption>: View where Option.AllCases: RandomAccessCollection {
+    let title: String
+    var subtitle: String?
+    @Binding var selection: Option
+
+    var body: some View {
+        SettingRow(title: title, subtitle: subtitle) {
+            HStack(spacing: 2) {
+                ForEach(Option.allCases) { option in
+                    Segment(
+                        label: option.localizedName,
+                        isSelected: option == selection,
+                        action: { selection = option }
+                    )
+                }
+            }
+            .padding(2)
+            .background(Theme.Surface.control, in: .rect(cornerRadius: 7))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Theme.Line.hairline, lineWidth: 1)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection.localizedName)
+        }
+    }
+}
+
+private struct Segment: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .settingsText(.system(size: 11, weight: .medium), isSelected ? Theme.Ink.primary : Theme.Ink.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .background(background)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        if isSelected {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Theme.Surface.selected)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(Theme.Line.highlight, lineWidth: 1)
+                }
+        } else if isHovered {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Theme.Surface.raised)
+        }
+    }
+}

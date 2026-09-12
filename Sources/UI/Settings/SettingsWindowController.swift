@@ -17,7 +17,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         window.delegate = self
         window.title = "macdock Settings"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.isReleasedWhenClosed = false
         window.setContentSize(CGSize(width: 700, height: 560))
 
