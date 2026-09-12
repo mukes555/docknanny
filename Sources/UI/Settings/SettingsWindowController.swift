@@ -3,8 +3,8 @@ import SwiftUI
 
 /// Hosts the settings window.
 ///
-/// Like the setup wizard, this raises the activation policy so an accessory
-/// app can present a normal, focusable window, then drops it again on close.
+/// Focus is arbitrated by ``ActivationPolicy`` rather than set here, so two
+/// open windows cannot fight over the app's activation policy.
 @MainActor
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
@@ -23,13 +23,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        ActivationPolicy.windowDidOpen()
         window.center()
         window.makeKeyAndOrderFront(nil)
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        ActivationPolicy.windowDidClose()
     }
 }

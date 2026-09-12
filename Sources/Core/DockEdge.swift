@@ -46,7 +46,8 @@ enum DockPlacement {
         thickness: CGFloat,
         length: CGFloat,
         margin: CGFloat,
-        alignment: DockAlignment = .center
+        alignment: DockAlignment = .center,
+        lengthInset: CGFloat = 0
     ) -> CGRect {
         let clampedLength = min(length, availableLength(againstEdge: edge, of: visibleFrame, margin: margin))
         let size = size(for: edge, thickness: thickness, length: clampedLength)
@@ -54,8 +55,7 @@ enum DockPlacement {
             for: edge,
             in: visibleFrame,
             size: size,
-            margin: margin,
-            alignment: alignment
+            along: LengthAlignment(margin: margin, alignment: alignment, inset: lengthInset)
         )
         return CGRect(origin: origin, size: size)
     }
@@ -66,29 +66,32 @@ enum DockPlacement {
             : CGSize(width: length, height: thickness)
     }
 
+    /// How a dock is positioned along the edge it is anchored to.
+    private struct LengthAlignment {
+        let margin: CGFloat
+        let alignment: DockAlignment
+        /// Transparent padding the panel carries on each side so magnified
+        /// tiles are not clipped. Alignment discounts it so the *visible* dock
+        /// lands on the margin.
+        let inset: CGFloat
+    }
+
     private static func origin(
         for edge: DockEdge,
         in visibleFrame: CGRect,
         size: CGSize,
-        margin: CGFloat,
-        alignment: DockAlignment
+        along length: LengthAlignment
     ) -> CGPoint {
         switch edge {
         case .bottom:
-            let x = alignedOffset(
-                span: visibleFrame.width, length: size.width, margin: margin, alignment: alignment
-            )
-            return CGPoint(x: visibleFrame.minX + x, y: visibleFrame.minY + margin)
+            let x = alignedOffset(span: visibleFrame.width, length: size.width, along: length)
+            return CGPoint(x: visibleFrame.minX + x, y: visibleFrame.minY + length.margin)
         case .left:
-            let y = alignedOffset(
-                span: visibleFrame.height, length: size.height, margin: margin, alignment: alignment
-            )
-            return CGPoint(x: visibleFrame.minX + margin, y: visibleFrame.minY + y)
+            let y = alignedOffset(span: visibleFrame.height, length: size.height, along: length)
+            return CGPoint(x: visibleFrame.minX + length.margin, y: visibleFrame.minY + y)
         case .right:
-            let y = alignedOffset(
-                span: visibleFrame.height, length: size.height, margin: margin, alignment: alignment
-            )
-            return CGPoint(x: visibleFrame.maxX - margin - size.width, y: visibleFrame.minY + y)
+            let y = alignedOffset(span: visibleFrame.height, length: size.height, along: length)
+            return CGPoint(x: visibleFrame.maxX - length.margin - size.width, y: visibleFrame.minY + y)
         }
     }
 
@@ -97,13 +100,13 @@ enum DockPlacement {
     private static func alignedOffset(
         span: CGFloat,
         length: CGFloat,
-        margin: CGFloat,
-        alignment: DockAlignment
+        along placement: LengthAlignment
     ) -> CGFloat {
-        switch alignment {
-        case .start: margin
-        case .center: (span - length) / 2
-        case .end: span - length - margin
+        let far = span - length
+        switch placement.alignment {
+        case .start: return max(0, placement.margin - placement.inset)
+        case .center: return far / 2
+        case .end: return min(far, far - placement.margin + placement.inset)
         }
     }
 }

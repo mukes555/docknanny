@@ -64,7 +64,10 @@ Follow the [Swift API Design Guidelines](https://www.swift.org/documentation/api
 On top of those:
 
 - Types are `UpperCamelCase`, members are `lowerCamelCase`.
-- One primary type per file, and the filename matches it exactly.
+- One primary type per file, and the filename matches it exactly. The single
+  exception is a small set of closely related option enums, which may share a
+  file named for the group (`DockStyle.swift`); splitting four eight-line enums
+  into four files would trade one rule for the deep-modules rule.
 - Protocols are nouns (`SpaceFilter`) or capability adjectives
   (`PanelPositioning`). Never prefix with `I` or suffix with `Protocol`.
 - Spell things out. `displayIdentifier`, not `dispId`. The only accepted
@@ -74,8 +77,12 @@ On top of those:
 - Every symbol wrapping a private Apple API lives in `Sources/Private` and
   carries a comment naming the framework it came from and what breaks if
   Apple removes it.
-- Tests are named `test_<subject>_<condition>_<expectation>`, for example
-  `test_displayRegistry_whenScreenReconnects_reusesStableIdentity`.
+- Tests use swift-testing. The behaviour under test goes in the `@Test`
+  display string as a sentence a reviewer can read in the failure output
+  ("A dock on a display at negative y stays on that display"), and the function
+  name is a short camelCase restatement of it. An XCTest-style
+  `test_subject_condition_expectation` function name adds nothing when the
+  sentence is already right there.
 
 ## Code shape
 

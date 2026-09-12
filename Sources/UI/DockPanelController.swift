@@ -104,7 +104,8 @@ final class DockPanelController {
             thickness: thickness,
             length: length,
             margin: configuration.margin,
-            alignment: configuration.alignment
+            alignment: configuration.alignment,
+            lengthInset: DockMetrics.headroom(iconSize: fit.iconSize, configuration: configuration) / 2
         )
     }
 }

@@ -52,4 +52,47 @@ struct DockAlignmentTests {
         #expect(end.maxY == screen.maxY - 10)
         #expect(start.minX == end.minX)
     }
+
+    /// The panel carries transparent padding so magnified tiles are not
+    /// clipped. Aligning the panel rather than the visible slab left a
+    /// start-aligned dock sitting half the headroom short of its own margin.
+    @Test("Alignment lines up the visible dock, not its transparent padding")
+    func alignmentDiscountsHeadroom() {
+        let padded = DockPlacement.frame(
+            againstEdge: .bottom, of: screen, thickness: 60, length: 400,
+            margin: 40, alignment: .start, lengthInset: 20
+        )
+        let bare = DockPlacement.frame(
+            againstEdge: .bottom, of: screen, thickness: 60, length: 400,
+            margin: 40, alignment: .start, lengthInset: 0
+        )
+
+        #expect(padded.minX == bare.minX - 20)
+        #expect(padded.minX >= screen.minX)
+    }
+
+    @Test("A headroom larger than the margin does not push the dock off screen")
+    func insetCannotEscapeTheScreen() {
+        for alignment in [DockAlignment.start, .end] {
+            let frame = DockPlacement.frame(
+                againstEdge: .bottom, of: screen, thickness: 60, length: 400,
+                margin: 4, alignment: alignment, lengthInset: 200
+            )
+            #expect(screen.contains(frame), "\(alignment) escaped with an oversized inset")
+        }
+    }
+
+    @Test("Center alignment ignores the inset, because padding is symmetric there")
+    func centreIsUnaffected() {
+        let padded = DockPlacement.frame(
+            againstEdge: .bottom, of: screen, thickness: 60, length: 400,
+            margin: 10, alignment: .center, lengthInset: 50
+        )
+        let bare = DockPlacement.frame(
+            againstEdge: .bottom, of: screen, thickness: 60, length: 400,
+            margin: 10, alignment: .center, lengthInset: 0
+        )
+
+        #expect(padded == bare)
+    }
 }
