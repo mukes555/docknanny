@@ -111,8 +111,13 @@ Generated files, fixtures and tests are exempt.
 ## Before opening a pull request
 
 ```bash
-swiftlint --strict && swift test
+xcodegen generate
+swiftlint --strict
+xcodebuild test -project macdock.xcodeproj -scheme macdock -destination 'platform=macOS'
 ```
+
+There is no root `Package.swift`, so `swift test` does not run this project's
+suite. (`Spike/` is a separate package and builds with `swift build`.)
 
 Fill in the pull request template. Describe the WHY, list what you verified
 by hand (permissions flows and multi-monitor behaviour cannot be unit

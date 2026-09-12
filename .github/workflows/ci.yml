@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # macdock targets macOS 26 and Swift 6.2, so the runner image has to be at
+    # least that. Pin rather than track latest: a runner image bump silently
+    # changing the Swift version is a confusing way to find out.
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+
+      - name: Report toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Install tooling
+        run: brew install xcodegen swiftlint
+
+      - name: Generate project
+        run: xcodegen generate
+
+      # --strict promotes warnings to errors. The file-size and complexity
+      # thresholds in .swiftlint.yml are the project's cognitive-load rule, so
+      # breaching them should fail the build rather than scroll past.
+      - name: Lint
+        run: swiftlint lint --strict
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project macdock.xcodeproj \
+            -scheme macdock \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO
+
+  spike:
+    # The Phase 0 capability probe is the early warning that a private SkyLight
+    # symbol has been withdrawn by a macOS release. It only needs to compile
+    # here; running it requires a real display and TCC grants.
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+      - name: Build capability probe
+        working-directory: Spike
+        run: swift build
