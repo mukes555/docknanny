@@ -24,6 +24,12 @@ final class DockPanel: NSPanel {
         hasShadow = true
         isMovable = false
         isMovableByWindowBackground = false
+
+        // NSWindow defaults this to true for programmatically created windows.
+        // The controller holds the panel in a stored property, so letting AppKit
+        // release it on close is a use-after-free waiting for a display to be
+        // unplugged.
+        isReleasedWhenClosed = false
         animationBehavior = .utilityWindow
     }
 

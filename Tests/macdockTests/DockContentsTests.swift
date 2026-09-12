@@ -91,4 +91,42 @@ struct DockContentsTests {
 
         #expect(items[0].isActive)
     }
+
+    @Test("Several processes of one app collapse to a single tile")
+    func duplicateRunningAppsCollapse() {
+        let items = DockContents.items(
+            pinned: [],
+            running: [runningApp("z"), runningApp("z"), runningApp("z")],
+            configuration: TestConfiguration.make(),
+            iconProvider: noIcons
+        )
+
+        #expect(items.map(\.id) == ["z"])
+    }
+
+    @Test("A settings file that repeats a pin still yields unique tile ids")
+    func duplicatePinsCollapse() {
+        let items = DockContents.items(
+            pinned: ["a", "b", "a"],
+            running: [],
+            configuration: TestConfiguration.make(),
+            iconProvider: noIcons
+        )
+
+        #expect(items.map(\.id) == ["a", "b"])
+    }
+
+    /// Duplicate ids do not merely look wrong: ForEach uses them for identity,
+    /// so a collision corrupts SwiftUI's diffing.
+    @Test("Tile ids are unique across pinned and running combined")
+    func idsAreUniqueOverall() {
+        let items = DockContents.items(
+            pinned: ["a", "a"],
+            running: [runningApp("a"), runningApp("b"), runningApp("b")],
+            configuration: TestConfiguration.make(),
+            iconProvider: noIcons
+        )
+
+        #expect(Set(items.map(\.id)).count == items.count)
+    }
 }

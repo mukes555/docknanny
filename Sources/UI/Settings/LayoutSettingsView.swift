@@ -22,7 +22,7 @@ struct LayoutSettingsView: View {
                     title: "Margin",
                     subtitle: "Gap between the dock and the screen edge.",
                     value: $store.settings.margin,
-                    range: 0...60
+                    range: Settings.Limits.margin
                 )
             }
 

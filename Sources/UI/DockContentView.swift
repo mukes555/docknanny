@@ -2,29 +2,31 @@ import SwiftUI
 
 /// The contents of one dock: a row or column of tiles on a slab.
 ///
-/// The slab is pinned to the anchored edge and the panel is taller than the
+/// The slab is pinned to the anchored edge and the panel is larger than the
 /// slab, so magnified tiles grow into empty space rather than being clipped.
-/// Pointer position is tracked here because magnification depends on each
-/// tile's distance from the cursor, which only the container can know.
+/// All sizing arrives precomputed in ``DockFit``; this view never derives its
+/// own, because the window frame is built from the same numbers and the two
+/// drifting apart is what put tiles off-screen before.
 struct DockContentView: View {
     let items: [DockItem]
+    let fit: DockFit
     let configuration: ResolvedDockConfiguration
     let onActivate: (DockItem) -> Void
 
     @State private var pointerAxisPosition: CGFloat?
 
-    private var slabSize: CGSize {
-        DockMetrics.slabSize(itemCount: items.count, configuration: configuration)
+    private var visibleItems: [DockItem] {
+        Array(items.prefix(fit.visibleItemCount))
     }
 
     var body: some View {
         ZStack(alignment: anchorAlignment) {
             DockChrome(
                 style: configuration.chromeStyle,
-                cornerRadius: DockMetrics.cornerRadius(for: configuration),
+                cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
                 opacity: configuration.chromeOpacity
             )
-            .frame(width: slabSize.width, height: slabSize.height)
+            .frame(width: fit.slabSize.width, height: fit.slabSize.height)
 
             tiles
         }
@@ -42,7 +44,7 @@ struct DockContentView: View {
 
     private var tiles: some View {
         stack
-            .frame(width: slabSize.width, height: slabSize.height)
+            .frame(width: fit.slabSize.width, height: fit.slabSize.height)
             .onContinuousHover(coordinateSpace: .local) { phase in
                 switch phase {
                 case .active(let location):
@@ -62,25 +64,46 @@ struct DockContentView: View {
         }
     }
 
+    @ViewBuilder
     private var tileViews: some View {
-        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+        ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
             DockItemView(
                 item: item,
-                iconSize: configuration.iconSize,
+                iconSize: fit.iconSize,
                 edge: configuration.edge,
                 indicatorStyle: configuration.indicatorStyle,
                 scale: scale(forTileAt: index),
                 onActivate: { onActivate(item) }
             )
         }
+
+        if fit.overflowCount > 0 {
+            overflowTile
+        }
+    }
+
+    /// Shown instead of the last tile when the display is too short to hold
+    /// every item, so nothing is dropped without the user being told.
+    private var overflowTile: some View {
+        RoundedRectangle(cornerRadius: fit.iconSize * 0.22, style: .continuous)
+            .fill(.secondary.opacity(0.22))
+            .frame(width: fit.iconSize, height: fit.iconSize)
+            .overlay {
+                Text("+\(fit.overflowCount)")
+                    .font(.system(size: fit.iconSize * 0.32, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .minimumScaleFactor(0.5)
+            }
+            .help("\(fit.overflowCount) more apps do not fit on this display")
+            .accessibilityLabel("\(fit.overflowCount) more apps")
     }
 
     /// Distance from the slab's leading edge to the centre of tile `index`,
     /// measured along whichever axis the dock runs.
     private func centre(ofTileAt index: Int) -> CGFloat {
         let padding = configuration.itemSpacing
-        let stride = configuration.iconSize + configuration.itemSpacing
-        return padding + configuration.iconSize / 2 + CGFloat(index) * stride
+        let stride = fit.iconSize + configuration.itemSpacing
+        return padding + fit.iconSize / 2 + CGFloat(index) * stride
     }
 
     private func scale(forTileAt index: Int) -> CGFloat {
@@ -88,13 +111,13 @@ struct DockContentView: View {
         let distance = abs(pointerAxisPosition - centre(ofTileAt: index))
 
         guard configuration.isMagnificationEnabled else {
-            let isUnderPointer = distance <= configuration.iconSize / 2
+            let isUnderPointer = distance <= fit.iconSize / 2
             return isUnderPointer ? configuration.hoverScale : 1
         }
 
         return Magnification.scale(
             distance: distance,
-            influenceRadius: configuration.iconSize * 2.5,
+            influenceRadius: fit.iconSize * 2.5,
             maximumScale: configuration.magnificationScale
         )
     }

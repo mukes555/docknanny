@@ -35,10 +35,30 @@ struct DisplayOverrideCard: View {
                     get: { override.iconSize ?? globalSettings.iconSize },
                     set: { override.iconSize = $0 }
                 ),
-                range: 24...96
+                range: Settings.Limits.iconSize
             )
             Divider()
             appFilterRow
+            Divider()
+            resetRow
+        }
+    }
+
+    /// Individual controls cannot express "inherit" once touched: a slider has
+    /// no nil and a switch has no third state. Without this row an override was
+    /// a one-way door, and a per-display "show a dock here" could silently
+    /// contradict the global toggle forever.
+    private var resetRow: some View {
+        SettingRow(
+            title: "Overrides",
+            subtitle: override.isDefault
+                ? "This display follows the global settings."
+                : "This display has settings of its own."
+        ) {
+            Button("Reset to Global") { override = DisplayOverride() }
+                .controlSize(.small)
+                .disabled(override.isDefault)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
