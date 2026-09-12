@@ -25,11 +25,11 @@ struct OnboardingView: View {
 
     private var header: some View {
         VStack(spacing: 10) {
-            // The quokka mark replaces this once branding assets are generated.
-            // See docs/BRANDING.md.
-            Image(systemName: "menubar.dock.rectangle")
-                .font(.system(size: 34, weight: .regular))
-                .foregroundStyle(BrandPalette.lime)
+            // Reads the bundle's own icon, so the mascot artwork replaces this
+            // by being dropped into the asset catalogue. See docs/BRANDING.md.
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
 
             Text("Welcome to macdock")
                 .font(.system(size: 19, weight: .semibold))

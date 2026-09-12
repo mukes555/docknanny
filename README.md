@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/branding/icon-512.png" width="128" alt="macdock" />
+<img src="assets/branding/icon-1024.png" width="128" alt="macdock" />
 
 # macdock
 

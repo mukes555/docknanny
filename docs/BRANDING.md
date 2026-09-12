@@ -106,6 +106,24 @@ the meantime.
 The `.icns` ladder (16 through 1024, each at 1x and 2x) is produced from a
 single 1024 master by script, never by generating each size separately.
 
+## The placeholder mark
+
+Until the mascot artwork is generated, `tools/make-icon.swift` draws the glasses
+mark from the brand geometry and writes the whole icon ladder:
+
+```bash
+swift tools/make-icon.swift assets/branding
+```
+
+It emits `macdock.iconset/` (the ten rungs macOS expects), a 1024 composite, and
+`mark-foreground-1024.png`: the glasses on transparency, kept separate so the
+foreground can be layered over a new ground when the mascot arrives, which is
+what macOS 26's layered icons want.
+
+Replacing it is a matter of dropping new PNGs into
+`Resources/Assets.xcassets/AppIcon.appiconset/`. Nothing in the code refers to
+the artwork directly; the onboarding header reads the bundle's own icon.
+
 ## Where assets live
 
 ```
