@@ -16,12 +16,16 @@ struct DockItemView: View {
     @State private var bounceOffset: CGFloat = 0
     @State private var isDropTarget = false
 
+    /// A dock is on screen all day. Motion it did not ask for is the thing
+    /// people turn this setting on to stop.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         icon
             .frame(width: iconSize, height: iconSize)
             .scaleEffect(scale, anchor: growthAnchor)
             .offset(bounce)
-            .animation(.spring(response: 0.22, dampingFraction: 0.72), value: scale)
+            .animation(reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.72), value: scale)
             .overlay(alignment: indicatorAlignment) { indicator }
             .overlay { dropIndicator }
             .contentShape(.rect)
@@ -47,6 +51,11 @@ struct DockItemView: View {
     /// system's repeat-until-ready bounce is the most complained-about
     /// animation macOS has.
     private func playLaunchBounce() {
+        // The tile still ends up where it belongs; it simply does not hop to
+        // get there. Suppressed entirely rather than shortened, because a
+        // shorter hop is still a hop.
+        guard !reduceMotion else { return }
+
         withAnimation(.interpolatingSpring(stiffness: 340, damping: 12)) {
             bounceOffset = -14
         }

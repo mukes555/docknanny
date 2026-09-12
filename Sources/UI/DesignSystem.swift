@@ -27,17 +27,38 @@ enum Theme {
         static let selected = Color(hex: 0x222327)
     }
 
+    /// Hairlines are decorative, not informational: a rule between two rows
+    /// identifies nothing, the row's own text does, so WCAG's 3:1 for UI
+    /// components does not bind them. Raising them to 3:1 would replace the
+    /// design with grey boxes. They strengthen under Increase Contrast instead,
+    /// which is what that setting is for.
     enum Line {
         static let hairline = Color.white.opacity(0.07)
         static let strong = Color.white.opacity(0.13)
+
         /// The bright top edge that makes a raised surface look lit.
         static let highlight = Color.white.opacity(0.06)
+
+        /// Edges that carry structure take the Increase Contrast setting, which
+        /// is the honest place to make them louder rather than shouting at
+        /// everyone by default.
+        static func hairline(for contrast: ColorSchemeContrast) -> Color {
+            Color.white.opacity(contrast == .increased ? 0.24 : 0.07)
+        }
     }
 
     enum Ink {
         static let primary = Color.white.opacity(0.92)
         static let secondary = Color.white.opacity(0.50)
-        static let tertiary = Color.white.opacity(0.32)
+        /// 46%, not the 32% this started at.
+        ///
+        /// White at a low alpha over near-black composites far darker than the
+        /// alpha suggests, which is the trap in a palette like this. Measured,
+        /// 32% gave 2.89:1 against Surface.raised while carrying the section
+        /// headers, which are real text needing 4.5:1. 45% is the exact
+        /// threshold; 46% buys margin without brightening headers into
+        /// competing with the row labels they sit above.
+        static let tertiary = Color.white.opacity(0.46)
     }
 
     /// Marks selection, and nothing else.
@@ -86,12 +107,14 @@ enum Theme {
 struct RaisedSurface: ViewModifier {
     var corner: CGFloat = Theme.Metric.corner
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     func body(content: Content) -> some View {
         content
             .background(Theme.Surface.raised, in: .rect(cornerRadius: corner))
             .overlay {
                 RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .strokeBorder(Theme.Line.hairline, lineWidth: 1)
+                    .strokeBorder(Theme.Line.hairline(for: contrast), lineWidth: 1)
             }
     }
 }

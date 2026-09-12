@@ -14,6 +14,8 @@ struct DockPreview: View {
     /// are resolved only when the pinned set actually changes.
     @State private var items: [DockItem] = []
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Tall enough that a vertical dock is legible rather than a sliver.
     private static let boxHeight: CGFloat = 190
     private static let boxInset: CGFloat = 14
@@ -60,7 +62,7 @@ struct DockPreview: View {
     /// against. A flat panel colour would make every chrome style look alike.
     private var desktop: some View {
         LinearGradient(
-            colors: [BrandPalette.forest, BrandPalette.lime.opacity(0.55)],
+            colors: [Color(hex: 0x1E3A1E), Theme.accent.opacity(0.55)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -83,7 +85,7 @@ struct DockPreview: View {
         .frame(width: fit.panelSize.width * factor, height: fit.panelSize.height * factor)
         .allowsHitTesting(false)
         .padding(Self.boxInset)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: fit.panelSize)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: fit.panelSize)
     }
 
     private var alignment: Alignment {

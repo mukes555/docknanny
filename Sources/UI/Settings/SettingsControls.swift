@@ -45,9 +45,11 @@ struct SettingRow<Control: View>: View {
 /// The rule between rows. Inset from the left so it reads as a list separator
 /// rather than a box edge.
 struct SettingsDivider: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
         Rectangle()
-            .fill(Theme.Line.hairline)
+            .fill(Theme.Line.hairline(for: contrast))
             .frame(height: 1)
             .padding(.leading, Theme.Metric.rowPadding)
     }

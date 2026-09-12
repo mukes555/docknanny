@@ -157,7 +157,12 @@ final class DockPanelController {
         )
         guard frame != panel.frame else { return }
 
-        guard animated else {
+        // Reduce Motion reaches AppKit through NSWorkspace rather than the
+        // SwiftUI environment. The dock still hides and reveals; it just cuts
+        // rather than slides.
+        let wantsMotion = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
+        guard animated, wantsMotion else {
             panel.setFrame(frame, display: true)
             panel.invalidateShadow()
             return
