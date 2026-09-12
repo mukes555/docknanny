@@ -5,6 +5,8 @@ struct LayoutSettingsView: View {
 
     var body: some View {
         SettingsPane {
+            DockPreview(settings: store.settings)
+
             SettingsGroup(title: "Placement") {
                 SettingsPicker(
                     title: "Edge",

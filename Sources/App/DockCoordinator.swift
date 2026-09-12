@@ -14,6 +14,11 @@ final class DockCoordinator {
 
     private var controllers: [CGDirectDisplayID: DockPanelController] = [:]
 
+    /// Built once and shared by every panel. The closures read current state
+    /// when they run rather than closing over a snapshot, so a panel created
+    /// before a setting changed still behaves correctly afterwards.
+    private lazy var actions = makeActions()
+
     init(displays: DisplayRegistry, apps: RunningAppsMonitor, settings: SettingsStore) {
         self.displays = displays
         self.apps = apps
@@ -62,12 +67,51 @@ final class DockCoordinator {
                 controllers[display.id] = DockPanelController(
                     display: display,
                     configuration: configuration,
-                    items: items
+                    items: items,
+                    actions: actions
                 )
             }
         }
 
         closeControllers(notIn: surviving)
+    }
+
+    /// The coordinator owns the settings store, so pinning lives here rather
+    /// than in a view reaching for global state.
+    private func makeActions() -> DockActions {
+        DockActions(
+            activate: { [weak self] item in
+                guard let self else { return }
+                AppActivator.activate(
+                    bundleIdentifier: item.id,
+                    whenActive: settings.settings.activeClickBehavior
+                )
+            },
+            togglePin: { [weak self] item in self?.togglePin(item.id) },
+            reveal: DockCommands.reveal,
+            hide: DockCommands.hide,
+            quit: DockCommands.quit,
+            pin: { [weak self] identifiers in self?.pin(identifiers) }
+        )
+    }
+
+    private func togglePin(_ identifier: String) {
+        var pinned = settings.settings.pinnedBundleIdentifiers
+        if let index = pinned.firstIndex(of: identifier) {
+            pinned.remove(at: index)
+        } else {
+            pinned.append(identifier)
+        }
+        settings.settings.pinnedBundleIdentifiers = pinned
+    }
+
+    private func pin(_ identifiers: [String]) {
+        var pinned = settings.settings.pinnedBundleIdentifiers
+        for identifier in identifiers where !pinned.contains(identifier) {
+            pinned.append(identifier)
+        }
+        guard pinned != settings.settings.pinnedBundleIdentifiers else { return }
+        settings.settings.pinnedBundleIdentifiers = pinned
     }
 
     private func buildItems(for configuration: ResolvedDockConfiguration) -> [DockItem] {

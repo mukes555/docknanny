@@ -5,6 +5,8 @@ struct AppearanceSettingsView: View {
 
     var body: some View {
         SettingsPane {
+            DockPreview(settings: store.settings)
+
             SettingsGroup(title: "Tiles") {
                 SettingsSlider(title: "Icon size", value: $store.settings.iconSize, range: Settings.Limits.iconSize)
                 Divider()

@@ -11,9 +11,10 @@ struct DockContentView: View {
     let items: [DockItem]
     let fit: DockFit
     let configuration: ResolvedDockConfiguration
-    let onActivate: (DockItem) -> Void
+    let actions: DockActions
 
     @State private var pointerAxisPosition: CGFloat?
+    @State private var isDropTarget = false
 
     private var visibleItems: [DockItem] {
         Array(items.prefix(fit.visibleItemCount))
@@ -27,10 +28,32 @@ struct DockContentView: View {
                 opacity: configuration.chromeOpacity
             )
             .frame(width: fit.slabSize.width, height: fit.slabSize.height)
+            .overlay { dropHighlight }
 
             tiles
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: anchorAlignment)
+        .dropDestination(for: URL.self) { urls, _ in
+            let identifiers = DockCommands.bundleIdentifiers(forDroppedURLs: urls)
+            guard !identifiers.isEmpty else { return false }
+            actions.pin(identifiers)
+            return true
+        } isTargeted: { isDropTarget = $0 }
+    }
+
+    /// Dropping an app onto a dock pins it. Without a target highlight the drag
+    /// gives no sign it will land, which reads as the app being unable to
+    /// accept it.
+    @ViewBuilder
+    private var dropHighlight: some View {
+        if isDropTarget {
+            RoundedRectangle(
+                cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
+                style: .continuous
+            )
+            .strokeBorder(.tint, lineWidth: 2)
+            .transition(.opacity)
+        }
     }
 
     /// The slab hugs the screen edge; the headroom sits on the other side.
@@ -73,7 +96,7 @@ struct DockContentView: View {
                 edge: configuration.edge,
                 indicatorStyle: configuration.indicatorStyle,
                 scale: scale(forTileAt: index),
-                onActivate: { onActivate(item) }
+                actions: actions
             )
         }
 

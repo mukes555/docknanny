@@ -11,7 +11,7 @@ struct DockItemView: View {
     let edge: DockEdge
     let indicatorStyle: IndicatorStyle
     let scale: CGFloat
-    let onActivate: () -> Void
+    let actions: DockActions
 
     var body: some View {
         icon
@@ -20,10 +20,31 @@ struct DockItemView: View {
             .animation(.spring(response: 0.22, dampingFraction: 0.72), value: scale)
             .overlay(alignment: indicatorAlignment) { indicator }
             .contentShape(.rect)
-            .onTapGesture(perform: onActivate)
+            .onTapGesture { actions.activate(item) }
+            .contextMenu { menu }
             .help(item.name)
-            .accessibilityLabel(item.name)
+            .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
+    }
+
+    private var accessibilityLabel: String {
+        guard item.isRunning else { return "\(item.name), not running" }
+        return item.isActive ? "\(item.name), active" : "\(item.name), running"
+    }
+
+    @ViewBuilder
+    private var menu: some View {
+        Button("Show in Finder") { actions.reveal(item) }
+
+        Button(item.isPinned ? "Remove from Dock" : "Keep in Dock") {
+            actions.togglePin(item)
+        }
+
+        if item.isRunning {
+            Divider()
+            Button("Hide") { actions.hide(item) }
+            Button("Quit") { actions.quit(item) }
+        }
     }
 
     /// Tiles grow away from the screen edge, never through it.
@@ -72,9 +93,7 @@ struct DockItemView: View {
     }
 
     private var indicatorShape: AnyShape {
-        indicatorStyle == .line
-            ? AnyShape(Capsule())
-            : AnyShape(Circle())
+        indicatorStyle == .line ? AnyShape(Capsule()) : AnyShape(Circle())
     }
 
     private var indicatorSize: CGSize {

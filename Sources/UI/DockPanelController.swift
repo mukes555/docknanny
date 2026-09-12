@@ -16,15 +16,22 @@ final class DockPanelController {
     private let hosting: NSHostingView<DockContentView>
     private var display: Display
     private var configuration: ResolvedDockConfiguration
+    private let actions: DockActions
 
-    init(display: Display, configuration: ResolvedDockConfiguration, items: [DockItem]) {
+    init(
+        display: Display,
+        configuration: ResolvedDockConfiguration,
+        items: [DockItem],
+        actions: DockActions
+    ) {
         self.displayID = display.id
         self.display = display
         self.configuration = configuration
+        self.actions = actions
 
         let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
         self.hosting = NSHostingView(
-            rootView: Self.content(items: items, fit: fit, configuration: configuration)
+            rootView: Self.content(items: items, fit: fit, configuration: configuration, actions: actions)
         )
         self.panel = DockPanel(
             contentRect: Self.frame(for: display, configuration: configuration, fit: fit)
@@ -42,7 +49,7 @@ final class DockPanelController {
         self.configuration = configuration
 
         let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
-        hosting.rootView = Self.content(items: items, fit: fit, configuration: configuration)
+        hosting.rootView = Self.content(items: items, fit: fit, configuration: configuration, actions: actions)
 
         let frame = Self.frame(for: display, configuration: configuration, fit: fit)
         guard frame != panel.frame else { return }
@@ -62,14 +69,10 @@ final class DockPanelController {
     private static func content(
         items: [DockItem],
         fit: DockFit,
-        configuration: ResolvedDockConfiguration
+        configuration: ResolvedDockConfiguration,
+        actions: DockActions
     ) -> DockContentView {
-        DockContentView(items: items, fit: fit, configuration: configuration) { item in
-            AppActivator.activate(
-                bundleIdentifier: item.id,
-                whenActive: configuration.activeClickBehavior
-            )
-        }
+        DockContentView(items: items, fit: fit, configuration: configuration, actions: actions)
     }
 
     private static func fit(
