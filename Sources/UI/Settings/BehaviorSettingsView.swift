@@ -3,6 +3,12 @@ import SwiftUI
 struct BehaviorSettingsView: View {
     @Bindable var store: SettingsStore
 
+    /// Mirrors the login-item service. Reading `SMAppService` is a synchronous
+    /// cross-process call, far too expensive to sit in a binding's getter where
+    /// SwiftUI would run it on every body evaluation.
+    @State private var launchesAtLogin = false
+    @State private var loginItemRefused = false
+
     var body: some View {
         SettingsPane {
             SettingsGroup(title: "Contents") {
@@ -10,28 +16,6 @@ struct BehaviorSettingsView: View {
                     title: "Show running apps",
                     subtitle: "Include apps that are open but not pinned.",
                     isOn: $store.settings.showRunningApps
-                )
-            }
-
-            SettingsGroup(title: "Hiding") {
-                SettingsToggle(
-                    title: "Hide automatically",
-                    subtitle: "Reveal the dock by moving the pointer to the screen edge.",
-                    isOn: $store.settings.autoHide
-                )
-                Divider()
-                SettingsSlider(
-                    title: "Reveal delay",
-                    value: $store.settings.autoHideDelay,
-                    range: 0...1.5,
-                    step: 0.05,
-                    format: { String(format: "%.2fs", $0) }
-                )
-                Divider()
-                SettingsToggle(
-                    title: "Hide during full screen",
-                    subtitle: "Keep the dock out of the way of full-screen apps.",
-                    isOn: $store.settings.hideDuringFullscreen
                 )
             }
 
@@ -45,21 +29,25 @@ struct BehaviorSettingsView: View {
             SettingsGroup(title: "Startup") {
                 SettingsToggle(
                     title: "Launch at login",
-                    subtitle: "Start macdock automatically when you sign in.",
+                    subtitle: loginItemRefused
+                        ? "macOS refused the change. An unsigned build cannot register a login item."
+                        : "Start macdock automatically when you sign in.",
                     isOn: launchAtLoginBinding
                 )
             }
         }
+        .onAppear { launchesAtLogin = LaunchAtLogin.isEnabled }
     }
 
-    /// Bound to the login item service rather than to the stored value, because
-    /// the user can change the registration in System Settings behind our back.
+    /// The service, not the stored value, is the source of truth: the user can
+    /// change the registration in System Settings behind the app's back.
     private var launchAtLoginBinding: Binding<Bool> {
         Binding(
-            get: { LaunchAtLogin.isEnabled },
-            set: { enabled in
-                LaunchAtLogin.set(enabled)
-                store.settings.launchAtLogin = enabled
+            get: { launchesAtLogin },
+            set: { requested in
+                loginItemRefused = !LaunchAtLogin.set(requested)
+                launchesAtLogin = LaunchAtLogin.isEnabled
+                store.settings.launchAtLogin = launchesAtLogin
             }
         )
     }

@@ -20,10 +20,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The unit-test bundle is hosted by this very app, so without this guard
+        // every test run opens real panels, plants a status item and can throw
+        // the onboarding window in front of whoever is at the keyboard. The
+        // suite covers pure logic and needs none of it.
+        guard !Self.isRunningUnitTests else { return }
+
         // Accessory policy keeps macdock out of the system Dock and the
         // command-tab switcher, which is the right shape for something that
         // lives permanently on screen.
         NSApp.setActivationPolicy(.accessory)
+        MainMenu.install()
 
         let settings = SettingsStore()
         let displays = DisplayRegistry()
@@ -67,6 +74,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         return false
+    }
+
+    private static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    @objc
+    func openSettingsFromMenu() {
+        showSettings()
     }
 
     private func showSettings() {

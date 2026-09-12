@@ -28,9 +28,6 @@ struct Settings: Codable, Equatable, Sendable {
     // Behaviour
     var showRunningApps: Bool = true
     var showOnPrimaryDisplay: Bool = true
-    var autoHide: Bool = false
-    var autoHideDelay: Double = 0.4
-    var hideDuringFullscreen: Bool = true
     var activeClickBehavior: ActiveClickBehavior = .hide
     var launchAtLogin: Bool = false
 
@@ -164,9 +161,6 @@ extension Settings {
 
         showRunningApps = value(.showRunningApps, fallback.showRunningApps)
         showOnPrimaryDisplay = value(.showOnPrimaryDisplay, fallback.showOnPrimaryDisplay)
-        autoHide = value(.autoHide, fallback.autoHide)
-        autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
-        hideDuringFullscreen = value(.hideDuringFullscreen, fallback.hideDuringFullscreen)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
 

@@ -34,7 +34,7 @@ struct OnboardingView: View {
             Text("Welcome to macdock")
                 .font(.system(size: 19, weight: .semibold))
 
-            Text("A dock on every display. Two permissions and you are set.")
+            Text("A dock on every display. One permission and you are set.")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
