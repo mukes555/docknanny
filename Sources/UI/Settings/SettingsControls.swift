@@ -33,6 +33,10 @@ struct SettingRow<Control: View>: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            // Read as one phrase. Left alone, VoiceOver announces the title and
+            // the explanation as two unrelated items, with the control it
+            // describes a third.
+            .accessibilityElement(children: .combine)
 
             Spacer(minLength: 12)
 
@@ -55,6 +59,8 @@ struct SettingsToggle: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .trailing)
+                .accessibilityLabel(title)
+                .accessibilityHint(subtitle ?? "")
         }
     }
 }
@@ -73,6 +79,8 @@ struct SettingsPicker<Option: SettingsOption>: View where Option.AllCases: Rando
             }
             .labelsHidden()
             .controlSize(.small)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection.localizedName)
         }
     }
 }
@@ -90,6 +98,8 @@ struct SettingsSlider: View {
             HStack(spacing: 8) {
                 Slider(value: $value, in: range, step: step)
                     .controlSize(.small)
+                    .accessibilityLabel(title)
+                    .accessibilityValue(format(value))
                 Text(format(value))
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -110,6 +120,7 @@ struct SettingsGroup<Content: View>: View {
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.leading, 2)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: 0) {
                 content()
@@ -155,6 +166,8 @@ where Option.AllCases: RandomAccessCollection {
             }
             .labelsHidden()
             .controlSize(.small)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection?.localizedName ?? "same as global")
         }
     }
 }

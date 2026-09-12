@@ -13,18 +13,75 @@ struct DockItemView: View {
     let scale: CGFloat
     let actions: DockActions
 
+    @State private var bounceOffset: CGFloat = 0
+    @State private var isDropTarget = false
+
     var body: some View {
         icon
             .frame(width: iconSize, height: iconSize)
             .scaleEffect(scale, anchor: growthAnchor)
+            .offset(bounce)
             .animation(.spring(response: 0.22, dampingFraction: 0.72), value: scale)
             .overlay(alignment: indicatorAlignment) { indicator }
+            .overlay { dropIndicator }
             .contentShape(.rect)
             .onTapGesture { actions.activate(item) }
             .background { TileContextMenu(build: makeMenu) }
+            .draggable(item.id) { dragPreview }
+            .dropDestination(for: String.self) { dropped, _ in
+                guard let source = dropped.first, source != item.id else { return false }
+                actions.move(source, item.id)
+                return true
+            } isTargeted: { isDropTarget = $0 }
+            .onChange(of: item.isRunning) { wasRunning, isRunning in
+                guard !wasRunning, isRunning else { return }
+                playLaunchBounce()
+            }
             .help(item.name)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
+    }
+
+    /// A hop away from the screen edge when an app finishes launching, the
+    /// same confirmation the system Dock gives. Deliberately one hop: the
+    /// system's repeat-until-ready bounce is the most complained-about
+    /// animation macOS has.
+    private func playLaunchBounce() {
+        withAnimation(.interpolatingSpring(stiffness: 340, damping: 12)) {
+            bounceOffset = -14
+        }
+        withAnimation(.interpolatingSpring(stiffness: 200, damping: 14).delay(0.14)) {
+            bounceOffset = 0
+        }
+    }
+
+    /// Bounces away from whichever edge the dock is anchored to.
+    private var bounce: CGSize {
+        switch edge {
+        case .bottom: CGSize(width: 0, height: bounceOffset)
+        case .left: CGSize(width: -bounceOffset, height: 0)
+        case .right: CGSize(width: bounceOffset, height: 0)
+        }
+    }
+
+    private var dragPreview: some View {
+        Group {
+            if let image = item.icon {
+                Image(nsImage: image).resizable().scaledToFit()
+            } else {
+                RoundedRectangle(cornerRadius: 8).fill(.secondary)
+            }
+        }
+        .frame(width: iconSize, height: iconSize)
+    }
+
+    /// Shows where a dragged tile will land.
+    @ViewBuilder
+    private var dropIndicator: some View {
+        if isDropTarget {
+            RoundedRectangle(cornerRadius: iconSize * 0.22, style: .continuous)
+                .strokeBorder(.tint, lineWidth: 2)
+        }
     }
 
     private var accessibilityLabel: String {

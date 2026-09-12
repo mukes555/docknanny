@@ -8,10 +8,26 @@ struct AppsSettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            list
+            if store.settings.pinnedBundleIdentifiers.isEmpty {
+                emptyState
+            } else {
+                list
+            }
             Divider()
             toolbar
         }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No pinned apps", systemImage: "square.grid.2x2")
+        } description: {
+            Text("Running apps still appear in the dock. Pin the ones you want within reach even when they are closed.")
+        } actions: {
+            Button("Add Apps...") { addApplications() }
+                .controlSize(.large)
+        }
+        .frame(maxHeight: .infinity)
     }
 
     private var list: some View {

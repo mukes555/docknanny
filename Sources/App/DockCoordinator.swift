@@ -91,7 +91,8 @@ final class DockCoordinator {
             reveal: DockCommands.reveal,
             hide: DockCommands.hide,
             quit: DockCommands.quit,
-            pin: { [weak self] identifiers in self?.pin(identifiers) }
+            pin: { [weak self] identifiers in self?.pin(identifiers) },
+            move: { [weak self] identifier, target in self?.move(identifier, onto: target) }
         )
     }
 
@@ -110,6 +111,23 @@ final class DockCoordinator {
         for identifier in identifiers where !pinned.contains(identifier) {
             pinned.append(identifier)
         }
+        guard pinned != settings.settings.pinnedBundleIdentifiers else { return }
+        settings.settings.pinnedBundleIdentifiers = pinned
+    }
+
+    /// Dropping one tile on another puts it in that tile's place. A tile that
+    /// was merely running becomes pinned by the act of being arranged, which is
+    /// what the gesture already implies.
+    private func move(_ identifier: String, onto target: String) {
+        var pinned = settings.settings.pinnedBundleIdentifiers
+        pinned.removeAll { $0 == identifier }
+
+        if let index = pinned.firstIndex(of: target) {
+            pinned.insert(identifier, at: index)
+        } else {
+            pinned.append(identifier)
+        }
+
         guard pinned != settings.settings.pinnedBundleIdentifiers else { return }
         settings.settings.pinnedBundleIdentifiers = pinned
     }

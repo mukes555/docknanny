@@ -14,6 +14,9 @@ struct DockActions {
     var hide: (DockItem) -> Void
     var quit: (DockItem) -> Void
     var pin: (_ bundleIdentifiers: [String]) -> Void
+    /// Drops the first identifier into the second's position, pinning it if it
+    /// was only running.
+    var move: (_ identifier: String, _ onto: String) -> Void
 
     static let inert = DockActions(
         activate: { _ in },
@@ -21,7 +24,8 @@ struct DockActions {
         reveal: { _ in },
         hide: { _ in },
         quit: { _ in },
-        pin: { _ in }
+        pin: { _ in },
+        move: { _, _ in }
     )
 }
 
