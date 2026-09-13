@@ -92,7 +92,8 @@ final class DockCoordinator {
             hide: DockCommands.hide,
             quit: DockCommands.quit,
             pin: { [weak self] identifiers in self?.pin(identifiers) },
-            move: { [weak self] identifier, target in self?.move(identifier, onto: target) }
+            move: { [weak self] identifier, target in self?.move(identifier, onto: target) },
+            hideOthers: DockCommands.hideOthers
         )
     }
 

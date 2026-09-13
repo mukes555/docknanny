@@ -8,10 +8,10 @@ import AppKit
 /// the dock present when the user switches Space.
 final class DockPanel: NSPanel {
     /// Asked for a menu when the panel is right-clicked, with the click's
-    /// location in the panel's top-left coordinate space. Handled here rather
-    /// than in a view so it never depends on which magnified tile happens to be
-    /// on top in the view hierarchy.
-    var menuForRightClick: ((CGPoint) -> NSMenu?)?
+    /// location in window space. Handled here rather than in a view so it
+    /// never depends on which magnified tile happens to be on top in the view
+    /// hierarchy.
+    var menuForRightClick: ((NSPoint) -> NSMenu?)?
 
     init(contentRect: CGRect) {
         super.init(
@@ -43,12 +43,7 @@ final class DockPanel: NSPanel {
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        // AppKit's window space has its origin bottom-left; the layout maths
-        // is top-left. Flip once, here.
-        let location = event.locationInWindow
-        let flipped = CGPoint(x: location.x, y: frame.height - location.y)
-
-        guard let menu = menuForRightClick?(flipped), let view = contentView else {
+        guard let menu = menuForRightClick?(event.locationInWindow), let view = contentView else {
             super.rightMouseDown(with: event)
             return
         }

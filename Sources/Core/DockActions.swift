@@ -17,6 +17,8 @@ struct DockActions {
     /// Drops the first identifier into the second's position, pinning it if it
     /// was only running.
     var move: (_ identifier: String, _ onto: String) -> Void
+    /// Hide every other app, the system Dock's Option-click.
+    var hideOthers: (DockItem) -> Void
 
     static let inert = DockActions(
         activate: { _ in },
@@ -25,7 +27,8 @@ struct DockActions {
         hide: { _ in },
         quit: { _ in },
         pin: { _ in },
-        move: { _, _ in }
+        move: { _, _ in },
+        hideOthers: { _ in }
     )
 }
 
@@ -43,6 +46,18 @@ enum DockCommands {
 
     static func hide(_ item: DockItem) {
         runningApplication(for: item)?.hide()
+    }
+
+    /// Everything user-facing except the one clicked, and except macdock
+    /// itself, which has nothing to hide.
+    static func hideOthers(_ item: DockItem) {
+        let own = Bundle.main.bundleIdentifier
+        for application in NSWorkspace.shared.runningApplications
+        where application.activationPolicy == .regular
+            && application.bundleIdentifier != item.id
+            && application.bundleIdentifier != own {
+            application.hide()
+        }
     }
 
     /// Asks politely. `terminate()` sends the same request the Dock does, so an

@@ -49,7 +49,9 @@ struct TileSlotTests {
     @Test("Before the first slot and after the last resolve to nothing")
     func outsideIsNil() {
         #expect(index(-5) == nil)
-        #expect(index(0) == nil)
+        // The slab's own end padding is claimed by the end tiles: a magnified
+        // first tile visibly extends into it, and a click there means that tile.
+        #expect(index(0) == 0)
         let last = DockMetrics.tileCentre(atIndex: 9, iconSize: icon, spacing: gap)
         #expect(index(last + (icon + gap)) == nil)
         #expect(index(100, count: 0) == nil)

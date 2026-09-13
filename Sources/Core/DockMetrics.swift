@@ -3,9 +3,9 @@ import CoreGraphics
 /// How a dock's tiles are fitted into the space one display can give them.
 ///
 /// Sizing is computed once, here, and handed to both the window and the view.
-/// Previously the panel frame was clamped to the screen while the content was
-/// laid out at full size, so on a short display the end tiles rendered outside
-/// the window and could not be clicked at all.
+/// The panel is larger than the visible slab: magnified tiles need room to
+/// swell on the thickness axis and to push their neighbours along the length
+/// axis, and the hovered tile's name needs room beyond that.
 struct DockFit: Equatable, Sendable {
     /// Real application tiles that will be drawn.
     let visibleItemCount: Int
@@ -13,10 +13,13 @@ struct DockFit: Equatable, Sendable {
     let overflowCount: Int
     /// Tile size after any shrink-to-fit. Never larger than the configured size.
     let iconSize: CGFloat
-    /// The visible bar.
+    /// The visible bar at rest.
     let slabSize: CGSize
-    /// The window, which is the slab plus room for tiles to magnify into.
+    /// The window at its largest: slab plus room to magnify, spread and label.
     let panelSize: CGSize
+    /// Transparent room at each end of the resting slab, for tiles pushed
+    /// outward by magnification. Also where slot space begins in panel space.
+    let lengthHeadroom: CGFloat
 
     /// Tiles actually laid out, the overflow indicator included.
     var drawnTileCount: Int {
@@ -29,6 +32,18 @@ enum DockMetrics {
     /// rather than shrinking further.
     static let minimumIconSize: CGFloat = 20
 
+    /// The widest a hover label may be before it truncates.
+    static let labelMaximumWidth: CGFloat = 160
+
+    /// Room reserved beyond the slab, on the thickness axis, for the hovered
+    /// tile's name. Beside a vertical dock the label runs sideways, so it
+    /// needs the width of a name rather than the height of one.
+    static func labelClearance(for edge: DockEdge) -> CGFloat {
+        edge.isVertical ? labelMaximumWidth + 14 : 32
+    }
+
+    // MARK: Resting geometry
+
     static func slabLength(tileCount: Int, iconSize: CGFloat, spacing: CGFloat) -> CGFloat {
         let tiles = CGFloat(max(tileCount, 1)) * iconSize
         let gaps = CGFloat(max(tileCount - 1, 0)) * spacing
@@ -39,18 +54,155 @@ enum DockMetrics {
         iconSize + spacing * 2
     }
 
-    /// Room reserved beyond the slab for the hovered tile's name.
-    ///
-    /// Without this the label is offset past the edge of its own window and
-    /// clipped away: at default settings the panel is 65.76pt thick and the
-    /// label sits at 66pt, so it never rendered once.
-    static let labelClearance: CGFloat = 26
+    /// Distance from the slab's leading edge to the centre of tile `index`
+    /// at rest, measured along whichever axis the dock runs.
+    static func tileCentre(atIndex index: Int, iconSize: CGFloat, spacing: CGFloat) -> CGFloat {
+        spacing + iconSize / 2 + CGFloat(index) * (iconSize + spacing)
+    }
 
-    /// How far a tile grows past the slab at its largest. One magnitude serves
-    /// both modes, so the reserved room does not change when magnification is
-    /// switched on: only how many tiles reach it does.
+    /// Which tile's slot a point along the dock's axis falls in, or nil when
+    /// it lies past either end.
+    ///
+    /// Slots are the RESTING positions and never move. Whatever a tile is
+    /// doing visually, the slot under the pointer is the tile that swells and
+    /// the tile a click means; ``spreadCentres`` anchors the layout on that
+    /// same slot so the two can never disagree.
+    static func tileIndex(
+        atAxisPosition position: CGFloat,
+        tileCount: Int,
+        iconSize: CGFloat,
+        spacing: CGFloat
+    ) -> Int? {
+        guard tileCount > 0 else { return nil }
+        let length = slabLength(tileCount: tileCount, iconSize: iconSize, spacing: spacing)
+        guard position >= 0, position <= length else { return nil }
+
+        // The slab's own end padding is claimed by the end tiles: a magnified
+        // first tile visibly extends into it, and a click there means that tile.
+        let stride = iconSize + spacing
+        let index = Int(((position - spacing / 2) / stride).rounded(.down))
+        return min(max(index, 0), tileCount - 1)
+    }
+
+    // MARK: Magnification
+
+    /// How far from the pointer the effect reaches. Magnification mode swells
+    /// the neighbours too; hover mode reaches only the tile under the pointer.
+    static func influenceRadius(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
+        configuration.isMagnificationEnabled ? iconSize * 2.5 : iconSize * 0.5
+    }
+
+    /// Per-tile scale for a pointer at `pointerAxisPosition` in slot space.
+    static func scales(
+        pointerAxisPosition: CGFloat?,
+        tileCount: Int,
+        iconSize: CGFloat,
+        spacing: CGFloat,
+        configuration: ResolvedDockConfiguration
+    ) -> [CGFloat] {
+        guard let pointer = pointerAxisPosition else {
+            return Array(repeating: 1, count: tileCount)
+        }
+        let radius = influenceRadius(iconSize: iconSize, configuration: configuration)
+        return (0..<tileCount).map { index in
+            Magnification.scale(
+                distance: abs(pointer - tileCentre(atIndex: index, iconSize: iconSize, spacing: spacing)),
+                influenceRadius: radius,
+                maximumScale: configuration.magnificationScale
+            )
+        }
+    }
+
+    /// How far a single tile grows past the slab on the thickness axis.
     static func headroom(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
         iconSize * max(0, configuration.magnificationScale - 1)
+    }
+
+    /// The most the dock can lengthen with the pointer anywhere along it.
+    ///
+    /// With magnification the neighbours swell too, so the dock grows by more
+    /// than one tile's worth. Found by scanning pointer offsets across one
+    /// stride and summing every tile's growth, which is exact for the curve in
+    /// use rather than a constant that would go stale if the curve changed.
+    static func lengthHeadroom(
+        iconSize: CGFloat,
+        spacing: CGFloat,
+        configuration: ResolvedDockConfiguration
+    ) -> CGFloat {
+        let peak = configuration.magnificationScale
+        guard peak > 1 else { return 0 }
+
+        let radius = influenceRadius(iconSize: iconSize, configuration: configuration)
+        let stride = iconSize + spacing
+        let reach = Int((radius / stride).rounded(.up)) + 1
+        let samples = 24
+
+        var worst: CGFloat = 0
+        for step in 0...samples {
+            let offset = stride * CGFloat(step) / CGFloat(samples)
+            var total: CGFloat = 0
+            for tile in -reach...reach {
+                let distance = abs(CGFloat(tile) * stride - offset)
+                total += Magnification.scale(distance: distance, influenceRadius: radius, maximumScale: peak) - 1
+            }
+            worst = max(worst, total)
+        }
+        return worst * iconSize
+    }
+
+    /// Centres of every drawn tile along the axis, in panel coordinates, with
+    /// magnified tiles pushing their neighbours apart so nothing overlaps.
+    ///
+    /// The anchored tile keeps its resting centre and everything else moves
+    /// away from it. That is what stops the dock sliding under a pointer that
+    /// is holding still, and it is what makes the slot under the pointer also
+    /// the tile visibly under it.
+    static func spreadCentres(
+        scales: [CGFloat],
+        anchor: Int?,
+        iconSize: CGFloat,
+        spacing: CGFloat,
+        restOrigin: CGFloat
+    ) -> [CGFloat] {
+        let count = scales.count
+        guard count > 0 else { return [] }
+
+        let pivot = min(max(anchor ?? 0, 0), count - 1)
+        var centres = [CGFloat](repeating: 0, count: count)
+        centres[pivot] = restOrigin + tileCentre(atIndex: pivot, iconSize: iconSize, spacing: spacing)
+
+        var index = pivot + 1
+        while index < count {
+            let previous = iconSize * scales[index - 1] / 2
+            let current = iconSize * scales[index] / 2
+            centres[index] = centres[index - 1] + previous + spacing + current
+            index += 1
+        }
+
+        index = pivot - 1
+        while index >= 0 {
+            let next = iconSize * scales[index + 1] / 2
+            let current = iconSize * scales[index] / 2
+            centres[index] = centres[index + 1] - next - spacing - current
+            index -= 1
+        }
+        return centres
+    }
+
+    // MARK: Frames
+
+    /// The resting slab inside the panel, in top-left panel coordinates.
+    static func slabFrame(fit: DockFit, edge: DockEdge) -> CGRect {
+        let panel = fit.panelSize
+        let slab = fit.slabSize
+        switch edge {
+        case .bottom:
+            return CGRect(x: fit.lengthHeadroom, y: panel.height - slab.height, width: slab.width, height: slab.height)
+        case .left:
+            return CGRect(x: 0, y: fit.lengthHeadroom, width: slab.width, height: slab.height)
+        case .right:
+            return CGRect(x: panel.width - slab.width, y: fit.lengthHeadroom, width: slab.width, height: slab.height)
+        }
     }
 
     static func fit(
@@ -59,88 +211,53 @@ enum DockMetrics {
         availableLength: CGFloat
     ) -> DockFit {
         let count = max(itemCount, 0)
-        let ideal = configuration.iconSize
         let spacing = configuration.itemSpacing
+        let drawnAll = max(count, 1)
 
-        let affordableIconSize = largestIconSize(
-            tileCount: count,
-            configuration: configuration,
-            budget: availableLength
-        )
-        let shrunk = min(ideal, affordableIconSize)
-
-        guard shrunk < minimumIconSize else {
-            return assemble(
-                visible: count,
-                overflow: 0,
-                iconSize: max(shrunk, minimumIconSize),
-                configuration: configuration
-            )
+        // Shrink first: a smaller dock is better than a dock missing apps.
+        var iconSize = configuration.iconSize
+        while iconSize > minimumIconSize,
+              panelLength(drawnTiles: drawnAll, iconSize: iconSize, spacing: spacing, configuration: configuration)
+                > availableLength {
+            iconSize = max(minimumIconSize, iconSize - 1)
         }
 
-        // Even at the smallest legible tile the row is too long, so items are
-        // dropped and the last slot becomes a "+N" indicator.
-        let affordable = largestTileCount(
-            iconSize: minimumIconSize,
-            spacing: spacing,
-            configuration: configuration,
-            budget: availableLength
-        )
-        let visible = max(1, affordable - 1)
+        if panelLength(drawnTiles: drawnAll, iconSize: iconSize, spacing: spacing, configuration: configuration)
+            <= availableLength {
+            return assemble(visible: count, overflow: 0, iconSize: iconSize, configuration: configuration)
+        }
 
+        // Even the smallest legible tile is too long a row, so items are
+        // dropped and the last slot becomes a "+N" indicator.
+        var drawn = drawnAll
+        while drawn > 1,
+              panelLength(drawnTiles: drawn, iconSize: minimumIconSize, spacing: spacing, configuration: configuration)
+                > availableLength {
+            drawn -= 1
+        }
+        let visible = max(1, drawn - 1)
         guard visible < count else {
-            return assemble(
-                visible: count,
-                overflow: 0,
-                iconSize: minimumIconSize,
-                configuration: configuration
-            )
+            return assemble(visible: count, overflow: 0, iconSize: minimumIconSize, configuration: configuration)
         }
         return assemble(
-            visible: visible,
-            overflow: count - visible,
-            iconSize: minimumIconSize,
-            configuration: configuration
+            visible: visible, overflow: count - visible, iconSize: minimumIconSize, configuration: configuration
         )
     }
 
     /// Concentric with the tiles' own corners, which is the only radius that
-    /// ever looks settled. It was a slider; nobody needs to choose this.
+    /// ever looks settled.
     static func cornerRadius(iconSize: CGFloat, configuration: ResolvedDockConfiguration) -> CGFloat {
         iconSize * 0.2237 + configuration.itemSpacing
     }
 
-    /// Largest tile size at which `tileCount` tiles plus their magnification
-    /// headroom still fit inside `budget`. Closed form, so no search loop.
-    private static func largestIconSize(
-        tileCount: Int,
-        configuration: ResolvedDockConfiguration,
-        budget: CGFloat
-    ) -> CGFloat {
-        let tiles = CGFloat(max(tileCount, 1))
-        let growth = growthFactor(for: configuration)
-        let denominator = tiles + growth
-        guard denominator > 0 else { return configuration.iconSize }
-
-        let fixed = CGFloat(max(tileCount - 1, 0)) * configuration.itemSpacing + configuration.itemSpacing * 2
-        return max(0, (budget - fixed) / denominator)
-    }
-
-    private static func largestTileCount(
+    private static func panelLength(
+        drawnTiles: Int,
         iconSize: CGFloat,
         spacing: CGFloat,
-        configuration: ResolvedDockConfiguration,
-        budget: CGFloat
-    ) -> Int {
-        let growth = headroom(iconSize: iconSize, configuration: configuration)
-        let usable = budget - spacing * 2 - growth + spacing
-        let perTile = iconSize + spacing
-        guard perTile > 0 else { return 1 }
-        return max(1, Int(usable / perTile))
-    }
-
-    private static func growthFactor(for configuration: ResolvedDockConfiguration) -> CGFloat {
-        max(0, configuration.magnificationScale - 1)
+        configuration: ResolvedDockConfiguration
+    ) -> CGFloat {
+        slabLength(tileCount: drawnTiles, iconSize: iconSize, spacing: spacing)
+            + 2 * lengthHeadroom(iconSize: iconSize, spacing: spacing, configuration: configuration)
     }
 
     private static func assemble(
@@ -149,84 +266,28 @@ enum DockMetrics {
         iconSize: CGFloat,
         configuration: ResolvedDockConfiguration
     ) -> DockFit {
+        let spacing = configuration.itemSpacing
         let tiles = visible + (overflow > 0 ? 1 : 0)
-        let length = slabLength(tileCount: tiles, iconSize: iconSize, spacing: configuration.itemSpacing)
-        let thickness = slabThickness(iconSize: iconSize, spacing: configuration.itemSpacing)
-        let growth = headroom(iconSize: iconSize, configuration: configuration)
+        let length = slabLength(tileCount: tiles, iconSize: iconSize, spacing: spacing)
+        let thickness = slabThickness(iconSize: iconSize, spacing: spacing)
+        let alongEnds = lengthHeadroom(iconSize: iconSize, spacing: spacing, configuration: configuration)
+        let beyondSlab = headroom(iconSize: iconSize, configuration: configuration)
+            + labelClearance(for: configuration.edge)
 
         let slab = configuration.edge.isVertical
             ? CGSize(width: thickness, height: length)
             : CGSize(width: length, height: thickness)
-
-        // Magnification grows a tile on both axes, so its headroom applies to
-        // both. The label only ever appears beside the dock, never past its
-        // ends, so its clearance belongs to the thickness axis alone. Adding it
-        // to the length is what blew the screen budget the fit function had
-        // just carefully computed.
         let panel = configuration.edge.isVertical
-            ? CGSize(width: slab.width + growth + labelClearance, height: slab.height + growth)
-            : CGSize(width: slab.width + growth, height: slab.height + growth + labelClearance)
+            ? CGSize(width: thickness + beyondSlab, height: length + alongEnds * 2)
+            : CGSize(width: length + alongEnds * 2, height: thickness + beyondSlab)
 
         return DockFit(
             visibleItemCount: visible,
             overflowCount: overflow,
             iconSize: iconSize,
             slabSize: slab,
-            panelSize: panel
+            panelSize: panel,
+            lengthHeadroom: alongEnds
         )
-    }
-
-    // MARK: Slots
-
-    /// Distance from the slab's leading edge to the centre of tile `index`,
-    /// measured along whichever axis the dock runs.
-    static func tileCentre(atIndex index: Int, iconSize: CGFloat, spacing: CGFloat) -> CGFloat {
-        spacing + iconSize / 2 + CGFloat(index) * (iconSize + spacing)
-    }
-
-    /// Which tile's slot a point along the dock falls in.
-    ///
-    /// Slots are the *unscaled* layout positions, each reaching halfway into
-    /// the gaps beside it. This is the only thing clicks and hover consult.
-    /// Asking the view hierarchy instead was the bug: a magnified tile swells
-    /// past its slot and over its neighbours, view hit-testing resolves the
-    /// overlap by sibling order, and a click on the visible edge of the swollen
-    /// tile opened the neighbour. Whatever a tile is doing visually, the slot
-    /// under the pointer is the one that swells and the one a click means.
-    static func tileIndex(
-        atAxisPosition position: CGFloat,
-        tileCount: Int,
-        iconSize: CGFloat,
-        spacing: CGFloat
-    ) -> Int? {
-        guard tileCount > 0 else { return nil }
-        let stride = iconSize + spacing
-        let firstSlotStart = spacing / 2
-        let index = Int((position - firstSlotStart) / stride)
-        let isInside = position >= firstSlotStart && index >= 0 && index < tileCount
-        return isInside ? index : nil
-    }
-
-    /// Where the slab sits inside its panel, in top-left coordinates.
-    ///
-    /// The slab hugs the anchored edge; magnification headroom is split evenly
-    /// along the length and stacked on the far side of the thickness. Both the
-    /// view and the panel's own right-click handling read this, so neither can
-    /// disagree with the other about where a tile is.
-    static func slabFrame(fit: DockFit, edge: DockEdge) -> CGRect {
-        let panel = fit.panelSize
-        let slab = fit.slabSize
-
-        switch edge {
-        case .bottom:
-            return CGRect(x: (panel.width - slab.width) / 2, y: panel.height - slab.height,
-                          width: slab.width, height: slab.height)
-        case .left:
-            return CGRect(x: 0, y: (panel.height - slab.height) / 2,
-                          width: slab.width, height: slab.height)
-        case .right:
-            return CGRect(x: panel.width - slab.width, y: (panel.height - slab.height) / 2,
-                          width: slab.width, height: slab.height)
-        }
     }
 }

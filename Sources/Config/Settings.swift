@@ -31,7 +31,7 @@ struct Settings: Codable, Equatable, Sendable {
     var showOnPrimaryDisplay: Bool = true
     var autoHide: Bool = false
     var autoHideDelay: Double = 0.15
-    var activeClickBehavior: ActiveClickBehavior = .hide
+    var activeClickBehavior: ActiveClickBehavior = .doNothing
     var launchAtLogin: Bool = false
     var hasSeenWelcome: Bool = false
 

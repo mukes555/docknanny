@@ -1,14 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// Owns the panel for exactly one display, including whether it is revealed.
+/// Owns the panel for exactly one display: its size, whether it is revealed,
+/// and whether it is expanded.
 ///
-/// Auto-hide is one panel with two frames rather than a second window or a
-/// global mouse monitor. A global `.mouseMoved` monitor needs Accessibility
-/// permission, and macdock should not make an optional convenience depend on
-/// the permission that gates its core function. Concealed, the panel becomes a
-/// sliver flush with the screen edge, which is exactly where a pointer travelling
-/// off-screen comes to rest.
+/// The window is only ever as big as what it is showing. At rest it is the
+/// slab exactly; while the pointer is on the dock it grows to hold magnified
+/// tiles and the hover label; hidden, it is a sliver at the screen edge. A
+/// bigger window than that is an invisible margin that swallows clicks meant
+/// for whatever sits beside the dock, which is how the system Dock behaves and
+/// is why it resizes constantly.
+///
+/// Auto-hide is a frame, not a second window or a global mouse monitor: a
+/// global monitor needs Accessibility permission, and an optional convenience
+/// should not depend on the permission that would gate the app's core function.
 @MainActor
 final class DockPanelController {
     let displayID: CGDirectDisplayID
@@ -19,6 +24,10 @@ final class DockPanelController {
     private static let concealDelay = Duration.milliseconds(450)
 
     private let panel: DockPanel
+    /// An inert content view. AppKit keeps a window's content view sized to
+    /// the window whatever its autoresizing mask says, so the hosting view's
+    /// resting offset has to live on a subview AppKit does not manage.
+    private let container = NSView()
     private let hosting: NSHostingView<DockContentView>
     private let actions: DockActions
 
@@ -26,6 +35,8 @@ final class DockPanelController {
     private var configuration: ResolvedDockConfiguration
     private var items: [DockItem]
     private var isRevealed: Bool
+    /// Pointer is on the dock, so the window is at full size.
+    private var isExpanded = false
 
     private var revealTask: Task<Void, Never>?
     private var concealTask: Task<Void, Never>?
@@ -53,21 +64,17 @@ final class DockPanelController {
             isRevealed: !configuration.autoHide,
             actions: actions
         ))
-        self.panel = DockPanel(
-            contentRect: Self.frame(
-                for: display,
-                configuration: configuration,
-                fit: fit,
-                revealed: !configuration.autoHide
-            )
-        )
+        self.panel = DockPanel(contentRect: Self.fullFrame(
+            for: display, configuration: configuration, fit: fit, revealed: !configuration.autoHide
+        ))
 
-        // Fill the panel rather than adopting the content's intrinsic size, so
-        // SwiftUI lays out inside the full frame and anchoring means something.
+        // The controller positions the hosting view itself: at rest it is
+        // shifted so only the slab shows through the smaller window.
         hosting.sizingOptions = []
-        hosting.autoresizingMask = [.width, .height]
-        panel.contentView = hosting
-        panel.menuForRightClick = { [weak self] point in self?.menu(forRightClickAt: point) }
+        hosting.autoresizingMask = []
+        container.addSubview(hosting)
+        panel.contentView = container
+        panel.menuForRightClick = { [weak self] point in self?.menu(forRightClickInWindow: point) }
         panel.orderFrontRegardless()
         render(animated: false)
 
@@ -98,14 +105,19 @@ final class DockPanelController {
 
     // MARK: Right-click
 
-    /// Maps a panel-space point to a tile with the same slot maths the view
-    /// uses for hover and taps, so the three cannot disagree.
-    private func menu(forRightClickAt point: CGPoint) -> NSMenu? {
+    /// Maps a window-space point to a tile with the same slot maths the view
+    /// uses for hover and taps, so the three cannot disagree. Conversion goes
+    /// through the hosting view so it holds whether the window is at rest or
+    /// expanded.
+    private func menu(forRightClickInWindow windowPoint: NSPoint) -> NSMenu? {
         guard isRevealed else { return nil }
+
+        let local = hosting.convert(windowPoint, from: nil)
+        let topLeft = hosting.isFlipped ? local : CGPoint(x: local.x, y: hosting.bounds.height - local.y)
+
         let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
         let slab = DockMetrics.slabFrame(fit: fit, edge: configuration.edge)
-        let local = CGPoint(x: point.x - slab.minX, y: point.y - slab.minY)
-        let axis = configuration.edge.isVertical ? local.y : local.x
+        let axis = configuration.edge.isVertical ? topLeft.y - slab.minY : topLeft.x - slab.minX
 
         guard let index = DockMetrics.tileIndex(
             atAxisPosition: axis,
@@ -117,9 +129,14 @@ final class DockPanelController {
         return TileMenu.make(for: items[index], actions: actions)
     }
 
-    // MARK: Reveal
+    // MARK: Pointer
 
     private func pointerMovedInside(_ isInside: Bool) {
+        if isRevealed, isInside != isExpanded {
+            isExpanded = isInside
+            render(animated: false)
+        }
+
         guard configuration.autoHide else { return }
 
         if isInside {
@@ -158,6 +175,7 @@ final class DockPanelController {
         concealTask = nil
         guard revealed != isRevealed else { return }
         isRevealed = revealed
+        isExpanded = false
         render(animated: true)
     }
 
@@ -174,12 +192,17 @@ final class DockPanelController {
             onPointerInside: { [weak self] isInside in self?.pointerMovedInside(isInside) }
         )
 
-        let frame = Self.frame(
-            for: display,
-            configuration: configuration,
-            fit: fit,
-            revealed: isRevealed
+        let full = Self.fullFrame(for: display, configuration: configuration, fit: fit, revealed: isRevealed)
+        let showsSlabOnly = isRevealed && !isExpanded
+        let frame = showsSlabOnly ? Self.restFrame(within: full, fit: fit, edge: configuration.edge) : full
+
+        // The content is always laid out at full size; at rest the window is
+        // the slab's size and the content is shifted so the slab is what shows.
+        hosting.frame = CGRect(
+            origin: showsSlabOnly ? Self.restOffset(fit: fit, edge: configuration.edge) : .zero,
+            size: full.size
         )
+
         guard frame != panel.frame else { return }
 
         // Reduce Motion reaches AppKit through NSWorkspace rather than the
@@ -189,7 +212,6 @@ final class DockPanelController {
 
         guard animated, wantsMotion else {
             panel.setFrame(frame, display: true)
-            panel.invalidateShadow()
             return
         }
 
@@ -197,10 +219,6 @@ final class DockPanelController {
             context.duration = 0.18
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().setFrame(frame, display: true)
-        } completionHandler: { [weak panel] in
-            // A transparent borderless window keeps the shadow it was drawn
-            // with, so a resize leaves the old outline behind.
-            panel?.invalidateShadow()
         }
     }
 
@@ -214,14 +232,11 @@ final class DockPanelController {
             of: display.visibleFrame,
             margin: configuration.margin
         )
-        return DockMetrics.fit(
-            itemCount: itemCount,
-            configuration: configuration,
-            availableLength: available
-        )
+        return DockMetrics.fit(itemCount: itemCount, configuration: configuration, availableLength: available)
     }
 
-    private static func frame(
+    /// The window at its largest, or the sliver when hidden.
+    private static func fullFrame(
         for display: Display,
         configuration: ResolvedDockConfiguration,
         fit: DockFit,
@@ -240,7 +255,35 @@ final class DockPanelController {
             length: length,
             margin: revealed ? configuration.margin : 0,
             alignment: configuration.alignment,
-            lengthInset: DockMetrics.headroom(iconSize: fit.iconSize, configuration: configuration) / 2
+            lengthInset: fit.lengthHeadroom
         )
+    }
+
+    /// The resting slab's own rectangle on screen, cut out of the full frame.
+    /// AppKit's origin is bottom-left, so for a bottom dock the slab shares
+    /// the full frame's bottom edge.
+    private static func restFrame(within full: CGRect, fit: DockFit, edge: DockEdge) -> CGRect {
+        let slab = fit.slabSize
+        switch edge {
+        case .bottom:
+            return CGRect(x: full.minX + fit.lengthHeadroom, y: full.minY, width: slab.width, height: slab.height)
+        case .left:
+            return CGRect(x: full.minX, y: full.minY + fit.lengthHeadroom, width: slab.width, height: slab.height)
+        case .right:
+            return CGRect(
+                x: full.maxX - slab.width, y: full.minY + fit.lengthHeadroom,
+                width: slab.width, height: slab.height
+            )
+        }
+    }
+
+    /// Where the full-size content sits inside the rest-size window so that
+    /// the slab is the part that shows.
+    private static func restOffset(fit: DockFit, edge: DockEdge) -> CGPoint {
+        switch edge {
+        case .bottom: CGPoint(x: -fit.lengthHeadroom, y: 0)
+        case .left: CGPoint(x: 0, y: -fit.lengthHeadroom)
+        case .right: CGPoint(x: -(fit.panelSize.width - fit.slabSize.width), y: -fit.lengthHeadroom)
+        }
     }
 }
