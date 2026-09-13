@@ -8,6 +8,11 @@ import SwiftUI
 /// mirror, not a second dock.
 struct DockPreview: View {
     let settings: Settings
+    /// The display to preview for, or the synthetic reference display so
+    /// the preview reflects global settings rather than whichever screen the
+    /// settings window is on.
+    var display: Display?
+    var height: CGFloat = 190
 
     /// Icons come from Launch Services, which is a disk lookup. Resolving them
     /// in the body would repeat that on every frame of a slider drag, so they
@@ -17,8 +22,7 @@ struct DockPreview: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Tall enough that a vertical dock is legible rather than a sliver.
-    private static let boxHeight: CGFloat = 190
-    private static let boxInset: CGFloat = 14
+    private var boxInset: CGFloat { min(14, height / 8) }
 
     /// A synthetic display, so the preview reflects global settings rather than
     /// whichever screen the settings window happens to be on.
@@ -32,7 +36,7 @@ struct DockPreview: View {
     )
 
     private var configuration: ResolvedDockConfiguration {
-        settings.resolved(for: Self.referenceDisplay)
+        settings.resolved(for: display ?? Self.referenceDisplay)
     }
 
     private var fit: DockFit {
@@ -50,7 +54,7 @@ struct DockPreview: View {
                 dock(in: geometry.size)
             }
         }
-        .frame(height: Self.boxHeight)
+        .frame(height: height)
         .clipShape(.rect(cornerRadius: 10))
         .accessibilityLabel("Preview of the dock with the current settings")
         .onAppear(perform: reload)
@@ -85,7 +89,7 @@ struct DockPreview: View {
         // shrunken dock still overflowed the box and was clipped.
         .frame(width: fit.panelSize.width * factor, height: fit.panelSize.height * factor)
         .allowsHitTesting(false)
-        .padding(Self.boxInset)
+        .padding(boxInset)
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: fit.panelSize)
     }
 
@@ -101,8 +105,8 @@ struct DockPreview: View {
     /// magnified miniature would misrepresent the sizes being chosen.
     private func scale(toFit box: CGSize) -> CGFloat {
         let available = CGSize(
-            width: max(1, box.width - Self.boxInset * 2),
-            height: max(1, box.height - Self.boxInset * 2)
+            width: max(1, box.width - boxInset * 2),
+            height: max(1, box.height - boxInset * 2)
         )
         let widthRatio = available.width / max(fit.panelSize.width, 1)
         let heightRatio = available.height / max(fit.panelSize.height, 1)

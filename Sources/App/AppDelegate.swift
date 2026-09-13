@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
     private var onboarding: OnboardingWindowController?
     private var settingsWindow: SettingsWindowController?
+    private var tray: TrayPanelController?
 
     static func main() {
         let application = NSApplication.shared
@@ -39,7 +40,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.displays = displays
         self.apps = apps
         self.coordinator = DockCoordinator(displays: displays, apps: apps, settings: settings)
+        self.tray = TrayPanelController(
+            store: settings,
+            displays: displays,
+            onOpenSettings: { [weak self] section in self?.showSettings(section: section) },
+            onQuit: { NSApp.terminate(nil) }
+        )
         self.statusItem = StatusItemController(
+            onShowTray: { [weak self] button in self?.tray?.toggle(relativeTo: button) },
             onOpenSettings: { [weak self] in self?.showSettings() },
             onOpenSetup: { [weak self] in self?.showOnboarding() },
             onQuit: { NSApp.terminate(nil) }
@@ -67,6 +75,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--setup") {
             showOnboarding()
+            return true
+        }
+        if arguments.contains("--tray") {
+            // The status item is created above but is not in the menu bar's
+            // window until the run loop turns, and a popover will not anchor to
+            // a view with no window. One turn later it is there.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(1500))
+                guard let self, let button = statusItem?.button else { return }
+                tray?.toggle(relativeTo: button)
+            }
             return true
         }
         return false
