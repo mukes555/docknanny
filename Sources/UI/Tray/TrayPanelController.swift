@@ -53,7 +53,7 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
         // An accessory app has to activate for the popover to take key status,
         // which is what makes its toggles respond and its outside-click
         // dismissal work.
-        NSApp.activate()
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+        ActivationPolicy.activate()
     }
 }

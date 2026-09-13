@@ -132,6 +132,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings?.flush()
     }
 
+    /// Reopening a running menu-bar app, from Spotlight, Finder or `open -a`,
+    /// is the one gesture that has nothing else to mean, so it opens Settings.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        showSettings()
+        return false
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

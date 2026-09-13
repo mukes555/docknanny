@@ -34,7 +34,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        ActivationPolicy.windowDidOpen()
+        ActivationPolicy.windowDidOpen(window)
         window.center()
         window.makeKeyAndOrderFront(nil)
     }
