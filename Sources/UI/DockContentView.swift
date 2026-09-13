@@ -176,8 +176,21 @@ struct DockContentView: View {
 
     private func item(at location: CGPoint) -> DockItem? {
         let axis = configuration.edge.isVertical ? location.y : location.x
-        guard let index = slotIndex(atAxisPosition: axis), index < visibleItems.count else { return nil }
-        return visibleItems[index]
+        let index = slotIndex(atAxisPosition: axis)
+        let item = index.flatMap { $0 < visibleItems.count ? visibleItems[$0] : nil }
+
+        // Synthetic clicks cannot be injected without Accessibility, so real
+        // clicks are the only evidence of routing. This makes each one legible:
+        //   log stream --predicate 'subsystem == "app.macdock"' --level debug
+        let slot = index ?? -1
+        let target = item?.name ?? "none"
+        Log.panel.debug(
+            """
+            tap axis=\(axis, format: .fixed(precision: 1), privacy: .public) \
+            slot=\(slot, privacy: .public) -> \(target, privacy: .public)
+            """
+        )
+        return item
     }
 
     private func slotIndex(atAxisPosition position: CGFloat) -> Int? {
