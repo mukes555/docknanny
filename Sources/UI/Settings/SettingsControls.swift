@@ -65,7 +65,7 @@ struct SettingsToggle: View {
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .controlSize(.mini)
+                .controlSize(.small)
                 .tint(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityLabel(title)
@@ -149,9 +149,9 @@ struct ValueChip: View {
         Text(text)
             .font(.system(size: 10.5, weight: .medium, design: .monospaced))
             .foregroundStyle(Theme.Ink.secondary)
-            .frame(minWidth: 42)
-            .padding(.vertical, 3)
-            .background(Theme.Surface.control, in: .rect(cornerRadius: 5))
+            .frame(minWidth: 46)
+            .padding(.vertical, 4)
+            .background(Theme.Surface.groupControl, in: .rect(cornerRadius: 6))
             .overlay {
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
                     .strokeBorder(Theme.Line.hairline, lineWidth: 1)
@@ -165,10 +165,12 @@ struct SettingsGroup<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title.uppercased())
-                .settingsText(Theme.Text.section, Theme.Ink.tertiary)
-                .padding(.leading, 2)
+        VStack(alignment: .leading, spacing: 12) {
+            // Title Case in primary ink. The uppercase tertiary label this
+            // replaced failed WCAG and, it turns out, is not what Raycast does.
+            Text(title)
+                .settingsText(Theme.Text.section, Theme.Ink.primary)
+                .padding(.leading, 4)
                 .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: 0) {
@@ -188,12 +190,11 @@ struct SettingsPane<Content: View>: View {
             VStack(alignment: .leading, spacing: Theme.Metric.gutter) {
                 content()
             }
-            .padding(.horizontal, 22)
-            .padding(.vertical, 20)
+            .padding(.horizontal, 30)
+            .padding(.vertical, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.Surface.canvas)
     }
 }
 
@@ -220,7 +221,7 @@ struct SettingsSegmented<Option: SettingsOption>: View where Option.AllCases: Ra
                 }
             }
             .padding(2)
-            .background(Theme.Surface.control, in: .rect(cornerRadius: 7))
+            .background(Theme.Surface.groupControl, in: .rect(cornerRadius: 8))
             .overlay {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .strokeBorder(Theme.Line.hairline, lineWidth: 1)
@@ -242,10 +243,13 @@ private struct Segment: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .settingsText(.system(size: 11, weight: .medium), isSelected ? Theme.Ink.primary : Theme.Ink.secondary)
+                .settingsText(
+                    .system(size: 12.5, weight: .medium),
+                    isSelected ? Theme.Ink.primary : Theme.Ink.secondary
+                )
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
+                .padding(.vertical, 5)
                 .background(background)
         }
         .buttonStyle(.plain)

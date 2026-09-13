@@ -8,7 +8,7 @@ struct LayoutSettingsView: View {
             DockPreview(settings: store.settings)
 
             SettingsGroup(title: "Placement") {
-                SettingsSegmented(
+                EdgeCardPicker(
                     title: "Edge",
                     subtitle: "Which side of each display the dock hugs.",
                     selection: $store.settings.edge

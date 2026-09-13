@@ -22,14 +22,32 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .layout: "rectangle.3.offgrid"
-        case .appearance: "paintbrush"
+        case .appearance: "paintbrush.fill"
         case .behavior: "switch.2"
         case .displays: "display.2"
-        case .apps: "square.grid.2x2"
+        case .apps: "square.grid.2x2.fill"
+        }
+    }
+
+    /// Each section gets its own tile colour, which is how a sidebar of
+    /// same-weight labels becomes scannable at a glance.
+    var tint: Color {
+        switch self {
+        case .layout: Color(hex: 0x3E8FE0)
+        case .appearance: Color(hex: 0x8A6FE8)
+        case .behavior: Color(hex: 0xE2703A)
+        case .displays: Color(hex: 0x2FB8A8)
+        case .apps: Color(hex: 0x8BC53F)
         }
     }
 }
 
+/// Sidebar plus content, on a pane of dark glass.
+///
+/// A sidebar rather than a tab band, because that is what a settings window
+/// is on this platform and what Raycast's actually is. An earlier pass here
+/// used a top tab band on the strength of a written description of Raycast's
+/// design language; the screenshots say otherwise.
 struct SettingsRootView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
@@ -38,22 +56,76 @@ struct SettingsRootView: View {
     @State private var selection: SettingsSection = .layout
 
     var body: some View {
-        VStack(spacing: 0) {
-            SettingsTabBar(selection: $selection)
-            Rectangle()
-                .fill(Theme.Line.hairline)
-                .frame(height: 1)
-            detail
+        HStack(spacing: 0) {
+            sidebar
+            Rectangle().fill(Theme.Line.hairline).frame(width: 1)
+            content
         }
-        .background(Theme.Surface.canvas)
-        .frame(minWidth: 660, minHeight: 540)
-        // The dock's own chrome is dark, and this palette is built on a
-        // near-black canvas where elevation comes from hairlines. Rendering it
-        // in light mode would not be the same design with different colours, it
-        // would be a different design.
+        .background {
+            ZStack {
+                VibrantBackground(material: .underWindowBackground)
+                Theme.Surface.scrim
+            }
+        }
+        // The window has a full-size content view precisely so the sidebar's
+        // material can run up under the traffic lights. SwiftUI still insets
+        // for the title bar unless told not to, which left a flat band across
+        // the top of an otherwise glass window.
+        .ignoresSafeArea()
+        .frame(minWidth: 860, minHeight: 660)
         .preferredColorScheme(.dark)
         .onAppear { selection = initialSection }
         .background(tabShortcuts)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sidebarHeader
+                .padding(.top, 54)
+                .padding(.bottom, 18)
+
+            ForEach(SettingsSection.allCases) { section in
+                SidebarItem(
+                    section: section,
+                    isSelected: selection == section,
+                    action: { selection = section }
+                )
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .frame(width: Theme.Metric.sidebarWidth)
+        .background(VibrantBackground(material: .sidebar))
+    }
+
+    private var sidebarHeader: some View {
+        HStack(spacing: 11) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 40, height: 40)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("macdock").settingsText(Theme.Text.title, Theme.Ink.primary)
+                Text(Self.version).settingsText(Theme.Text.caption, Theme.Ink.secondary)
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    private static var version: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        return "Version \(short ?? "dev")"
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(selection.title)
+                .settingsText(Theme.Text.title, Theme.Ink.primary)
+                .padding(.horizontal, 30)
+                .padding(.top, 58)
+                .padding(.bottom, 6)
+            detail
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     /// Zero-sized buttons exist purely to register key equivalents: SwiftUI has
@@ -61,10 +133,7 @@ struct SettingsRootView: View {
     private var tabShortcuts: some View {
         ForEach(Array(SettingsSection.allCases.enumerated()), id: \.element.id) { index, section in
             Button("") { selection = section }
-                .keyboardShortcut(
-                    KeyEquivalent(Character("\(index + 1)")),
-                    modifiers: .command
-                )
+                .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
                 .hidden()
         }
     }
@@ -81,31 +150,7 @@ struct SettingsRootView: View {
     }
 }
 
-/// The band across the top.
-///
-/// Centred, with the window's traffic lights floating over the same band on the
-/// left, which is why the row is 46pt tall rather than the 34pt its content
-/// needs.
-struct SettingsTabBar: View {
-    @Binding var selection: SettingsSection
-
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(SettingsSection.allCases) { section in
-                SettingsTab(
-                    section: section,
-                    isSelected: selection == section,
-                    action: { selection = section }
-                )
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 46)
-        .background(Theme.Surface.canvas)
-    }
-}
-
-private struct SettingsTab: View {
+private struct SidebarItem: View {
     let section: SettingsSection
     let isSelected: Bool
     let action: () -> Void
@@ -114,15 +159,16 @@ private struct SettingsTab: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: section.symbol)
-                    .font(.system(size: 13, weight: .medium))
+            HStack(spacing: 10) {
+                IconTile(symbol: section.symbol, tint: section.tint)
                 Text(section.title)
-                    .settingsText(Theme.Text.tab, isSelected ? Theme.Ink.primary : Theme.Ink.secondary)
+                    .settingsText(Theme.Text.sidebar, isSelected ? Theme.Ink.primary : Theme.Ink.secondary)
+                Spacer(minLength: 0)
             }
-            .foregroundStyle(isSelected ? Theme.accent : Theme.Ink.secondary)
-            .frame(width: 74, height: 40)
+            .padding(.horizontal, 8)
+            .frame(height: 36)
             .background(background)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -133,15 +179,26 @@ private struct SettingsTab: View {
     @ViewBuilder
     private var background: some View {
         if isSelected {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Theme.Surface.selected)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(Theme.Line.hairline, lineWidth: 1)
-                }
+            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.Surface.sidebarSelected)
         } else if isHovered {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Theme.Surface.raised)
+            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.Surface.sidebarHover)
         }
+    }
+}
+
+/// The coloured rounded square behind a sidebar symbol.
+struct IconTile: View {
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+            .fill(tint.gradient)
+            .frame(width: 24, height: 24)
+            .overlay {
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
     }
 }

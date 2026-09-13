@@ -19,14 +19,18 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.title = "macdock Settings"
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.isReleasedWhenClosed = false
-        window.setContentSize(CGSize(width: 700, height: 560))
+        window.setContentSize(CGSize(width: 900, height: 680))
 
         // The tab band runs the full width beneath the traffic lights, so the
         // title bar has to be transparent and empty rather than merely styled.
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.appearance = NSAppearance(named: .darkAqua)
-        window.backgroundColor = NSColor(red: 0.039, green: 0.043, blue: 0.051, alpha: 1)
+
+        // Translucent: the root view lays down an NSVisualEffectView that
+        // samples the desktop, and that only works through a clear window.
+        window.isOpaque = false
+        window.backgroundColor = .clear
     }
 
     func show() {
