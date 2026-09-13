@@ -62,6 +62,11 @@ struct DockContentView: View {
 
             tiles
         }
+        // Sized and anchored explicitly, so the slab lands where
+        // DockMetrics.slabFrame says it does regardless of what the hosting
+        // view proposes. Left as maxWidth: .infinity, a left-edge dock rendered
+        // with its slab flush right, 68pt off the screen edge.
+        .frame(width: fit.panelSize.width, height: fit.panelSize.height, alignment: anchorAlignment)
         .overlay(alignment: anchorAlignment) { hoverLabel }
     }
 
@@ -90,6 +95,13 @@ struct DockContentView: View {
     private var tiles: some View {
         stack
             .frame(width: fit.slabSize.width, height: fit.slabSize.height)
+            .contentShape(.rect)
+            // One gesture for the whole slab, resolved by position. What swells
+            // is what opens; see DockMetrics.tileIndex for why.
+            .onTapGesture(coordinateSpace: .local) { location in
+                guard let item = item(at: location) else { return }
+                actions.activate(item)
+            }
             .onContinuousHover(coordinateSpace: .local) { phase in
                 switch phase {
                 case .active(let location):
@@ -156,12 +168,25 @@ struct DockContentView: View {
     }
 
     private var hoveredIndex: Int? {
-        guard let pointerAxisPosition else { return nil }
-        let reach = (fit.iconSize + configuration.itemSpacing) / 2
+        guard let pointerAxisPosition,
+              let index = slotIndex(atAxisPosition: pointerAxisPosition),
+              index < visibleItems.count else { return nil }
+        return index
+    }
 
-        return visibleItems.indices.first { index in
-            abs(pointerAxisPosition - centre(ofTileAt: index)) <= reach
-        }
+    private func item(at location: CGPoint) -> DockItem? {
+        let axis = configuration.edge.isVertical ? location.y : location.x
+        guard let index = slotIndex(atAxisPosition: axis), index < visibleItems.count else { return nil }
+        return visibleItems[index]
+    }
+
+    private func slotIndex(atAxisPosition position: CGFloat) -> Int? {
+        DockMetrics.tileIndex(
+            atAxisPosition: position,
+            tileCount: fit.drawnTileCount,
+            iconSize: fit.iconSize,
+            spacing: configuration.itemSpacing
+        )
     }
 
     /// Places the label beside the hovered tile, pushed clear of the slab.
@@ -180,12 +205,8 @@ struct DockContentView: View {
         }
     }
 
-    /// Distance from the slab's leading edge to the centre of tile `index`,
-    /// measured along whichever axis the dock runs.
     private func centre(ofTileAt index: Int) -> CGFloat {
-        let padding = configuration.itemSpacing
-        let stride = fit.iconSize + configuration.itemSpacing
-        return padding + fit.iconSize / 2 + CGFloat(index) * stride
+        DockMetrics.tileCentre(atIndex: index, iconSize: fit.iconSize, spacing: configuration.itemSpacing)
     }
 
     private func scale(forTileAt index: Int) -> CGFloat {

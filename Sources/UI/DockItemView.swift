@@ -2,9 +2,10 @@ import SwiftUI
 
 /// A single application tile.
 ///
-/// Scale is supplied by the parent rather than computed here, because
-/// magnification depends on a tile's distance from the pointer and only the
-/// container knows where every tile sits.
+/// Purely visual plus drag: it has no tap gesture and no menu of its own. Both
+/// are resolved by the container from the pointer's position along the dock,
+/// because a tile magnified in place overlaps its neighbours and per-tile hit
+/// testing then opened the wrong app.
 struct DockItemView: View {
     let item: DockItem
     let iconSize: CGFloat
@@ -29,8 +30,6 @@ struct DockItemView: View {
             .overlay(alignment: indicatorAlignment) { indicator }
             .overlay { dropIndicator }
             .contentShape(.rect)
-            .onTapGesture { actions.activate(item) }
-            .background { TileContextMenu(build: makeMenu) }
             .draggable(item.id) { dragPreview }
             .dropDestination(for: String.self) { dropped, _ in
                 guard let source = dropped.first, source != item.id else { return false }
@@ -96,25 +95,6 @@ struct DockItemView: View {
     private var accessibilityLabel: String {
         guard item.isRunning else { return "\(item.name), not running" }
         return item.isActive ? "\(item.name), active" : "\(item.name), running"
-    }
-
-    private func makeMenu() -> NSMenu {
-        let menu = NSMenu()
-        menu.addItem(ClosureMenuItem(title: item.name) {})
-        menu.items.first?.isEnabled = false
-        menu.addItem(.separator())
-
-        menu.addItem(ClosureMenuItem(title: "Show in Finder") { actions.reveal(item) })
-        menu.addItem(ClosureMenuItem(
-            title: item.isPinned ? "Remove from Dock" : "Keep in Dock"
-        ) { actions.togglePin(item) })
-
-        guard item.isRunning else { return menu }
-
-        menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(title: "Hide") { actions.hide(item) })
-        menu.addItem(ClosureMenuItem(title: "Quit") { actions.quit(item) })
-        return menu
     }
 
     /// Tiles grow away from the screen edge, never through it.

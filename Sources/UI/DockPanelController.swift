@@ -62,8 +62,12 @@ final class DockPanelController {
             )
         )
 
+        // Fill the panel rather than adopting the content's intrinsic size, so
+        // SwiftUI lays out inside the full frame and anchoring means something.
+        hosting.sizingOptions = []
         hosting.autoresizingMask = [.width, .height]
         panel.contentView = hosting
+        panel.menuForRightClick = { [weak self] point in self?.menu(forRightClickAt: point) }
         panel.orderFrontRegardless()
         render(animated: false)
 
@@ -90,6 +94,27 @@ final class DockPanelController {
         panel.contentView = nil
         panel.close()
         Log.panel.info("Dock panel closed on display \(self.displayID, privacy: .public)")
+    }
+
+    // MARK: Right-click
+
+    /// Maps a panel-space point to a tile with the same slot maths the view
+    /// uses for hover and taps, so the three cannot disagree.
+    private func menu(forRightClickAt point: CGPoint) -> NSMenu? {
+        guard isRevealed else { return nil }
+        let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
+        let slab = DockMetrics.slabFrame(fit: fit, edge: configuration.edge)
+        let local = CGPoint(x: point.x - slab.minX, y: point.y - slab.minY)
+        let axis = configuration.edge.isVertical ? local.y : local.x
+
+        guard let index = DockMetrics.tileIndex(
+            atAxisPosition: axis,
+            tileCount: fit.drawnTileCount,
+            iconSize: fit.iconSize,
+            spacing: configuration.itemSpacing
+        ), index < items.count, index < fit.visibleItemCount else { return nil }
+
+        return TileMenu.make(for: items[index], actions: actions)
     }
 
     // MARK: Reveal

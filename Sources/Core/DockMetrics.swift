@@ -175,4 +175,58 @@ enum DockMetrics {
             panelSize: panel
         )
     }
+
+    // MARK: Slots
+
+    /// Distance from the slab's leading edge to the centre of tile `index`,
+    /// measured along whichever axis the dock runs.
+    static func tileCentre(atIndex index: Int, iconSize: CGFloat, spacing: CGFloat) -> CGFloat {
+        spacing + iconSize / 2 + CGFloat(index) * (iconSize + spacing)
+    }
+
+    /// Which tile's slot a point along the dock falls in.
+    ///
+    /// Slots are the *unscaled* layout positions, each reaching halfway into
+    /// the gaps beside it. This is the only thing clicks and hover consult.
+    /// Asking the view hierarchy instead was the bug: a magnified tile swells
+    /// past its slot and over its neighbours, view hit-testing resolves the
+    /// overlap by sibling order, and a click on the visible edge of the swollen
+    /// tile opened the neighbour. Whatever a tile is doing visually, the slot
+    /// under the pointer is the one that swells and the one a click means.
+    static func tileIndex(
+        atAxisPosition position: CGFloat,
+        tileCount: Int,
+        iconSize: CGFloat,
+        spacing: CGFloat
+    ) -> Int? {
+        guard tileCount > 0 else { return nil }
+        let stride = iconSize + spacing
+        let firstSlotStart = spacing / 2
+        let index = Int((position - firstSlotStart) / stride)
+        let isInside = position >= firstSlotStart && index >= 0 && index < tileCount
+        return isInside ? index : nil
+    }
+
+    /// Where the slab sits inside its panel, in top-left coordinates.
+    ///
+    /// The slab hugs the anchored edge; magnification headroom is split evenly
+    /// along the length and stacked on the far side of the thickness. Both the
+    /// view and the panel's own right-click handling read this, so neither can
+    /// disagree with the other about where a tile is.
+    static func slabFrame(fit: DockFit, edge: DockEdge) -> CGRect {
+        let panel = fit.panelSize
+        let slab = fit.slabSize
+
+        switch edge {
+        case .bottom:
+            return CGRect(x: (panel.width - slab.width) / 2, y: panel.height - slab.height,
+                          width: slab.width, height: slab.height)
+        case .left:
+            return CGRect(x: 0, y: (panel.height - slab.height) / 2,
+                          width: slab.width, height: slab.height)
+        case .right:
+            return CGRect(x: panel.width - slab.width, y: (panel.height - slab.height) / 2,
+                          width: slab.width, height: slab.height)
+        }
+    }
 }
