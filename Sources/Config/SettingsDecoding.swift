@@ -47,6 +47,7 @@ extension Settings {
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
         hasSeenWelcome = value(.hasSeenWelcome, fallback.hasSeenWelcome)
 
+        mirrorSystemDock = value(.mirrorSystemDock, fallback.mirrorSystemDock)
         pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
         hiddenBundleIdentifiers = value(.hiddenBundleIdentifiers, fallback.hiddenBundleIdentifiers)
 

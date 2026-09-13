@@ -36,6 +36,10 @@ struct Settings: Codable, Equatable, Sendable {
     var hasSeenWelcome: Bool = false
 
     // Contents
+    /// Follow the system Dock's pinned apps and order. This is the default
+    /// because a dock on every display should be the same dock, not a second
+    /// one that opens something different from the same position.
+    var mirrorSystemDock: Bool = true
     var pinnedBundleIdentifiers: [String] = Settings.defaultPins
     var hiddenBundleIdentifiers: [String] = []
 
@@ -49,7 +53,7 @@ struct Settings: Codable, Equatable, Sendable {
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, showOnPrimaryDisplay, autoHide, autoHideDelay
         case activeClickBehavior, launchAtLogin, hasSeenWelcome
-        case pinnedBundleIdentifiers, hiddenBundleIdentifiers
+        case mirrorSystemDock, pinnedBundleIdentifiers, hiddenBundleIdentifiers
         case perDisplay
     }
 

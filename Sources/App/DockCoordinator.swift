@@ -13,6 +13,7 @@ final class DockCoordinator {
     private let settings: SettingsStore
 
     private var controllers: [CGDirectDisplayID: DockPanelController] = [:]
+    private let systemDock = SystemDockMonitor()
 
     /// Built once and shared by every panel. The closures read current state
     /// when they run rather than closing over a snapshot, so a panel created
@@ -43,6 +44,7 @@ final class DockCoordinator {
             _ = displays.displays
             _ = apps.apps
             _ = settings.settings
+            _ = systemDock.pinnedBundleIdentifiers
         } onChange: {
             Task { @MainActor in
                 self.synchronise()
@@ -55,7 +57,7 @@ final class DockCoordinator {
         var surviving: Set<CGDirectDisplayID> = []
 
         for display in displays.displays {
-            let configuration = settings.settings.resolved(for: display)
+            let configuration = effectiveSettings.resolved(for: display)
             guard configuration.isEnabled else { continue }
 
             surviving.insert(display.id)
@@ -97,7 +99,28 @@ final class DockCoordinator {
         )
     }
 
+    /// Global settings with the system Dock's list substituted in while
+    /// mirroring. Settings stays a pure value type; the substitution lives here
+    /// because this is the one place that knows both sources.
+    private var effectiveSettings: Settings {
+        var effective = settings.settings
+        if effective.mirrorSystemDock {
+            effective.pinnedBundleIdentifiers = systemDock.pinnedBundleIdentifiers
+        }
+        return effective
+    }
+
+    /// A local edit while mirroring would otherwise land in a list nothing
+    /// reads. Editing forks: the mirrored list becomes the custom one, then the
+    /// edit applies to it, and the Apps pane shows that the fork happened.
+    private func forkFromMirrorIfNeeded() {
+        guard settings.settings.mirrorSystemDock else { return }
+        settings.settings.mirrorSystemDock = false
+        settings.settings.pinnedBundleIdentifiers = systemDock.pinnedBundleIdentifiers
+    }
+
     private func togglePin(_ identifier: String) {
+        forkFromMirrorIfNeeded()
         var pinned = settings.settings.pinnedBundleIdentifiers
         if let index = pinned.firstIndex(of: identifier) {
             pinned.remove(at: index)
@@ -108,6 +131,7 @@ final class DockCoordinator {
     }
 
     private func pin(_ identifiers: [String]) {
+        forkFromMirrorIfNeeded()
         var pinned = settings.settings.pinnedBundleIdentifiers
         for identifier in identifiers where !pinned.contains(identifier) {
             pinned.append(identifier)
@@ -120,6 +144,7 @@ final class DockCoordinator {
     /// was merely running becomes pinned by the act of being arranged, which is
     /// what the gesture already implies.
     private func move(_ identifier: String, onto target: String) {
+        forkFromMirrorIfNeeded()
         var pinned = settings.settings.pinnedBundleIdentifiers
         pinned.removeAll { $0 == identifier }
 

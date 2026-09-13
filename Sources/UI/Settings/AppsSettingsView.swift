@@ -1,45 +1,106 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Manages the pinned set: what appears in every dock whether or not it is
-/// running, and in what order.
+/// What the docks pin, and where that list comes from.
 ///
-/// Still a List underneath, because List is what gives drag-to-reorder on
-/// macOS for free. Everything List draws of its own accord is switched off so
-/// the rows sit in the same glass group as every other pane.
+/// By default it is the system Dock's own list, in the system Dock's order,
+/// so every display shows the same dock. Turning that off gives a custom list
+/// with drag-to-reorder; any edit made to a mirrored dock does the same fork
+/// automatically rather than landing in a list nothing reads.
 struct AppsSettingsView: View {
     @Bindable var store: SettingsStore
 
+    @State private var mirrored: [String] = []
+    @State private var systemTileSize: Double?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if isEmpty {
-                emptyState
-            } else {
-                pinnedGroup
-                Spacer(minLength: 0)
+            SettingsPane {
+                sourceGroup
+                if store.settings.mirrorSystemDock {
+                    mirroredGroup
+                } else if store.settings.pinnedBundleIdentifiers.isEmpty {
+                    emptyState
+                } else {
+                    customGroup
+                }
+            }
+            if !store.settings.mirrorSystemDock, !store.settings.pinnedBundleIdentifiers.isEmpty {
                 footer
+            }
+        }
+        .task { readSystemDock() }
+        .onChange(of: store.settings.mirrorSystemDock) { _, _ in readSystemDock() }
+    }
+
+    private func readSystemDock() {
+        mirrored = SystemDockMonitor.readPinned()
+        systemTileSize = SystemDockMonitor.readTileSize()
+    }
+
+    // MARK: Source
+
+    private var sourceGroup: some View {
+        SettingsGroup(title: "Source") {
+            SettingsToggle(
+                title: "Mirror the system Dock",
+                subtitle: "Use the apps pinned in your Mac's Dock, in the same order. "
+                    + "Rearrange the Dock and every display follows.",
+                isOn: $store.settings.mirrorSystemDock
+            )
+            if let systemTileSize, systemTileSize != store.settings.iconSize {
+                SettingsDivider()
+                SettingRow(
+                    title: "Match the Dock's icon size",
+                    subtitle: "Your Dock uses \(Int(systemTileSize)) pt; "
+                        + "macdock is at \(Int(store.settings.iconSize)) pt."
+                ) {
+                    Button("Use \(Int(systemTileSize)) pt") {
+                        store.settings.iconSize = systemTileSize.clamped(to: Settings.Limits.iconSize)
+                    }
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
             }
         }
     }
 
-    private var isEmpty: Bool {
-        store.settings.pinnedBundleIdentifiers.isEmpty
+    // MARK: Mirrored
+
+    private var mirroredGroup: some View {
+        SettingsGroup(title: "Pinned, from the system Dock") {
+            if mirrored.isEmpty {
+                SettingRow(
+                    title: "Nothing pinned in the system Dock",
+                    subtitle: "Running apps still appear. Turn mirroring off to pin apps here instead."
+                ) { EmptyView() }
+            } else {
+                ForEach(Array(mirrored.enumerated()), id: \.element) { index, identifier in
+                    if index > 0 { SettingsDivider() }
+                    PinnedAppRow(identifier: identifier, onRemove: nil)
+                        .padding(.horizontal, Theme.Metric.rowPadding)
+                }
+            }
+            SettingsDivider()
+            SettingRow(
+                title: "Rearrange these in your Mac's Dock",
+                subtitle: "Editing here, or dragging tiles in a dock, switches to a custom list seeded from this one."
+            ) { EmptyView() }
+        }
     }
 
-    private var pinnedGroup: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Pinned")
-                .settingsText(Theme.Text.section, Theme.Ink.primary)
-                .padding(.leading, 4)
-                .accessibilityAddTraits(.isHeader)
+    // MARK: Custom
 
+    private var customGroup: some View {
+        SettingsGroup(title: "Pinned") {
             List {
                 ForEach(store.settings.pinnedBundleIdentifiers, id: \.self) { identifier in
                     PinnedAppRow(identifier: identifier) { remove(identifier) }
                         .listRowBackground(Color.clear)
                         .listRowSeparatorTint(Theme.Line.hairline)
-                        .listRowInsets(EdgeInsets(top: 0, leading: Theme.Metric.rowPadding,
-                                                  bottom: 0, trailing: Theme.Metric.rowPadding))
+                        .listRowInsets(EdgeInsets(
+                            top: 0, leading: Theme.Metric.rowPadding, bottom: 0, trailing: Theme.Metric.rowPadding
+                        ))
                 }
                 .onMove { source, destination in
                     store.settings.pinnedBundleIdentifiers.move(fromOffsets: source, toOffset: destination)
@@ -48,10 +109,7 @@ struct AppsSettingsView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .frame(height: CGFloat(store.settings.pinnedBundleIdentifiers.count) * PinnedAppRow.height + 8)
-            .raisedSurface()
         }
-        .padding(.horizontal, 30)
-        .padding(.vertical, 22)
     }
 
     private var footer: some View {
@@ -76,7 +134,7 @@ struct AppsSettingsView: View {
             Button("Add Apps...") { addApplications() }
                 .controlSize(.large)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 320)
     }
 
     private func remove(_ identifier: String) {
@@ -100,13 +158,13 @@ struct AppsSettingsView: View {
 }
 
 /// One pinned app. Removal is a visible button that appears on hover rather
-/// than a gesture: macOS List has no swipe-to-delete, so the earlier hint
-/// promising one described something that could not happen.
+/// than a gesture: macOS List has no swipe-to-delete. Rows in a mirrored list
+/// pass nil and get no button, because the place to edit them is the Dock.
 private struct PinnedAppRow: View {
     static let height: CGFloat = 52
 
     let identifier: String
-    let onRemove: () -> Void
+    let onRemove: (() -> Void)?
 
     @State private var isHovered = false
 
@@ -128,15 +186,17 @@ private struct PinnedAppRow: View {
                     .settingsText(Theme.Text.caption, Theme.Status.warning)
             }
 
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Theme.Ink.secondary)
+            if let onRemove {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.Ink.secondary)
+                }
+                .buttonStyle(.plain)
+                .opacity(isHovered ? 1 : 0)
+                .help("Remove from Dock")
+                .accessibilityLabel("Remove \(DockContents.displayName(forBundleIdentifier: identifier)) from Dock")
             }
-            .buttonStyle(.plain)
-            .opacity(isHovered ? 1 : 0)
-            .help("Remove from Dock")
-            .accessibilityLabel("Remove \(DockContents.displayName(forBundleIdentifier: identifier)) from Dock")
         }
         .frame(height: Self.height)
         .contentShape(.rect)
