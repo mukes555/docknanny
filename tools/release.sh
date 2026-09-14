@@ -14,7 +14,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-version="$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo dev)"
+# The app's own version, so the DMG is named after what it contains rather
+# than after whatever tag happens to be newest.
+version="$(sed -n 's/.*MARKETING_VERSION: "\(.*\)".*/\1/p' project.yml)"
 identity="${CODESIGN_IDENTITY:--}"
 out="build/release"
 staging="$out/staging"
@@ -32,6 +34,7 @@ xcodebuild build \
     -project macdock.xcodeproj \
     -scheme macdock \
     -configuration Release \
+    -destination 'platform=macOS,arch=arm64' \
     -derivedDataPath build/DerivedData \
     -quiet \
     CODE_SIGNING_ALLOWED=NO
