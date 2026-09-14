@@ -55,7 +55,7 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
         // takes key status as it appears. Shown into an inactive app it stays
         // a non-key window, and everything in it draws faded until clicked.
         // The deferred pass re-asserts key status once activation has landed.
-        NSApp.activate()
+        ActivationPolicy.activateNow()
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
         ActivationPolicy.activate(bringingFront: popover.contentViewController?.view.window, orderingFront: false)
     }
