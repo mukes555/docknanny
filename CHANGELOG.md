@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- "Set Up macdock…" is in the tray as well as the right-click menu.
+- Activation uses the current macOS form of the request instead of the
+  deprecated one; no deprecated API remains in the app.
+- The window keeper ignores notifications with no readable process and
+  logs the set of watched apps only when it changes.
+
 ## 0.3.1
 
 - "Keep windows clear of the dock" reads window frames from the window

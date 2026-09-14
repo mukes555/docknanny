@@ -5,6 +5,7 @@ struct TrayView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
     let onOpenSettings: (SettingsSection) -> Void
+    let onOpenSetup: () -> Void
     let onClose: () -> Void
     let onQuit: () -> Void
 
@@ -98,6 +99,8 @@ struct TrayView: View {
     private var actions: some View {
         VStack(spacing: 0) {
             TrayAction(symbol: "gearshape", title: "Settings…", keycap: "⌘,") { onOpenSettings(.layout) }
+            SettingsDivider()
+            TrayAction(symbol: "checkmark.shield", title: "Set Up macdock…", keycap: nil, action: onOpenSetup)
             SettingsDivider()
             TrayAction(symbol: "doc.text.magnifyingglass", title: "Reveal settings file", keycap: nil) {
                 NSWorkspace.shared.activateFileViewerSelecting([store.fileURL])

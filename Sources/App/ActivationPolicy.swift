@@ -60,12 +60,16 @@ enum ActivationPolicy {
     /// The plain `activate()` is cooperative: macOS grants it only after a
     /// user interaction it recognises, and a click on a status item is not
     /// one, so the tray opened faded and Set Up opened behind everything.
-    /// The form marked deprecated in macOS 14 is documented as ignored but
-    /// is, measured on macOS 26, still honoured for a background app with no
-    /// interaction at all. Every activation in the app goes through here so
-    /// the day it stops working there is one place to change.
-    @available(macOS, deprecated: 14.0)
+    /// Naming the app in front as the one yielding is the macOS 14 form of
+    /// the same request and is honoured, measured on macOS 26, even for a
+    /// background app with no interaction at all. Every activation in the
+    /// app goes through here so the day it stops working there is one place
+    /// to change.
     static func activateNow() {
-        NSApp.activate(ignoringOtherApps: true)
+        guard let front = NSWorkspace.shared.frontmostApplication, !front.isEqual(NSRunningApplication.current) else {
+            NSApp.activate()
+            return
+        }
+        NSRunningApplication.current.activate(from: front, options: [])
     }
 }

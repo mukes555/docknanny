@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store: settings,
             displays: displays,
             onOpenSettings: { [weak self] section in self?.showSettings(section: section) },
+            onOpenSetup: { [weak self] in self?.showOnboarding() },
             onQuit: { NSApp.terminate(nil) }
         )
         self.statusItem = StatusItemController(

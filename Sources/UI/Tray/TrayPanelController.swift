@@ -15,6 +15,7 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
         store: SettingsStore,
         displays: DisplayRegistry,
         onOpenSettings: @escaping (SettingsSection) -> Void,
+        onOpenSetup: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         super.init()
@@ -25,6 +26,10 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
             onOpenSettings: { [weak self] section in
                 self?.popover.performClose(nil)
                 onOpenSettings(section)
+            },
+            onOpenSetup: { [weak self] in
+                self?.popover.performClose(nil)
+                onOpenSetup()
             },
             onClose: { [weak self] in self?.popover.performClose(nil) },
             onQuit: onQuit

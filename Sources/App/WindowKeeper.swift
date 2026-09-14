@@ -29,6 +29,9 @@ final class WindowKeeper {
     private var settleTasks: [pid_t: Task<Void, Never>] = [:]
     private let trustPoll = TaskBox()
     private let sweep = TaskBox()
+    /// Reconcile runs on every settings change; the log line is worth
+    /// having only when the set of watched apps actually changed.
+    private var lastReportedCount = -1
 
     /// A zoom animates through several resize notifications a frame apart;
     /// only the final frame matters, and every millisecond of waiting is a
@@ -85,7 +88,10 @@ final class WindowKeeper {
         for pid in wanted where observers[pid] == nil {
             addObserver(for: pid)
         }
-        Log.workspace.info("Window keeper watching \(self.observers.count, privacy: .public) app(s)")
+        if observers.count != lastReportedCount {
+            lastReportedCount = observers.count
+            Log.workspace.info("Window keeper watching \(self.observers.count, privacy: .public) app(s)")
+        }
         scheduleSweep()
     }
 
@@ -183,7 +189,7 @@ final class WindowKeeper {
         // anything else about the element, which some apps (Chrome) hand over
         // already invalid.
         var pid: pid_t = 0
-        AXUIElementGetPid(element, &pid)
+        guard AXUIElementGetPid(element, &pid) == .success, pid > 0 else { return }
         MainActor.assumeIsolated {
             keeper.scheduleCheck(of: pid)
         }

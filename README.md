@@ -129,7 +129,10 @@ git clone https://github.com/USERNAME/macdock.git && cd macdock && xcodegen gene
 `--setup`, `--tray`.
 
 Settings live in `~/Library/Application Support/macdock/settings.json`, and
-the app logs under the `app.macdock` subsystem:
+the app logs under the `app.macdock` subsystem. If a window will not stay
+clear of a dock, `open -a macdock --args --probe-windows=<app name>` records
+what Accessibility and the window server each say about that app's windows
+(read it back with `log show --predicate 'category == "probe"'`):
 
 ```bash
 /usr/bin/log stream --level info --predicate 'subsystem == "app.macdock"'

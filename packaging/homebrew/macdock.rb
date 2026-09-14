@@ -2,7 +2,7 @@
 # project meets its notability bar. Replace OWNER with the GitHub owner and
 # refresh the sha256 from the release's .sha256 file on each version.
 cask "macdock" do
-  version "0.3.1"
+  version "0.3.2"
   sha256 "REPLACE_WITH_SHA256_FROM_RELEASE"
 
   url "https://github.com/OWNER/macdock/releases/download/v#{version}/macdock-#{version}.dmg"
