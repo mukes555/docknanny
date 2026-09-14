@@ -1,19 +1,20 @@
 import SwiftUI
 
-/// First run.
+/// First run, and the place to come back to for the one optional permission.
 ///
-/// This used to be a permission gate asking for Accessibility, which macdock
-/// does not use: every dock action goes through NSRunningApplication and
-/// NSWorkspace, and neither needs a grant. Asking for the most alarming
-/// permission on macOS to power nothing is the same fault that got the Screen
-/// Recording request deleted, and the rule written into PermissionsService
-/// applies to macdock itself.
-///
-/// So it says the true thing instead, which happens to be the best thing it
-/// could say: nothing to grant, it is already working.
+/// The docks need nothing granted, and the window says so. Accessibility is
+/// offered, not required: it lists an app's windows in its tile's menu and
+/// nothing else, and macOS ties the grant to a running process, so a relaunch
+/// button sits beside it rather than an explanation.
 struct OnboardingView: View {
     let onOpenSettings: () -> Void
     let onDismiss: () -> Void
+
+    @State private var isTrusted = Accessibility.isTrusted
+    /// The grant lands in System Settings, behind this window. Polling while
+    /// the window is open means the status flips without a relaunch when
+    /// macOS applies it live, which it usually does.
+    private let poll = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,11 +22,14 @@ struct OnboardingView: View {
             Rectangle().fill(Theme.Line.hairline).frame(height: 1)
             points
             Rectangle().fill(Theme.Line.hairline).frame(height: 1)
+            accessibilityRow
+            Rectangle().fill(Theme.Line.hairline).frame(height: 1)
             footer
         }
-        .frame(width: 460)
+        .frame(width: 480)
         .background(Theme.Surface.canvas)
         .preferredColorScheme(.dark)
+        .onReceive(poll) { _ in isTrusted = Accessibility.isTrusted }
     }
 
     private var header: some View {
@@ -50,8 +54,8 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Point(
                 symbol: "lock.open",
-                title: "No permissions needed",
-                detail: "macdock asks for nothing. No Accessibility, no Screen Recording."
+                title: "Nothing to grant for the docks",
+                detail: "Launching, switching, hiding and quitting apps need no permission at all."
             )
             SettingsDivider()
             Point(
@@ -67,6 +71,46 @@ struct OnboardingView: View {
             )
         }
         .padding(20)
+    }
+
+    /// Optional, and says exactly what it buys.
+    private var accessibilityRow: some View {
+        HStack(alignment: .top, spacing: 13) {
+            Image(systemName: isTrusted ? "checkmark.circle.fill" : "macwindow.on.rectangle")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(isTrusted ? Theme.Status.success : Theme.accent)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isTrusted ? "Accessibility is on" : "Optional: list windows in tile menus")
+                    .settingsText(Theme.Text.rowEmphasis, Theme.Ink.primary)
+                Text(isTrusted
+                    ? "Right-click a running app's tile to see and switch between its windows."
+                    : "Right-clicking a running app's tile can list its windows, like the Dock. "
+                        + "That reads other apps' window titles, which is what Accessibility access is for.")
+                    .settingsText(Theme.Text.caption, Theme.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !isTrusted {
+                    Text("If the tile menus still show no windows after granting, relaunch.")
+                        .settingsText(Theme.Text.caption, Theme.Ink.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                }
+            }
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 6) {
+                if !isTrusted {
+                    Button("Grant...") { Accessibility.request() }
+                        .controlSize(.small)
+                }
+                Button("Relaunch") { AppRestarter.restart() }
+                    .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .accessibilityElement(children: .contain)
     }
 
     private var footer: some View {

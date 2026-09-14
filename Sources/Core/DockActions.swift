@@ -24,6 +24,11 @@ struct DockActions {
     var emptyTrash: () -> Void
     /// Files dropped on the Trash tile.
     var trash: (_ urls: [URL]) -> Void
+    /// The Dock's "Show All Windows": App Exposé for that app.
+    var showAllWindows: (DockItem) -> Void
+    var raiseWindow: (DockItem, AppWindow) -> Void
+    /// The setup window, where Accessibility can be granted.
+    var openSetup: () -> Void
 
     static let inert = DockActions(
         activate: { _ in },
@@ -35,7 +40,10 @@ struct DockActions {
         move: { _, _ in },
         hideOthers: { _ in },
         emptyTrash: {},
-        trash: { _ in }
+        trash: { _ in },
+        showAllWindows: { _ in },
+        raiseWindow: { _, _ in },
+        openSetup: {}
     )
 }
 
@@ -74,6 +82,29 @@ enum DockCommands {
 
     static func hide(_ item: DockItem) {
         runningApplication(for: item)?.hide()
+    }
+
+    /// Activates first: App Exposé shows the front app's windows, so the app
+    /// has to be in front for the right windows to appear. Without the
+    /// private call, activation alone still brings its windows forward.
+    static func showAllWindows(_ item: DockItem) {
+        guard let application = runningApplication(for: item) else { return }
+        if application.isHidden {
+            application.unhide()
+        }
+        application.activate()
+        _ = PrivateSymbols.showAppExpose()
+    }
+
+    static func raiseWindow(_ item: DockItem, _ window: AppWindow) {
+        guard let application = runningApplication(for: item) else { return }
+        AppWindows.raise(window, of: application)
+    }
+
+    /// The tile menu's window rows. nil means Accessibility is not granted.
+    static func windows(of item: DockItem) -> [AppWindow]? {
+        guard let application = runningApplication(for: item) else { return nil }
+        return AppWindows.list(processIdentifier: application.processIdentifier)
     }
 
     /// Everything user-facing except the one clicked, and except macdock

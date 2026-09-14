@@ -11,6 +11,7 @@ final class DockCoordinator {
     private let displays: DisplayRegistry
     private let apps: RunningAppsMonitor
     private let settings: SettingsStore
+    private let openSetup: () -> Void
 
     private var controllers: [CGDirectDisplayID: DockPanelController] = [:]
     private let systemDock = SystemDockMonitor()
@@ -20,10 +21,16 @@ final class DockCoordinator {
     /// before a setting changed still behaves correctly afterwards.
     private lazy var actions = makeActions()
 
-    init(displays: DisplayRegistry, apps: RunningAppsMonitor, settings: SettingsStore) {
+    init(
+        displays: DisplayRegistry,
+        apps: RunningAppsMonitor,
+        settings: SettingsStore,
+        openSetup: @escaping () -> Void
+    ) {
         self.displays = displays
         self.apps = apps
         self.settings = settings
+        self.openSetup = openSetup
 
         synchronise()
         observe()
@@ -137,7 +144,10 @@ final class DockCoordinator {
             move: { [weak self] identifier, before in self?.move(identifier, before: before) },
             hideOthers: DockCommands.hideOthers,
             emptyTrash: Trash.emptyViaFinder,
-            trash: Trash.moveToTrash
+            trash: Trash.moveToTrash,
+            showAllWindows: DockCommands.showAllWindows,
+            raiseWindow: DockCommands.raiseWindow,
+            openSetup: openSetup
         )
     }
 

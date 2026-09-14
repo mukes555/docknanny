@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Right-clicking a running app lists its windows, main one checked,
+  minimized ones marked, and raises the one chosen; Show All Windows opens
+  App Exposé. The window list needs Accessibility, which the setup window
+  now offers with Grant and Relaunch buttons; without it the menu says so.
+- `tools/probe-dock-rect.swift`, to find out whether reserving screen space
+  beside a macdock dock is possible on a given machine.
+
 ## 0.2.0
 
 - The system Dock mirror is complete: Finder first, folders and documents

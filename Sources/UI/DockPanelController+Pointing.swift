@@ -27,7 +27,9 @@ extension DockPanelController {
             spacing: configuration.itemSpacing
         ), index < items.count, index < fit.visibleItemCount else { return nil }
 
-        return TileMenu.make(for: items[index], actions: actions)
+        let item = items[index]
+        let windows = item.isRunning ? DockCommands.windows(of: item) : nil
+        return TileMenu.make(for: item, actions: actions, windows: windows)
     }
 
     /// Pops a menu up beside the dock, on the side away from the screen edge,
