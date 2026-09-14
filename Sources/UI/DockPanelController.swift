@@ -23,21 +23,23 @@ final class DockPanelController {
     /// Grace period before hiding again, so crossing a gap does not retract it.
     private static let concealDelay = Duration.milliseconds(450)
 
-    private let panel: DockPanel
+    let panel: DockPanel
     /// An inert content view. AppKit keeps a window's content view sized to
     /// the window whatever its autoresizing mask says, so the hosting view's
     /// resting offset has to live on a subview AppKit does not manage.
     private let container = NSView()
-    private let hosting: NSHostingView<DockContentView>
-    private let actions: DockActions
+    let hosting: NSHostingView<DockContentView>
+    let actions: DockActions
+    /// Asked what to do with a tile released off this dock, at a screen point.
+    let onDragOutside: (DockItem, CGPoint) -> DragReleaseOutcome
 
-    private var display: Display
-    private var configuration: ResolvedDockConfiguration
-    private var items: [DockItem]
+    private(set) var display: Display
+    private(set) var configuration: ResolvedDockConfiguration
+    private(set) var items: [DockItem]
 
     /// What this dock is showing right now, in order.
     var currentItems: [DockItem] { items }
-    private var isRevealed: Bool
+    private(set) var isRevealed: Bool
     /// Pointer is on the dock, so the window is at full size.
     private var isExpanded = false
 
@@ -48,13 +50,15 @@ final class DockPanelController {
         display: Display,
         configuration: ResolvedDockConfiguration,
         items: [DockItem],
-        actions: DockActions
+        actions: DockActions,
+        onDragOutside: @escaping (DockItem, CGPoint) -> DragReleaseOutcome
     ) {
         self.displayID = display.id
         self.display = display
         self.configuration = configuration
         self.items = items
         self.actions = actions
+        self.onDragOutside = onDragOutside
         self.isRevealed = !configuration.autoHide
 
         let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
@@ -104,47 +108,6 @@ final class DockPanelController {
         panel.contentView = nil
         panel.close()
         Log.panel.info("Dock panel closed on display \(self.displayID, privacy: .public)")
-    }
-
-    // MARK: Right-click
-
-    /// Maps a window-space point to a tile with the same slot maths the view
-    /// uses for hover and taps, so the three cannot disagree. Conversion goes
-    /// through the hosting view so it holds whether the window is at rest or
-    /// expanded.
-    private func menu(forRightClickInWindow windowPoint: NSPoint) -> NSMenu? {
-        guard isRevealed else { return nil }
-
-        let local = hosting.convert(windowPoint, from: nil)
-        let topLeft = hosting.isFlipped ? local : CGPoint(x: local.x, y: hosting.bounds.height - local.y)
-
-        let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
-        let slab = DockMetrics.slabFrame(fit: fit, edge: configuration.edge)
-        let axis = configuration.edge.isVertical ? topLeft.y - slab.minY : topLeft.x - slab.minX
-
-        guard let index = DockMetrics.tileIndex(
-            atAxisPosition: axis,
-            tileCount: fit.drawnTileCount,
-            iconSize: fit.iconSize,
-            spacing: configuration.itemSpacing
-        ), index < items.count, index < fit.visibleItemCount else { return nil }
-
-        return TileMenu.make(for: items[index], actions: actions)
-    }
-
-    /// Pops a menu up beside the dock, on the side away from the screen edge,
-    /// with the given point (in the content's top-left coordinates) as the
-    /// spot it grows from. AppKit nudges it back on screen if it would not fit.
-    private func presentMenu(_ menu: NSMenu, from anchor: CGPoint) {
-        let size = menu.size
-        let gap: CGFloat = 6
-        let topLeft: CGPoint = switch configuration.edge {
-        case .bottom: CGPoint(x: anchor.x - size.width / 2, y: anchor.y - size.height - gap)
-        case .left: CGPoint(x: anchor.x + gap, y: anchor.y - size.height / 2)
-        case .right: CGPoint(x: anchor.x - size.width - gap, y: anchor.y - size.height / 2)
-        }
-        let point = hosting.isFlipped ? topLeft : CGPoint(x: topLeft.x, y: hosting.bounds.height - topLeft.y)
-        menu.popUp(positioning: nil, at: point, in: hosting)
     }
 
     // MARK: Pointer
@@ -208,7 +171,8 @@ final class DockPanelController {
             isRevealed: isRevealed,
             actions: actions,
             onPointerInside: { [weak self] isInside in self?.pointerMovedInside(isInside) },
-            presentMenu: { [weak self] menu, anchor in self?.presentMenu(menu, from: anchor) }
+            presentMenu: { [weak self] menu, anchor in self?.presentMenu(menu, from: anchor) },
+            onDragOutside: { [weak self] item, point in self?.dragReleased(item, atLocal: point) ?? .cancelled }
         )
 
         let full = Self.fullFrame(for: display, configuration: configuration, fit: fit, revealed: isRevealed)
@@ -241,7 +205,7 @@ final class DockPanelController {
         }
     }
 
-    private static func fit(
+    static func fit(
         for display: Display,
         configuration: ResolvedDockConfiguration,
         itemCount: Int

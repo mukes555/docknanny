@@ -16,9 +16,9 @@ struct DockActions {
     /// Files dropped on the dock: apps get pinned, folders and documents join
     /// the section after the apps.
     var drop: (_ urls: [URL]) -> Void
-    /// Drops the first identifier into the second's position, pinning it if it
-    /// was only running.
-    var move: (_ identifier: String, _ onto: String) -> Void
+    /// Puts the app in front of the given tile in the pin list, or at the end
+    /// of it for nil, pinning it if it was only running.
+    var move: (_ identifier: String, _ before: DockItem?) -> Void
     /// Hide every other app, the system Dock's Option-click.
     var hideOthers: (DockItem) -> Void
     var emptyTrash: () -> Void

@@ -45,7 +45,7 @@ final class DockCoordinator {
         let controller = underPointer.flatMap { controllers[$0.id] } ?? controllers.values.first
         guard let controller else { return }
 
-        let apps = controller.currentItems.filter { $0.bundleIdentifier != nil }
+        let apps = controller.items.filter { $0.bundleIdentifier != nil }
         guard number >= 1, number <= apps.count else { return }
         activate(apps[number - 1])
     }
@@ -85,7 +85,10 @@ final class DockCoordinator {
                     display: display,
                     configuration: configuration,
                     items: items,
-                    actions: actions
+                    actions: actions,
+                    onDragOutside: { [weak self] item, point in
+                        self?.dragReleased(item, atScreenPoint: point, from: display.id) ?? .cancelled
+                    }
                 )
             }
         }
@@ -131,7 +134,7 @@ final class DockCoordinator {
             hide: DockCommands.hide,
             quit: DockCommands.quit,
             drop: { [weak self] urls in self?.drop(urls) },
-            move: { [weak self] identifier, target in self?.move(identifier, onto: target) },
+            move: { [weak self] identifier, before in self?.move(identifier, before: before) },
             hideOthers: DockCommands.hideOthers,
             emptyTrash: Trash.emptyViaFinder,
             trash: Trash.moveToTrash
@@ -210,22 +213,47 @@ final class DockCoordinator {
         }
     }
 
-    /// Dropping one app tile on another puts it in that tile's place. A tile
-    /// that was merely running becomes pinned by the act of being arranged,
-    /// which is what the gesture already implies.
-    private func move(_ identifier: String, onto target: String) {
+    /// A dragged app lands in front of the tile that was under the pointer,
+    /// or at the end of the pinned run. A tile that was merely running becomes
+    /// pinned by the act of being arranged, which is what the gesture implies.
+    private func move(_ identifier: String, before target: DockItem?) {
         forkFromMirrorIfNeeded()
         var pinned = settings.settings.pinnedBundleIdentifiers
         pinned.removeAll { $0 == identifier }
-
-        if let index = pinned.firstIndex(of: target) {
-            pinned.insert(identifier, at: index)
-        } else {
-            pinned.append(identifier)
-        }
+        pinned.insert(identifier, at: target.flatMap { pinIndex(of: $0, in: pinned) } ?? pinned.endIndex)
 
         guard pinned != settings.settings.pinnedBundleIdentifiers else { return }
         settings.settings.pinnedBundleIdentifiers = pinned
+    }
+
+    /// Spacers share one sentinel, so one is found by counting.
+    private func pinIndex(of item: DockItem, in pins: [String]) -> Int? {
+        switch item.kind {
+        case .app(let identifier):
+            return pins.firstIndex(of: identifier)
+        case .spacer(let ordinal):
+            let spacers = pins.indices.filter { pins[$0] == DockItem.spacerIdentifier }
+            return ordinal < spacers.count ? spacers[ordinal] : nil
+        case .file, .trash:
+            return nil
+        }
+    }
+
+    /// A tile let go off its own dock: another display's dock under the
+    /// pointer takes it, otherwise a pinned one is unpinned, the Dock's poof.
+    private func dragReleased(
+        _ item: DockItem,
+        atScreenPoint point: CGPoint,
+        from source: CGDirectDisplayID
+    ) -> DragReleaseOutcome {
+        for (identifier, controller) in controllers where identifier != source {
+            guard let landing = controller.landing(atScreenPoint: point, for: item) else { continue }
+            move(item.id, before: landing.before)
+            return .moved
+        }
+        guard item.isPinned else { return .cancelled }
+        togglePin(item)
+        return .removed
     }
 
     private func closeControllers(notIn surviving: Set<CGDirectDisplayID>) {
