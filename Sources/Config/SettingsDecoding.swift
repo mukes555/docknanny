@@ -49,7 +49,9 @@ extension Settings {
 
         mirrorSystemDock = value(.mirrorSystemDock, fallback.mirrorSystemDock)
         pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
+        pinnedOthers = value(.pinnedOthers, fallback.pinnedOthers)
         hiddenBundleIdentifiers = value(.hiddenBundleIdentifiers, fallback.hiddenBundleIdentifiers)
+        showTrash = value(.showTrash, fallback.showTrash)
 
         // Decoded entry by entry: one corrupt display override should cost the
         // user that display's settings, not every display's.

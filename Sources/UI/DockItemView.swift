@@ -22,24 +22,40 @@ struct DockItemView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        icon
-            .frame(width: size, height: size)
-            .offset(bounce)
-            .overlay(alignment: indicatorAlignment) { indicator }
-            .overlay { dropIndicator }
-            .contentShape(.rect)
-            .draggable(item.id) { dragPreview }
-            .dropDestination(for: String.self) { dropped, _ in
-                guard let source = dropped.first, source != item.id else { return false }
-                actions.move(source, item.id)
-                return true
-            } isTargeted: { isDropTarget = $0 }
+        tile
             .onChange(of: isLaunching, initial: true) { _, launching in
                 launching ? startBouncing() : settle()
             }
             .help(item.name)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
+    }
+
+    /// Only app tiles take part in drag-to-reorder: the section after the
+    /// apps has its own order, and a spacer or the Trash is not a thing to
+    /// drop an app onto.
+    @ViewBuilder
+    private var tile: some View {
+        if item.bundleIdentifier != nil {
+            body(of: icon)
+                .draggable(item.id) { dragPreview }
+                .dropDestination(for: String.self) { dropped, _ in
+                    guard let source = dropped.first, source != item.id else { return false }
+                    actions.move(source, item.id)
+                    return true
+                } isTargeted: { isDropTarget = $0 }
+        } else {
+            body(of: icon)
+        }
+    }
+
+    private func body(of icon: some View) -> some View {
+        icon
+            .frame(width: size, height: size)
+            .offset(bounce)
+            .overlay(alignment: indicatorAlignment) { indicator }
+            .overlay { dropIndicator }
+            .contentShape(.rect)
     }
 
     /// The system Dock's launch feedback: a repeated hop away from the edge
@@ -68,8 +84,17 @@ struct DockItemView: View {
     }
 
     private var accessibilityLabel: String {
-        guard item.isRunning else { return "\(item.name), not running" }
-        return item.isActive ? "\(item.name), active" : "\(item.name), running"
+        switch item.kind {
+        case .app:
+            guard item.isRunning else { return "\(item.name), not running" }
+            return item.isActive ? "\(item.name), active" : "\(item.name), running"
+        case .file:
+            return item.name
+        case .trash(let isFull):
+            return isFull ? "Trash, full" : "Trash, empty"
+        case .spacer:
+            return "Spacer"
+        }
     }
 
     private var indicatorAlignment: Alignment {
@@ -82,7 +107,9 @@ struct DockItemView: View {
 
     @ViewBuilder
     private var icon: some View {
-        if let image = item.icon {
+        if case .spacer = item.kind {
+            Color.clear
+        } else if let image = item.icon {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)

@@ -129,6 +129,21 @@ final class DockPanelController {
         return TileMenu.make(for: items[index], actions: actions)
     }
 
+    /// Pops a menu up beside the dock, on the side away from the screen edge,
+    /// with the given point (in the content's top-left coordinates) as the
+    /// spot it grows from. AppKit nudges it back on screen if it would not fit.
+    private func presentMenu(_ menu: NSMenu, from anchor: CGPoint) {
+        let size = menu.size
+        let gap: CGFloat = 6
+        let topLeft: CGPoint = switch configuration.edge {
+        case .bottom: CGPoint(x: anchor.x - size.width / 2, y: anchor.y - size.height - gap)
+        case .left: CGPoint(x: anchor.x + gap, y: anchor.y - size.height / 2)
+        case .right: CGPoint(x: anchor.x - size.width - gap, y: anchor.y - size.height / 2)
+        }
+        let point = hosting.isFlipped ? topLeft : CGPoint(x: topLeft.x, y: hosting.bounds.height - topLeft.y)
+        menu.popUp(positioning: nil, at: point, in: hosting)
+    }
+
     // MARK: Pointer
 
     private func pointerMovedInside(_ isInside: Bool) {
@@ -189,7 +204,8 @@ final class DockPanelController {
             configuration: configuration,
             isRevealed: isRevealed,
             actions: actions,
-            onPointerInside: { [weak self] isInside in self?.pointerMovedInside(isInside) }
+            onPointerInside: { [weak self] isInside in self?.pointerMovedInside(isInside) },
+            presentMenu: { [weak self] menu, anchor in self?.presentMenu(menu, from: anchor) }
         )
 
         let full = Self.fullFrame(for: display, configuration: configuration, fit: fit, revealed: isRevealed)

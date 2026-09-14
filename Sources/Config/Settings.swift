@@ -40,8 +40,13 @@ struct Settings: Codable, Equatable, Sendable {
     /// because a dock on every display should be the same dock, not a second
     /// one that opens something different from the same position.
     var mirrorSystemDock: Bool = true
+    /// Bundle identifiers in order, with ``DockItem/spacerIdentifier`` for gaps.
     var pinnedBundleIdentifiers: [String] = Settings.defaultPins
+    /// The section after the apps: folder and document URLs as strings, with
+    /// ``DockItem/spacerIdentifier`` for gaps.
+    var pinnedOthers: [String] = []
     var hiddenBundleIdentifiers: [String] = []
+    var showTrash: Bool = true
 
     /// Per-display deviations, keyed by a ``DisplayKey`` that survives
     /// reconnection.
@@ -53,7 +58,7 @@ struct Settings: Codable, Equatable, Sendable {
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, showOnPrimaryDisplay, autoHide, autoHideDelay
         case activeClickBehavior, launchAtLogin, hasSeenWelcome
-        case mirrorSystemDock, pinnedBundleIdentifiers, hiddenBundleIdentifiers
+        case mirrorSystemDock, pinnedBundleIdentifiers, pinnedOthers, hiddenBundleIdentifiers, showTrash
         case perDisplay
     }
 
@@ -85,6 +90,8 @@ struct Settings: Codable, Equatable, Sendable {
             autoHideDelay: autoHideDelay.clamped(to: Limits.revealDelay),
             activeClickBehavior: activeClickBehavior,
             pinnedBundleIdentifiers: override.pinnedBundleIdentifiers ?? pinnedBundleIdentifiers,
+            pinnedOthers: pinnedOthers,
+            showTrash: showTrash,
             hiddenBundleIdentifiers: Set(hiddenBundleIdentifiers),
             allowedBundleIdentifiers: override.allowedBundleIdentifiers
         )
@@ -156,6 +163,8 @@ struct ResolvedDockConfiguration: Equatable, Sendable {
     let autoHideDelay: Double
     let activeClickBehavior: ActiveClickBehavior
     let pinnedBundleIdentifiers: [String]
+    let pinnedOthers: [String]
+    let showTrash: Bool
     let hiddenBundleIdentifiers: Set<String>
     let allowedBundleIdentifiers: [String]?
 
