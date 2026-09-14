@@ -8,6 +8,18 @@ final class HotkeyController {
     private let coordinator: DockCoordinator
     private let center = HotkeyCenter()
 
+    /// What the current registrations were made from. Observation fires for
+    /// any change to the settings value, a slider tick included, and
+    /// re-registering ten hot keys for an icon-size change is churn that can
+    /// also drop a press that lands in the gap.
+    private struct Choice: Equatable {
+        let tiles: Bool
+        let hiding: Bool
+        let modifiers: HotkeyModifiers
+    }
+
+    private var applied: Choice?
+
     init(settings: SettingsStore, coordinator: DockCoordinator) {
         self.settings = settings
         self.coordinator = coordinator
@@ -30,6 +42,12 @@ final class HotkeyController {
 
     private func apply() {
         let current = settings.settings
+        let choice = Choice(
+            tiles: current.tileHotkeysEnabled, hiding: current.hidingHotkeyEnabled, modifiers: current.hotkeyModifiers
+        )
+        guard choice != applied else { return }
+        applied = choice
+
         var bindings: [HotkeyCenter.Binding] = []
 
         if current.tileHotkeysEnabled {
