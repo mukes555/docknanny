@@ -28,6 +28,7 @@ final class WindowKeeper {
     /// Apps whose windows are changing, waiting for the change to settle.
     private var settleTasks: [pid_t: Task<Void, Never>] = [:]
     private let trustPoll = TaskBox()
+    private let sweep = TaskBox()
 
     /// A zoom animates through several resize notifications a frame apart;
     /// only the final frame matters, and every millisecond of waiting is a
@@ -85,6 +86,22 @@ final class WindowKeeper {
             addObserver(for: pid)
         }
         Log.workspace.info("Window keeper watching \(self.observers.count, privacy: .public) app(s)")
+        scheduleSweep()
+    }
+
+    /// A window already under a dock when the keeper arms, or when a dock
+    /// moves or grows, never posts a notification about it, and a window
+    /// that is already zoomed posts nothing when double-clicked again. So
+    /// every watched window is judged once whenever anything upstream
+    /// changes, a moment after the changes stop.
+    private func scheduleSweep() {
+        sweep.task = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, let self else { return }
+            for pid in observers.keys {
+                judgeWindows(of: pid)
+            }
+        }
     }
 
     /// The grant lands in System Settings while the setting is already on,

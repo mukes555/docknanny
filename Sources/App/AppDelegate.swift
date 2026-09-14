@@ -28,6 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // suite covers pure logic and needs none of it.
         guard !Self.isRunningUnitTests else { return }
 
+        // A diagnostic run must not start the app proper: its own keeper
+        // would undo the very change the probe is there to observe.
+        guard !runProbeIfRequested() else { return }
+
         // Accessory policy keeps macdock out of the system Dock and the
         // command-tab switcher, which is the right shape for something that
         // lives permanently on screen.
@@ -100,6 +104,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         return false
+    }
+
+    /// `--probe-windows=<app name or bundle id>`, optionally with
+    /// `--resize-test`. A diagnostic run reports and exits before any dock,
+    /// status item or hot key exists, so it can run beside the real instance.
+    private func runProbeIfRequested() -> Bool {
+        let prefix = "--probe-windows="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return false }
+        let name = String(argument.dropFirst(prefix.count))
+        let resizes = CommandLine.arguments.contains("--resize-test")
+        let widthPrefix = "--set-width="
+        let width = CommandLine.arguments.first { $0.hasPrefix(widthPrefix) }
+            .flatMap { Double($0.dropFirst(widthPrefix.count)) }
+        Task { @MainActor in
+            await WindowProbe.run(appNamed: name, resizes: resizes, width: width)
+            // Log lines travel to logd asynchronously; leaving at once would
+            // drop the last of them.
+            try? await Task.sleep(for: .milliseconds(300))
+            exit(0)
+        }
+        return true
     }
 
     private static var isRunningUnitTests: Bool {

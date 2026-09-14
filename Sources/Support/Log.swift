@@ -13,4 +13,6 @@ enum Log {
     static let panel = Logger(subsystem: subsystem, category: "panel")
     static let settings = Logger(subsystem: subsystem, category: "settings")
     static let privateAPI = Logger(subsystem: subsystem, category: "private-api")
+    /// Diagnostic runs (`--probe-windows`), read back with `log show`.
+    static let probe = Logger(subsystem: subsystem, category: "probe")
 }
