@@ -33,13 +33,18 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.backgroundColor = .clear
     }
 
+    /// A window that is already open is brought forward where it is; only a
+    /// fresh one is centred.
     func show() {
-        ActivationPolicy.windowDidOpen(window)
+        guard !window.isVisible else {
+            ActivationPolicy.activate(bringingFront: window)
+            return
+        }
         window.center()
-        window.makeKeyAndOrderFront(nil)
+        ActivationPolicy.windowDidOpen(window)
     }
 
     func windowWillClose(_ notification: Notification) {
-        ActivationPolicy.windowDidClose()
+        ActivationPolicy.windowDidClose(window)
     }
 }

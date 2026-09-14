@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Windows now reliably come to the front when opened from the menu bar:
+  activation after the switch to a Dock-visible app waits for the switch
+  to land and retries once. Clicking the Dock tile brings the open window
+  forward instead of opening Settings beside it, and opening Settings
+  twice no longer leaves the app in the Dock after closing it.
+- The tray activates the app before it opens, so it takes key status and
+  no longer draws faded; Escape closes it.
+- "Keep windows clear of the dock" now accepts Electron windows (which
+  report an unknown subrole), never nudges bubbles, menus or tooltips,
+  watches apps launched after macdock, judges a drag by how it began, and
+  reacts within 40 ms of a change settling.
 - "Keep windows clear of the dock" (Behavior, off by default, needs
   Accessibility): a window opened or zoomed into a dock's space is nudged
   to sit beside it, which is the effect the system Dock gets from its

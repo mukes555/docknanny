@@ -4,45 +4,60 @@ import AppKit
 ///
 /// macdock runs as an accessory app, which cannot take keyboard focus, and
 /// raises itself to `.regular` only while it has a window worth focusing.
-/// Counting open windows in one place is what keeps that correct as windows
-/// are added: each controller used to do it for itself, so closing either
-/// window dropped the whole app back to `.accessory` while the other was still
-/// on screen.
+/// The open windows are tracked as a set, not a count: showing a window that
+/// is already open must not count it twice, or closing it would leave the app
+/// in the Dock for good.
 ///
-/// Activation is deferred one run-loop turn. AppKit refuses an activation
-/// requested in the same turn as a policy change, and the window then opens
-/// inactive: grey toggles, dim controls, everything faded until the user clicks
-/// it. Measured before this change: opening Settings left another app
-/// frontmost.
+/// Activation after a policy change is not immediate. AppKit needs the window
+/// server to have registered the new policy first; asking one run-loop turn
+/// later was sometimes too early, and the Dock tile then appeared with the
+/// window still behind everything. So the request waits a little, and is
+/// checked and repeated once if it did not take.
 @MainActor
 enum ActivationPolicy {
-    private static var openWindowCount = 0
+    private static var openWindows: Set<ObjectIdentifier> = []
 
+    /// Orders the window front at once, so it is on screen even if activation
+    /// is refused, then brings the app forward.
     static func windowDidOpen(_ window: NSWindow) {
-        openWindowCount += 1
-        if openWindowCount == 1 {
+        let wasEmpty = openWindows.isEmpty
+        openWindows.insert(ObjectIdentifier(window))
+        if wasEmpty {
             NSApp.setActivationPolicy(.regular)
         }
+        window.makeKeyAndOrderFront(nil)
         activate(bringingFront: window)
     }
 
-    static func windowDidClose() {
-        openWindowCount = max(0, openWindowCount - 1)
-        guard openWindowCount == 0 else { return }
+    static func windowDidClose(_ window: NSWindow) {
+        openWindows.remove(ObjectIdentifier(window))
+        guard openWindows.isEmpty else { return }
         NSApp.setActivationPolicy(.accessory)
     }
 
-    /// Activates the app on the next turn and re-asserts the window as key,
-    /// because a makeKeyAndOrderFront issued while the app was still inactive
-    /// does not survive the activation.
-    static func activate(bringingFront window: NSWindow? = nil) {
-        DispatchQueue.main.async {
-            // Cooperative: macOS grants this only when a user interaction in this
-            // app justifies it, which every real path here has. A window opened
-            // from a launch argument has none and will open inactive, and the
-            // deprecated ignoringOtherApps form no longer changes that.
-            NSApp.activate()
-            window?.makeKeyAndOrderFront(nil)
+    /// Activates the app and makes the window key, then checks half a second
+    /// later and tries once more if the first attempt did not take.
+    ///
+    /// Cooperative: macOS grants this only when a user interaction in this app
+    /// justifies it, which every real path here has. A window opened from a
+    /// launch argument has none and will open inactive.
+    static func activate(bringingFront window: NSWindow? = nil, orderingFront: Bool = true) {
+        Task { @MainActor in
+            for (attempt, delay) in [Duration.milliseconds(100), .milliseconds(500)].enumerated() {
+                try? await Task.sleep(for: delay)
+                let done = NSApp.isActive && (window == nil || window?.isKeyWindow == true)
+                if attempt > 0, done { return }
+
+                NSApp.activate()
+                if orderingFront {
+                    window?.makeKeyAndOrderFront(nil)
+                } else {
+                    window?.makeKey()
+                }
+            }
+            if !NSApp.isActive {
+                Log.app.notice("Activation was refused; the window is open but not in front")
+            }
         }
     }
 }
