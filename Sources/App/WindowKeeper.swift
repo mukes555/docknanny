@@ -62,6 +62,7 @@ final class WindowKeeper {
         guard Accessibility.isTrusted else {
             removeAllObservers()
             pollForTrust()
+            Log.workspace.info("Window keeper waiting for Accessibility")
             return
         }
         trustPoll?.cancel()
@@ -74,6 +75,7 @@ final class WindowKeeper {
         for pid in wanted where observers[pid] == nil {
             addObserver(for: pid)
         }
+        Log.workspace.info("Window keeper watching \(self.observers.count, privacy: .public) app(s)")
     }
 
     /// The grant lands in System Settings while the setting is already on,
@@ -93,12 +95,21 @@ final class WindowKeeper {
 
     private func addObserver(for pid: pid_t) {
         var observer: AXObserver?
-        guard AXObserverCreate(pid, Self.windowChanged, &observer) == .success, let observer else { return }
+        let created = AXObserverCreate(pid, Self.windowChanged, &observer)
+        guard created == .success, let observer else {
+            let reason = created.rawValue
+            Log.workspace.notice("No observer for pid \(pid, privacy: .public): \(reason, privacy: .public)")
+            return
+        }
 
         let application = AXUIElementCreateApplication(pid)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         for name in [kAXWindowCreatedNotification, kAXWindowResizedNotification] {
-            AXObserverAddNotification(observer, application, name as CFString, refcon)
+            let added = AXObserverAddNotification(observer, application, name as CFString, refcon)
+            if added != .success {
+                let reason = added.rawValue
+                Log.workspace.notice("pid \(pid, privacy: .public) refused \(name, privacy: .public): \(reason, privacy: .public)")
+            }
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
         observers[pid] = observer
@@ -141,22 +152,31 @@ final class WindowKeeper {
     }
 
     private func nudgeIfNeeded(_ element: AXUIElement) {
-        guard NSEvent.pressedMouseButtons == 0 else { return }
+        guard NSEvent.pressedMouseButtons == 0 else {
+            Log.workspace.info("Window changed with the mouse down; left alone")
+            return
+        }
         guard AppWindows.isStandardWindow(element), !AppWindows.isFullScreen(element),
-              let reported = AppWindows.frame(of: element) else { return }
+              let reported = AppWindows.frame(of: element) else {
+            Log.workspace.info("Window changed but is not a standard, readable window")
+            return
+        }
 
         let primaryHeight = displays.primaryHeight
         let frame = Coordinates.appKitRect(fromAccessibility: reported, primaryHeight: primaryHeight)
-        guard let reservation = coordinator.reservation(at: CGPoint(x: frame.midX, y: frame.midY)),
-              let cleared = WindowNudge.clearedFrame(
-                  window: frame,
-                  visibleFrame: reservation.visibleFrame,
-                  strip: reservation.strip,
-                  edge: reservation.edge
-              ) else { return }
+        guard let reservation = coordinator.reservation(at: CGPoint(x: frame.midX, y: frame.midY)) else {
+            Log.workspace.info("Window changed on a display with no claim")
+            return
+        }
+        guard let cleared = WindowNudge.clearedFrame(
+            window: frame, visibleFrame: reservation.visibleFrame, strip: reservation.strip, edge: reservation.edge
+        ) else {
+            Log.workspace.info("Window changed and is already clear")
+            return
+        }
 
         let target = Coordinates.accessibilityRect(fromAppKit: cleared, primaryHeight: primaryHeight)
         AppWindows.set(frame: target, of: element)
-        Log.workspace.debug("Nudged a window clear of the dock")
+        Log.workspace.info("Nudged a window clear of the dock")
     }
 }
