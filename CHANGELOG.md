@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- "Keep windows clear of the dock" (Behavior, off by default, needs
+  Accessibility): a window opened or zoomed into a dock's space is nudged
+  to sit beside it, which is the effect the system Dock gets from its
+  reserved strip. The window server keeps one such strip for the whole
+  system and the Dock rewrites it on every change, so reserving one for
+  macdock was ruled out; the probe tool records the finding.
+- Hot keys re-register only when their own settings change, not on every
+  settings edit.
 - Right-clicking a running app lists its windows, main one checked,
   minimized ones marked, and raises the one chosen; Show All Windows opens
   App Exposé. The window list needs Accessibility, which the setup window

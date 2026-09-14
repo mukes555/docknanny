@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var apps: RunningAppsMonitor?
     private var coordinator: DockCoordinator?
     private var hotkeys: HotkeyController?
+    private var windowKeeper: WindowKeeper?
     private var statusItem: StatusItemController?
     private var onboarding: OnboardingWindowController?
     private var settingsWindow: SettingsWindowController?
@@ -48,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.coordinator = coordinator
         self.hotkeys = HotkeyController(settings: settings, coordinator: coordinator)
+        self.windowKeeper = WindowKeeper(settings: settings, apps: apps, displays: displays, coordinator: coordinator)
         self.tray = TrayPanelController(
             store: settings,
             displays: displays,

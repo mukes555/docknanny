@@ -88,6 +88,14 @@ final class DockPanelController {
         Log.panel.info("Dock panel opened on display \(display.id, privacy: .public)")
     }
 
+    /// How far in from the screen edge a window should stop: the slab, its
+    /// margin, and the breathing room the system Dock leaves beside itself.
+    var reservedThickness: CGFloat {
+        let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
+        let slab = DockMetrics.slabThickness(iconSize: fit.iconSize, spacing: configuration.itemSpacing)
+        return configuration.margin + slab + 8
+    }
+
     func update(display: Display, configuration: ResolvedDockConfiguration, items: [DockItem]) {
         let autoHideChanged = configuration.autoHide != self.configuration.autoHide
 

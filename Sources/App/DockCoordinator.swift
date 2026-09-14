@@ -43,6 +43,26 @@ final class DockCoordinator {
         controllers.removeAll()
     }
 
+    /// A dock's claim on its display, for keeping windows clear of it. nil
+    /// where there is no dock, or where it hides itself and so claims nothing,
+    /// as the system Dock claims nothing while auto-hidden.
+    struct Reservation {
+        let strip: CGRect
+        let edge: DockEdge
+        let visibleFrame: CGRect
+    }
+
+    func reservation(at point: CGPoint) -> Reservation? {
+        guard let display = displays.displays.first(where: { $0.frame.contains(point) }),
+              let controller = controllers[display.id],
+              !controller.configuration.autoHide else { return nil }
+        let edge = controller.configuration.edge
+        let strip = WindowNudge.reservedStrip(
+            edge: edge, thickness: controller.reservedThickness, visibleFrame: display.visibleFrame
+        )
+        return Reservation(strip: strip, edge: edge, visibleFrame: display.visibleFrame)
+    }
+
     /// The shortcut's target is the dock the person is looking at: the one on
     /// the display under the pointer, or failing that any dock. Spacers do
     /// not count; people count icons.

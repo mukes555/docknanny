@@ -34,6 +34,9 @@ struct Settings: Codable, Equatable, Sendable {
     var autoHide: Bool = false
     var autoHideDelay: Double = 0.15
     var activeClickBehavior: ActiveClickBehavior = .doNothing
+    /// Nudge windows that open or zoom into a dock's space out of it. Off
+    /// until asked for: it needs Accessibility and moves other apps' windows.
+    var keepWindowsClear: Bool = false
     var launchAtLogin: Bool = false
     var hasSeenWelcome: Bool = false
 
@@ -64,7 +67,7 @@ struct Settings: Codable, Equatable, Sendable {
         case iconSize, itemSpacing, chromeStyle, indicatorStyle, tint
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, skipSystemDockDisplay, autoHide, autoHideDelay
-        case activeClickBehavior, launchAtLogin, hasSeenWelcome
+        case activeClickBehavior, keepWindowsClear, launchAtLogin, hasSeenWelcome
         case tileHotkeysEnabled, hidingHotkeyEnabled, hotkeyModifiers
         case mirrorSystemDock, pinnedBundleIdentifiers, pinnedOthers, hiddenBundleIdentifiers, showTrash
         case perDisplay
