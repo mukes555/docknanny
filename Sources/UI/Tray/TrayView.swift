@@ -5,6 +5,7 @@ struct TrayView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
     let onOpenSettings: (SettingsSection) -> Void
+    let onClose: () -> Void
     let onQuit: () -> Void
 
     var body: some View {
@@ -30,6 +31,7 @@ struct TrayView: View {
         }
         .padding(12)
         .frame(width: 344)
+        .onExitCommand(perform: onClose)
         .preferredColorScheme(.dark)
     }
 

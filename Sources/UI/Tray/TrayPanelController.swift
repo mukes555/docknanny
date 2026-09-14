@@ -26,6 +26,7 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
                 self?.popover.performClose(nil)
                 onOpenSettings(section)
             },
+            onClose: { [weak self] in self?.popover.performClose(nil) },
             onQuit: onQuit
         )
         popover.contentViewController = NSHostingController(rootView: root)
@@ -50,10 +51,12 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
             popover.contentSize = content.view.fittingSize
         }
 
-        // An accessory app has to activate for the popover to take key status,
-        // which is what makes its toggles respond and its outside-click
-        // dismissal work.
+        // The app activates first, so the popover opens into an active app and
+        // takes key status as it appears. Shown into an inactive app it stays
+        // a non-key window, and everything in it draws faded until clicked.
+        // The deferred pass re-asserts key status once activation has landed.
+        NSApp.activate()
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
-        ActivationPolicy.activate()
+        ActivationPolicy.activate(bringingFront: popover.contentViewController?.view.window, orderingFront: false)
     }
 }

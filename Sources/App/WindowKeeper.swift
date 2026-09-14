@@ -37,6 +37,7 @@ final class WindowKeeper {
     /// millisecond the window sits under the dock.
     private static let settleDelay = Duration.milliseconds(40)
     private static let startupRetries = 5
+    private static let smallestDocumentWindow = CGSize(width: 240, height: 160)
 
     init(settings: SettingsStore, apps: RunningAppsMonitor, displays: DisplayRegistry, coordinator: DockCoordinator) {
         self.settings = settings
@@ -201,6 +202,13 @@ final class WindowKeeper {
 
         let primaryHeight = displays.primaryHeight
         let frame = Coordinates.appKitRect(fromAccessibility: reported, primaryHeight: primaryHeight)
+        // Bubbles, tooltips and menus are windows to Accessibility too, and
+        // anchored to something; moving one would be worse than leaving it.
+        guard frame.width >= Self.smallestDocumentWindow.width,
+              frame.height >= Self.smallestDocumentWindow.height else {
+            Log.workspace.info("Window changed but is too small to be a document window; left alone")
+            return
+        }
         guard let reservation = coordinator.reservation(at: CGPoint(x: frame.midX, y: frame.midY)) else {
             Log.workspace.info("Window changed on a display with no claim")
             return

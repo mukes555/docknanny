@@ -32,9 +32,12 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        ActivationPolicy.windowDidOpen(window)
+        guard !window.isVisible else {
+            ActivationPolicy.activate(bringingFront: window)
+            return
+        }
         window.center()
-        window.makeKeyAndOrderFront(nil)
+        ActivationPolicy.windowDidOpen(window)
     }
 
     func close() {
@@ -42,14 +45,14 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        ActivationPolicy.windowDidClose()
+        ActivationPolicy.windowDidClose(window)
     }
 
     private func configureWindow() {
         window.delegate = self
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
-        window.title = "Welcome to macdock"
+        window.title = "Set Up macdock"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.appearance = NSAppearance(named: .darkAqua)

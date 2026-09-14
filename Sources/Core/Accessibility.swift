@@ -129,16 +129,16 @@ enum AppWindows {
         }
     }
 
-    /// A window a person works in: not a sheet, palette, popover or the app
-    /// element itself, and not minimized. Some apps report no subrole for
-    /// their main windows, so an absent subrole counts as standard as long
-    /// as the role is a window's.
+    /// A window a person works in: a window by role, not a palette or a
+    /// system dialog by subrole, and not minimized. The subrole is judged by
+    /// exclusion because apps are loose with it: Electron reports "unknown"
+    /// for every window it has, and some apps report none at all.
     static func isStandardWindow(_ window: AXUIElement) -> Bool {
         guard attribute(kAXRoleAttribute, of: window) as? String == kAXWindowRole else { return false }
-        let subrole = attribute(kAXSubroleAttribute, of: window) as? String
+        let subrole = attribute(kAXSubroleAttribute, of: window) as? String ?? ""
+        let floating = [kAXFloatingWindowSubrole, kAXSystemFloatingWindowSubrole, kAXSystemDialogSubrole]
         let minimized = attribute(kAXMinimizedAttribute, of: window) as? Bool ?? false
-        let standard = subrole == nil || subrole == kAXStandardWindowSubrole || subrole == kAXDialogSubrole
-        return standard && !minimized
+        return !floating.contains(subrole) && !minimized
     }
 
     /// For the log, when a window is rejected: what it said it was.
