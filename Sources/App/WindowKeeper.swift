@@ -23,13 +23,10 @@ final class WindowKeeper {
     private var startingUp: [pid_t: Int] = [:]
     /// Changes that began with the mouse down are the person's own drag or
     /// resize, and are left alone even if the button is up by the time the
-    /// change settles. Keyed like the settling windows.
-    private var beganWithMouseDown: Set<CFHashCode> = []
-    /// Windows waiting for their change to settle, by the CF hash of the
-    /// element: notifications carry fresh wrappers for the same window, and an
-    /// element cannot ride into a task, so the task looks it up here instead.
-    private var settling: [CFHashCode: AXUIElement] = [:]
-    private var settleTasks: [CFHashCode: Task<Void, Never>] = [:]
+    /// change settles.
+    private var beganWithMouseDown: Set<pid_t> = []
+    /// Apps whose windows are changing, waiting for the change to settle.
+    private var settleTasks: [pid_t: Task<Void, Never>] = [:]
     private var trustPoll: Task<Void, Never>?
 
     /// A zoom animates through several resize notifications a frame apart;
@@ -163,31 +160,34 @@ final class WindowKeeper {
     private static let windowChanged: AXObserverCallback = { _, element, _, refcon in
         guard let refcon else { return }
         let keeper = Unmanaged<WindowKeeper>.fromOpaque(refcon).takeUnretainedValue()
-        // The callback is nonisolated to the compiler and main-thread in
-        // fact; the element crosses no thread, only the type checker's line.
-        nonisolated(unsafe) let window = element
+        // The pid is in the element's token and needs no messaging, unlike
+        // anything else about the element, which some apps (Chrome) hand over
+        // already invalid.
+        var pid: pid_t = 0
+        AXUIElementGetPid(element, &pid)
         MainActor.assumeIsolated {
-            keeper.scheduleCheck(of: window)
+            keeper.scheduleCheck(of: pid)
         }
     }
 
-    private func scheduleCheck(of element: AXUIElement) {
-        let key = CFHash(element)
-        if settling[key] == nil, NSEvent.pressedMouseButtons != 0 {
-            beganWithMouseDown.insert(key)
+    /// After a change settles, every standard window of that app is judged
+    /// afresh. A single notification can carry a stale element, and a zoom
+    /// can move more than one window; the list is the truth either way.
+    private func scheduleCheck(of pid: pid_t) {
+        if settleTasks[pid] == nil, NSEvent.pressedMouseButtons != 0 {
+            beganWithMouseDown.insert(pid)
         }
-        settling[key] = element
-        settleTasks[key]?.cancel()
-        settleTasks[key] = Task { [weak self] in
+        settleTasks[pid]?.cancel()
+        settleTasks[pid] = Task { [weak self] in
             try? await Task.sleep(for: Self.settleDelay)
             guard !Task.isCancelled, let self else { return }
-            settleTasks[key] = nil
-            let byHand = beganWithMouseDown.remove(key) != nil
-            guard let window = settling.removeValue(forKey: key) else { return }
-            if byHand {
-                Log.workspace.info("Window changed by hand; left alone")
-            } else {
-                nudgeIfNeeded(window)
+            settleTasks[pid] = nil
+            if beganWithMouseDown.remove(pid) != nil {
+                Log.workspace.info("Windows changed by hand; left alone")
+                return
+            }
+            for window in AppWindows.list(processIdentifier: pid) ?? [] where !window.isMinimized {
+                nudgeIfNeeded(window.element)
             }
         }
     }

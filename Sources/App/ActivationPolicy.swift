@@ -37,10 +37,6 @@ enum ActivationPolicy {
 
     /// Activates the app and makes the window key, then checks half a second
     /// later and tries once more if the first attempt did not take.
-    ///
-    /// Cooperative: macOS grants this only when a user interaction in this app
-    /// justifies it, which every real path here has. A window opened from a
-    /// launch argument has none and will open inactive.
     static func activate(bringingFront window: NSWindow? = nil, orderingFront: Bool = true) {
         Task { @MainActor in
             for (attempt, delay) in [Duration.milliseconds(100), .milliseconds(500)].enumerated() {
@@ -48,7 +44,7 @@ enum ActivationPolicy {
                 let done = NSApp.isActive && (window == nil || window?.isKeyWindow == true)
                 if attempt > 0, done { return }
 
-                NSApp.activate()
+                activateNow()
                 if orderingFront {
                     window?.makeKeyAndOrderFront(nil)
                 } else {
@@ -59,5 +55,17 @@ enum ActivationPolicy {
                 Log.app.notice("Activation was refused; the window is open but not in front")
             }
         }
+    }
+
+    /// The plain `activate()` is cooperative: macOS grants it only after a
+    /// user interaction it recognises, and a click on a status item is not
+    /// one, so the tray opened faded and Set Up opened behind everything.
+    /// The form marked deprecated in macOS 14 is documented as ignored but
+    /// is, measured on macOS 26, still honoured for a background app with no
+    /// interaction at all. Every activation in the app goes through here so
+    /// the day it stops working there is one place to change.
+    @available(macOS, deprecated: 14.0)
+    static func activateNow() {
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
