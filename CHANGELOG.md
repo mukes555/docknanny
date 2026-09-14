@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+- "Keep windows clear of the dock" reads window frames from the window
+  server instead of asking the app (iTerm2 reports the last frame it was
+  asked for, not the one it has), verifies each nudge, and sweeps every
+  watched window when it arms or a dock changes, so a window already under
+  a dock is moved without waiting for an event. The gap left beside the
+  dock now matches the system Dock's.
+- `macdock --probe-windows=<app>` records what Accessibility and the window
+  server each say about an app's windows, for support.
+
 ## 0.3.0
 
 - Housekeeping round: polling loops are cancelled with their owners,

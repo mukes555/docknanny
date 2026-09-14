@@ -88,12 +88,16 @@ final class DockPanelController {
         Log.panel.info("Dock panel opened on display \(display.id, privacy: .public)")
     }
 
+    /// The system Dock's reserved edge sits about this far beyond its glass,
+    /// measured from its own reservation on macOS 26.
+    private static let breathingRoom: CGFloat = 6
+
     /// How far in from the screen edge a window should stop: the slab, its
     /// margin, and the breathing room the system Dock leaves beside itself.
     var reservedThickness: CGFloat {
         let fit = Self.fit(for: display, configuration: configuration, itemCount: items.count)
         let slab = DockMetrics.slabThickness(iconSize: fit.iconSize, spacing: configuration.itemSpacing)
-        return configuration.margin + slab + 8
+        return configuration.margin + slab + Self.breathingRoom
     }
 
     func update(display: Display, configuration: ResolvedDockConfiguration, items: [DockItem]) {
