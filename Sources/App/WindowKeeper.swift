@@ -33,6 +33,9 @@ final class WindowKeeper {
     /// only the final frame matters, and every millisecond of waiting is a
     /// millisecond the window sits under the dock.
     private static let settleDelay = Duration.milliseconds(40)
+    /// Some apps post one resize notification as an animation starts and
+    /// none as it ends, so a second look follows once any animation is over.
+    private static let secondLookDelay = Duration.milliseconds(360)
     private static let startupRetries = 5
     private static let smallestDocumentWindow = CGSize(width: 240, height: 160)
 
@@ -185,9 +188,16 @@ final class WindowKeeper {
                 Log.workspace.info("Windows changed by hand; left alone")
                 return
             }
-            for window in AppWindows.list(processIdentifier: pid) ?? [] where !window.isMinimized {
-                nudgeIfNeeded(window.element)
-            }
+            judgeWindows(of: pid)
+            try? await Task.sleep(for: Self.secondLookDelay)
+            guard !Task.isCancelled else { return }
+            judgeWindows(of: pid)
+        }
+    }
+
+    private func judgeWindows(of pid: pid_t) {
+        for window in AppWindows.list(processIdentifier: pid) ?? [] where !window.isMinimized {
+            nudgeIfNeeded(window.element)
         }
     }
 
@@ -215,7 +225,10 @@ final class WindowKeeper {
         guard let cleared = WindowNudge.clearedFrame(
             window: frame, visibleFrame: reservation.visibleFrame, strip: reservation.strip, edge: reservation.edge
         ) else {
-            Log.workspace.info("Window changed and is already clear")
+            let place = "\(Int(frame.minX)),\(Int(frame.minY)) \(Int(frame.width))x\(Int(frame.height))"
+            let strip = "\(Int(reservation.strip.minX)),\(Int(reservation.strip.minY)) "
+                + "\(Int(reservation.strip.width))x\(Int(reservation.strip.height))"
+            Log.workspace.info("Window at \(place, privacy: .public) is clear of strip \(strip, privacy: .public)")
             return
         }
 
