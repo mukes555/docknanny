@@ -195,15 +195,19 @@ final class WindowKeeper {
         }
     }
 
+    /// The window server's bounds are the truth; an app's own report is the
+    /// fallback for a window the server cannot be asked about.
     private func judgeWindows(of pid: pid_t) {
+        let onScreen = WindowServer.windowBounds(ofProcess: pid)
         for window in AppWindows.list(processIdentifier: pid) ?? [] where !window.isMinimized {
-            nudgeIfNeeded(window.element)
+            let truth = PrivateSymbols.windowNumber(of: window.element).flatMap { onScreen[$0] }
+            nudgeIfNeeded(window.element, onScreen: truth)
         }
     }
 
-    private func nudgeIfNeeded(_ element: AXUIElement) {
+    private func nudgeIfNeeded(_ element: AXUIElement, onScreen: CGRect?) {
         guard AppWindows.isStandardWindow(element), !AppWindows.isFullScreen(element),
-              let reported = AppWindows.frame(of: element) else {
+              let reported = onScreen ?? AppWindows.frame(of: element) else {
             let what = AppWindows.describe(element)
             Log.workspace.info("Window is not a standard, readable window: \(what, privacy: .private)")
             return
@@ -233,7 +237,32 @@ final class WindowKeeper {
         }
 
         let target = Coordinates.accessibilityRect(fromAppKit: cleared, primaryHeight: primaryHeight)
-        AppWindows.set(frame: target, of: element)
+        if let refusal = AppWindows.set(frame: target, of: element) {
+            Log.workspace.notice("An app refused the nudge: \(refusal.rawValue, privacy: .public)")
+            return
+        }
         Log.workspace.info("Nudged a window clear of the dock")
+        verifyLater(element, expected: target)
+    }
+
+    /// An app can accept a frame and not apply it (iTerm2 echoes the request
+    /// back through Accessibility while the window stays put), so the window
+    /// server is asked shortly afterwards whether the move really happened.
+    private func verifyLater(_ element: AXUIElement, expected: CGRect) {
+        guard let number = PrivateSymbols.windowNumber(of: element) else { return }
+        var pid: pid_t = 0
+        AXUIElementGetPid(element, &pid)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            guard let actual = WindowServer.windowBounds(ofProcess: pid)[number] else { return }
+            let took = abs(actual.width - expected.width) < 2 && abs(actual.height - expected.height) < 2
+            let size = "\(Int(actual.width))x\(Int(actual.height)) "
+                + "wanted \(Int(expected.width))x\(Int(expected.height))"
+            if took {
+                Log.workspace.info("The nudge took: \(size, privacy: .public)")
+            } else {
+                Log.workspace.notice("The nudge was accepted but not applied: \(size, privacy: .public)")
+            }
+        }
     }
 }

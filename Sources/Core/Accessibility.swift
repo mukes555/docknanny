@@ -129,16 +129,20 @@ enum AppWindows {
     }
 
     /// Position first, then size: an app clamps a size to its screen, so the
-    /// move has to have happened before the shrink is judged.
-    static func set(frame: CGRect, of window: AXUIElement) {
+    /// move has to have happened before the shrink is judged. Returns the
+    /// first error the app gave, or nil when it accepted both.
+    @discardableResult
+    static func set(frame: CGRect, of window: AXUIElement) -> AXError? {
         var position = frame.origin
         var size = frame.size
+        var errors: [AXError] = []
         if let value = AXValueCreate(.cgPoint, &position) {
-            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
+            errors.append(AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value))
         }
         if let value = AXValueCreate(.cgSize, &size) {
-            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
+            errors.append(AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value))
         }
+        return errors.first { $0 != .success }
     }
 
     /// A window a person works in: a window by role, not a palette or a
