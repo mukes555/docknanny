@@ -74,14 +74,23 @@ reset.
 
 None to start. Every action goes through `NSRunningApplication`,
 `NSWorkspace`, the Dock's own preferences and Carbon hot keys, none of which
-needs a grant. Two features ask for something the first time you use them,
-through the normal macOS prompt, and work without it otherwise:
+needs a grant. Three things ask for something, only when you use them, and
+work without it otherwise:
 
+- **Window lists in tile menus** (right-click a running app to see and
+  switch between its windows, as in the Dock) read other apps' window
+  titles, which is Accessibility access. Grant it from the setup window
+  under the menu bar icon; the docks never need it.
 - **Folder tiles** read the folder they show, so macOS may ask about that
   folder (Downloads, Desktop and the like).
 - **Empty Trash** asks Finder to do the emptying, which is an Automation
   prompt for controlling Finder. Finder keeps its own "permanently erase?"
   confirmation.
+
+One thing the system Dock's menu has that macdock's cannot: an app's own
+menu section (a browser's profiles, an editor's recent windows). Apps hand
+that to the Dock over a private channel on which the Dock is the server, so
+no other process can ask for it.
 
 ## Install
 
@@ -126,10 +135,11 @@ the app logs under the `app.macdock` subsystem:
 
 ## What is next
 
-See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). The big
-remaining piece is window previews and window switching on hover, which is
-the first feature that needs Accessibility and will ask for it when, and only
-when, you turn it on.
+See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Window
+previews on hover are the next piece. Reserving screen space, so a zoomed
+window stops beside a macdock dock the way it does beside the system Dock,
+depends on whether the window server accepts a dock rect from anyone but the
+Dock; `tools/probe-dock-rect.swift` answers that on your machine.
 
 ## Contributing
 

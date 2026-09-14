@@ -40,7 +40,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         self.displays = displays
         self.apps = apps
-        let coordinator = DockCoordinator(displays: displays, apps: apps, settings: settings)
+        let coordinator = DockCoordinator(
+            displays: displays,
+            apps: apps,
+            settings: settings,
+            openSetup: { [weak self] in self?.showOnboarding() }
+        )
         self.coordinator = coordinator
         self.hotkeys = HotkeyController(settings: settings, coordinator: coordinator)
         self.tray = TrayPanelController(

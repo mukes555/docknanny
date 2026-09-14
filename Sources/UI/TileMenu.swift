@@ -6,13 +6,19 @@ import AppKit
 /// directly, works out which slot it landed in, and asks for this. That keeps
 /// the menu off the view hit-testing path that misrouted left-clicks between
 /// overlapping magnified tiles.
+///
+/// For an app it follows the system Dock's shape: the app's windows first,
+/// then what can be done with the app. The one section the Dock has that this
+/// cannot is the app's own menu (a browser's profiles, an editor's recent
+/// windows): apps hand that to the Dock over a private channel on which the
+/// Dock is the server, so no other process can ask for it.
 @MainActor
 enum TileMenu {
-    static func make(for item: DockItem, actions: DockActions) -> NSMenu {
+    static func make(for item: DockItem, actions: DockActions, windows: [AppWindow]? = nil) -> NSMenu {
         let menu = NSMenu()
         switch item.kind {
         case .app:
-            addAppItems(to: menu, for: item, actions: actions)
+            addAppItems(to: menu, for: item, actions: actions, windows: windows)
         case .file:
             addHeader(item.name, to: menu)
             menu.addItem(ClosureMenuItem(title: "Open") { actions.activate(item) })
@@ -32,8 +38,11 @@ enum TileMenu {
         return menu
     }
 
-    private static func addAppItems(to menu: NSMenu, for item: DockItem, actions: DockActions) {
-        addHeader(item.name, to: menu)
+    private static func addAppItems(to menu: NSMenu, for item: DockItem, actions: DockActions, windows: [AppWindow]?) {
+        if item.isRunning {
+            addWindowItems(to: menu, for: item, actions: actions, windows: windows)
+            menu.addItem(ClosureMenuItem(title: "Show All Windows") { actions.showAllWindows(item) })
+        }
         menu.addItem(ClosureMenuItem(title: "Show in Finder") { actions.reveal(item) })
         menu.addItem(ClosureMenuItem(
             title: item.isPinned ? "Remove from Dock" : "Keep in Dock"
@@ -44,6 +53,34 @@ enum TileMenu {
         menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(title: "Hide") { actions.hide(item) })
         menu.addItem(ClosureMenuItem(title: "Quit") { actions.quit(item) })
+    }
+
+    /// The Dock's window list: a check on the main window, a diamond on a
+    /// minimized one. Without Accessibility there is nothing to list, and the
+    /// menu says where to grant it rather than silently showing less.
+    private static func addWindowItems(
+        to menu: NSMenu, for item: DockItem, actions: DockActions, windows: [AppWindow]?
+    ) {
+        guard let windows else {
+            let hint = NSMenuItem(
+                title: "Windows are listed here with Accessibility access", action: nil, keyEquivalent: ""
+            )
+            hint.isEnabled = false
+            menu.addItem(hint)
+            menu.addItem(ClosureMenuItem(title: "Allow in Setup...") { actions.openSetup() })
+            menu.addItem(.separator())
+            return
+        }
+        guard !windows.isEmpty else { return }
+
+        for window in windows {
+            let row = ClosureMenuItem(title: window.title) { actions.raiseWindow(item, window) }
+            let glyph = window.isMinimized ? "diamond" : "macwindow"
+            row.image = NSImage(systemSymbolName: glyph, accessibilityDescription: nil)
+            row.state = window.isMain ? .on : .off
+            menu.addItem(row)
+        }
+        menu.addItem(.separator())
     }
 
     private static func addHeader(_ title: String, to menu: NSMenu) {
