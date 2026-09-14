@@ -28,7 +28,9 @@ struct Settings: Codable, Equatable, Sendable {
 
     // Behaviour
     var showRunningApps: Bool = true
-    var showOnPrimaryDisplay: Bool = true
+    /// The display the system Dock is on already has a dock. Off by request
+    /// only: two docks on one screen is the thing this app exists to avoid.
+    var skipSystemDockDisplay: Bool = true
     var autoHide: Bool = false
     var autoHideDelay: Double = 0.15
     var activeClickBehavior: ActiveClickBehavior = .doNothing
@@ -61,7 +63,7 @@ struct Settings: Codable, Equatable, Sendable {
         case edge, alignment, margin
         case iconSize, itemSpacing, chromeStyle, indicatorStyle, tint
         case isMagnificationEnabled, magnificationScale
-        case showRunningApps, showOnPrimaryDisplay, autoHide, autoHideDelay
+        case showRunningApps, skipSystemDockDisplay, autoHide, autoHideDelay
         case activeClickBehavior, launchAtLogin, hasSeenWelcome
         case tileHotkeysEnabled, hidingHotkeyEnabled, hotkeyModifiers
         case mirrorSystemDock, pinnedBundleIdentifiers, pinnedOthers, hiddenBundleIdentifiers, showTrash
@@ -77,7 +79,7 @@ struct Settings: Codable, Equatable, Sendable {
 
     func resolved(for display: Display) -> ResolvedDockConfiguration {
         let override = self.override(forDisplay: display.id)
-        let inheritedEnabled = display.isPrimary ? showOnPrimaryDisplay : true
+        let inheritedEnabled = display.hasSystemDock ? !skipSystemDockDisplay : true
 
         return ResolvedDockConfiguration(
             isEnabled: override.isEnabled ?? inheritedEnabled,

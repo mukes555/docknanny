@@ -8,6 +8,8 @@ struct Display: Identifiable, Equatable, Sendable {
     let backingScaleFactor: CGFloat
     let isPrimary: Bool
     let localizedName: String
+    /// The system Dock is on this display right now.
+    var hasSystemDock = false
 }
 
 /// Tracks attached displays and republishes them when the arrangement changes.
@@ -26,6 +28,7 @@ final class DisplayRegistry {
 
     private let observers = ObserverTokens(center: .default)
     private var rebuildTask: Task<Void, Never>?
+    private var dockWatchTask: Task<Void, Never>?
     private let settleDelay: Duration
 
     /// Hot-plug fires `didChangeScreenParametersNotification` several times as
@@ -35,6 +38,7 @@ final class DisplayRegistry {
         self.settleDelay = settleDelay
         rebuild()
         observeScreenChanges()
+        watchSystemDock()
     }
 
     func display(withID id: CGDirectDisplayID) -> Display? {
@@ -54,6 +58,19 @@ final class DisplayRegistry {
         observers.add(token)
     }
 
+    /// The Dock changes display without any notification. A rebuild only
+    /// publishes when something differs, so polling costs nothing when it
+    /// stays put.
+    private func watchSystemDock() {
+        dockWatchTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                self?.rebuild()
+            }
+        }
+    }
+
     private func scheduleRebuild() {
         rebuildTask?.cancel()
         rebuildTask = Task { [weak self, settleDelay] in
@@ -64,7 +81,8 @@ final class DisplayRegistry {
     }
 
     private func rebuild() {
-        let rebuilt = NSScreen.screens.compactMap(Self.describe)
+        let dockDisplay = SystemDockLocator.displayID()
+        let rebuilt = NSScreen.screens.compactMap { Self.describe($0, dockDisplay: dockDisplay) }
         // Keep the last known pivot when the screen list is momentarily empty
         // (it is, during a display switch). Zeroing it would send every
         // Accessibility coordinate conversion to the wrong place.
@@ -79,7 +97,7 @@ final class DisplayRegistry {
 
     /// A screen with no `NSScreenNumber` cannot be keyed or persisted against,
     /// so it is dropped rather than given a synthesised identity.
-    private static func describe(_ screen: NSScreen) -> Display? {
+    private static func describe(_ screen: NSScreen, dockDisplay: CGDirectDisplayID?) -> Display? {
         guard let identifier = displayID(of: screen) else {
             Log.display.error("Screen has no NSScreenNumber; skipping")
             return nil
@@ -91,7 +109,8 @@ final class DisplayRegistry {
             visibleFrame: screen.visibleFrame,
             backingScaleFactor: screen.backingScaleFactor,
             isPrimary: screen == NSScreen.screens.first,
-            localizedName: screen.localizedName
+            localizedName: screen.localizedName,
+            hasSystemDock: identifier == dockDisplay
         )
     }
 

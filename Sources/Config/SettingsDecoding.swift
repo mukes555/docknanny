@@ -40,7 +40,7 @@ extension Settings {
         magnificationScale = value(.magnificationScale, fallback.magnificationScale)
 
         showRunningApps = value(.showRunningApps, fallback.showRunningApps)
-        showOnPrimaryDisplay = value(.showOnPrimaryDisplay, fallback.showOnPrimaryDisplay)
+        skipSystemDockDisplay = value(.skipSystemDockDisplay, fallback.skipSystemDockDisplay)
         autoHide = value(.autoHide, fallback.autoHide)
         autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)

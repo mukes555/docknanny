@@ -81,12 +81,12 @@ struct DisplayOverrideCard: View {
 
     private var cardTitle: String {
         let dimensions = "\(Int(display.frame.width))x\(Int(display.frame.height))"
-        let role = display.isPrimary ? " (primary)" : ""
+        let role = display.hasSystemDock ? " (system Dock is here)" : display.isPrimary ? " (primary)" : ""
         return "\(display.localizedName) - \(dimensions)\(role)"
     }
 
     private var inheritedEnabled: Bool {
-        display.isPrimary ? globalSettings.showOnPrimaryDisplay : true
+        display.hasSystemDock ? !globalSettings.skipSystemDockDisplay : true
     }
 
     /// Per-display app filtering: the feature that lets one screen carry comms

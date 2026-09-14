@@ -30,9 +30,9 @@ struct LayoutSettingsView: View {
 
             SettingsGroup(title: "Displays") {
                 SettingsToggle(
-                    title: "Show on the primary display",
-                    subtitle: "Turn this off if you keep the system Dock there.",
-                    isOn: $store.settings.showOnPrimaryDisplay
+                    title: "Stay off the display with the system Dock",
+                    subtitle: "That screen has a dock already. If the Dock moves to another display, macdock follows.",
+                    isOn: $store.settings.skipSystemDockDisplay
                 )
             }
         }

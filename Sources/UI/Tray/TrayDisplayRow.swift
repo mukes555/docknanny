@@ -50,6 +50,7 @@ struct TrayDisplayRow: View {
 
     private var subtitle: String {
         let size = "\(Int(display.frame.width))×\(Int(display.frame.height))"
+        if display.hasSystemDock { return "\(size) · system Dock" }
         return display.isPrimary ? "\(size) · primary" : size
     }
 
