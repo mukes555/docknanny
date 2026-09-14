@@ -35,6 +35,11 @@ struct Settings: Codable, Equatable, Sendable {
     var launchAtLogin: Bool = false
     var hasSeenWelcome: Bool = false
 
+    // Keyboard
+    var tileHotkeysEnabled: Bool = true
+    var hidingHotkeyEnabled: Bool = true
+    var hotkeyModifiers: HotkeyModifiers = .controlOption
+
     // Contents
     /// Follow the system Dock's pinned apps and order. This is the default
     /// because a dock on every display should be the same dock, not a second
@@ -58,6 +63,7 @@ struct Settings: Codable, Equatable, Sendable {
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, showOnPrimaryDisplay, autoHide, autoHideDelay
         case activeClickBehavior, launchAtLogin, hasSeenWelcome
+        case tileHotkeysEnabled, hidingHotkeyEnabled, hotkeyModifiers
         case mirrorSystemDock, pinnedBundleIdentifiers, pinnedOthers, hiddenBundleIdentifiers, showTrash
         case perDisplay
     }

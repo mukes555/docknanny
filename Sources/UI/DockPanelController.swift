@@ -34,6 +34,9 @@ final class DockPanelController {
     private var display: Display
     private var configuration: ResolvedDockConfiguration
     private var items: [DockItem]
+
+    /// What this dock is showing right now, in order.
+    var currentItems: [DockItem] { items }
     private var isRevealed: Bool
     /// Pointer is on the dock, so the window is at full size.
     private var isExpanded = false

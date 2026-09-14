@@ -47,6 +47,10 @@ extension Settings {
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
         hasSeenWelcome = value(.hasSeenWelcome, fallback.hasSeenWelcome)
 
+        tileHotkeysEnabled = value(.tileHotkeysEnabled, fallback.tileHotkeysEnabled)
+        hidingHotkeyEnabled = value(.hidingHotkeyEnabled, fallback.hidingHotkeyEnabled)
+        hotkeyModifiers = value(.hotkeyModifiers, fallback.hotkeyModifiers)
+
         mirrorSystemDock = value(.mirrorSystemDock, fallback.mirrorSystemDock)
         pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
         pinnedOthers = value(.pinnedOthers, fallback.pinnedOthers)

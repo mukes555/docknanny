@@ -36,6 +36,20 @@ final class DockCoordinator {
         controllers.removeAll()
     }
 
+    /// The shortcut's target is the dock the person is looking at: the one on
+    /// the display under the pointer, or failing that any dock. Spacers do
+    /// not count; people count icons.
+    func activateTile(number: Int) {
+        let pointer = NSEvent.mouseLocation
+        let underPointer = displays.displays.first { $0.frame.contains(pointer) }
+        let controller = underPointer.flatMap { controllers[$0.id] } ?? controllers.values.first
+        guard let controller else { return }
+
+        let apps = controller.currentItems.filter { $0.bundleIdentifier != nil }
+        guard number >= 1, number <= apps.count else { return }
+        activate(apps[number - 1])
+    }
+
     /// `withObservationTracking` fires once per change, so the observation is
     /// re-armed after each synchronise. The hop through a task matters: the
     /// callback runs *before* the new value is readable.

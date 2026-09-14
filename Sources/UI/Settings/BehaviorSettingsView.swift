@@ -43,6 +43,8 @@ struct BehaviorSettingsView: View {
                 )
             }
 
+            keyboardGroup
+
             SettingsGroup(title: "Startup") {
                 SettingsToggle(
                     title: "Launch at login",
@@ -54,6 +56,31 @@ struct BehaviorSettingsView: View {
             }
         }
         .onAppear { launchesAtLogin = LaunchAtLogin.isEnabled }
+    }
+
+    private var modifiers: String { store.settings.hotkeyModifiers.localizedName }
+
+    private var keyboardGroup: some View {
+        SettingsGroup(title: "Keyboard") {
+            SettingsSegmented(
+                title: "Shortcut modifiers",
+                subtitle: "Held with the key named below. No permission is needed for these.",
+                selection: $store.settings.hotkeyModifiers
+            )
+            SettingsDivider()
+            SettingsToggle(
+                title: "Open apps by number",
+                subtitle: "\(modifiers)1 opens the first app on the dock under the pointer, "
+                    + "\(modifiers)2 the second, up to \(modifiers)9.",
+                isOn: $store.settings.tileHotkeysEnabled
+            )
+            SettingsDivider()
+            SettingsToggle(
+                title: "Toggle hiding with \(modifiers)D",
+                subtitle: "Turns \"Hide automatically\" on and off, the way Option-Command-D does for the system Dock.",
+                isOn: $store.settings.hidingHotkeyEnabled
+            )
+        }
     }
 
     /// The service, not the stored value, is the source of truth: the user can
