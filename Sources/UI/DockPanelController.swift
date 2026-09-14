@@ -88,9 +88,10 @@ final class DockPanelController {
         Log.panel.info("Dock panel opened on display \(display.id, privacy: .public)")
     }
 
-    /// The system Dock's reserved edge sits about this far beyond its glass,
-    /// measured from its own reservation on macOS 26.
-    private static let breathingRoom: CGFloat = 6
+    /// The system Dock's reserved edge sits this far beyond its glass: the
+    /// glass ends at 73 points on a display where zoomed windows start at 74,
+    /// measured in pixels on macOS 26.
+    private static let breathingRoom: CGFloat = 1
 
     /// How far in from the screen edge a window should stop: the slab, its
     /// margin, and the breathing room the system Dock leaves beside itself.
