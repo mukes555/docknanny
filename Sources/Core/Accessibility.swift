@@ -1,5 +1,6 @@
 import ApplicationServices
 import AppKit
+import Security
 
 /// macdock's one optional permission, and the only thing it is used for.
 ///
@@ -18,6 +19,22 @@ enum Accessibility {
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         guard !AXIsProcessTrustedWithOptions(options) else { return }
         openSystemSettings()
+    }
+
+    /// An ad hoc signature has no certificate, so macOS identifies the app by
+    /// a hash of the binary and forgets every grant on rebuild. True for a
+    /// developer's own build; false for anything signed with a certificate.
+    static var buildIsSignedAdHoc: Bool {
+        var code: SecCode?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code else { return false }
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
+        var information: CFDictionary?
+        let flags = SecCSFlags(rawValue: kSecCSSigningInformation)
+        guard SecCodeCopySigningInformation(staticCode, flags, &information) == errSecSuccess,
+              let details = information as? [String: Any] else { return false }
+        let certificates = details[kSecCodeInfoCertificates as String] as? [Any] ?? []
+        return certificates.isEmpty
     }
 
     @MainActor
