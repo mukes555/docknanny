@@ -82,6 +82,45 @@ enum AppWindows {
         application.activate()
     }
 
+    // MARK: Frames, for the window keeper
+
+    /// In Accessibility's space: origin at the top-left of the primary display.
+    static func frame(of window: AXUIElement) -> CGRect? {
+        guard let positionValue = attribute(kAXPositionAttribute, of: window),
+              let sizeValue = attribute(kAXSizeAttribute, of: window) else { return nil }
+        var position = CGPoint.zero
+        var size = CGSize.zero
+        // swiftlint:disable:next force_cast
+        guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &position),
+              // swiftlint:disable:next force_cast
+              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+        return CGRect(origin: position, size: size)
+    }
+
+    /// Position first, then size: an app clamps a size to its screen, so the
+    /// move has to have happened before the shrink is judged.
+    static func set(frame: CGRect, of window: AXUIElement) {
+        var position = frame.origin
+        var size = frame.size
+        if let value = AXValueCreate(.cgPoint, &position) {
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value)
+        }
+        if let value = AXValueCreate(.cgSize, &size) {
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
+        }
+    }
+
+    static func isStandardWindow(_ window: AXUIElement) -> Bool {
+        let subrole = attribute(kAXSubroleAttribute, of: window) as? String
+        let minimized = attribute(kAXMinimizedAttribute, of: window) as? Bool ?? false
+        return (subrole == nil || subrole == kAXStandardWindowSubrole) && !minimized
+    }
+
+    /// A full-screen window has its own Space and nothing to be clear of.
+    static func isFullScreen(_ window: AXUIElement) -> Bool {
+        attribute("AXFullScreen", of: window) as? Bool ?? false
+    }
+
     private static func attribute(_ name: String, of element: AXUIElement) -> AnyObject? {
         var value: AnyObject?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }

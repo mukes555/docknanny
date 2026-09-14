@@ -44,6 +44,7 @@ extension Settings {
         autoHide = value(.autoHide, fallback.autoHide)
         autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
+        keepWindowsClear = value(.keepWindowsClear, fallback.keepWindowsClear)
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
         hasSeenWelcome = value(.hasSeenWelcome, fallback.hasSeenWelcome)
 

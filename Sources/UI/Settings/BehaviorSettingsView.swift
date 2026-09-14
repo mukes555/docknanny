@@ -8,6 +8,7 @@ struct BehaviorSettingsView: View {
     /// SwiftUI would run it on every body evaluation.
     @State private var launchesAtLogin = false
     @State private var loginItemRefused = false
+    @State private var accessibilityTrusted = Accessibility.isTrusted
 
     var body: some View {
         SettingsPane {
@@ -45,6 +46,8 @@ struct BehaviorSettingsView: View {
 
             keyboardGroup
 
+            windowsGroup
+
             SettingsGroup(title: "Startup") {
                 SettingsToggle(
                     title: "Launch at login",
@@ -56,6 +59,40 @@ struct BehaviorSettingsView: View {
             }
         }
         .onAppear { launchesAtLogin = LaunchAtLogin.isEnabled }
+        .task { await watchAccessibility() }
+    }
+
+    /// The grant lands in System Settings behind this window; checking back
+    /// each second while the pane is open lets the row update without a
+    /// relaunch when macOS applies it live.
+    private func watchAccessibility() async {
+        while !Task.isCancelled {
+            accessibilityTrusted = Accessibility.isTrusted
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
+    private var windowsGroup: some View {
+        SettingsGroup(title: "Windows") {
+            SettingsToggle(
+                title: "Keep windows clear of the dock",
+                subtitle: "A window opened or zoomed into a dock's space is nudged to sit beside it, "
+                    + "the way windows stop beside the system Dock. Dragging one under the dock still works.",
+                isOn: $store.settings.keepWindowsClear
+            )
+            if store.settings.keepWindowsClear, !accessibilityTrusted {
+                SettingsDivider()
+                SettingRow(
+                    title: "Needs Accessibility",
+                    subtitle: "Nudging another app's window means reading and setting its frame, "
+                        + "which is what Accessibility access is for."
+                ) {
+                    Button("Grant...") { Accessibility.request() }
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }
     }
 
     private var modifiers: String { store.settings.hotkeyModifiers.localizedName }

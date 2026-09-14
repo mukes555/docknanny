@@ -78,9 +78,10 @@ needs a grant. Three things ask for something, only when you use them, and
 work without it otherwise:
 
 - **Window lists in tile menus** (right-click a running app to see and
-  switch between its windows, as in the Dock) read other apps' window
-  titles, which is Accessibility access. Grant it from the setup window
-  under the menu bar icon; the docks never need it.
+  switch between its windows, as in the Dock) and **Keep windows clear of
+  the dock** (Behavior) read other apps' windows, which is Accessibility
+  access. Grant it from the setup window under the menu bar icon; the docks
+  never need it.
 - **Folder tiles** read the folder they show, so macOS may ask about that
   folder (Downloads, Desktop and the like).
 - **Empty Trash** asks Finder to do the emptying, which is an Automation
@@ -136,10 +137,16 @@ the app logs under the `app.macdock` subsystem:
 ## What is next
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Window
-previews on hover are the next piece. Reserving screen space, so a zoomed
-window stops beside a macdock dock the way it does beside the system Dock,
-depends on whether the window server accepts a dock rect from anyone but the
-Dock; `tools/probe-dock-rect.swift` answers that on your machine.
+previews on hover are the next piece.
+
+A note on the gap beside the dock. The system Dock gets it from the window
+server, which leaves the Dock's strip out of every display's visible frame
+so a zoomed window stops beside it. The window server keeps exactly one such
+strip and the Dock rewrites it whenever its contents change
+(`tools/probe-dock-rect.swift` shows this), so macdock cannot reserve one of
+its own without taking the Dock's away. "Keep windows clear of the dock" in
+Behavior gets the same effect the other way round: a window opened or zoomed
+into a dock's space is nudged to sit beside it.
 
 ## Contributing
 
