@@ -33,9 +33,9 @@ final class HotkeyController {
             _ = settings.settings.hidingHotkeyEnabled
             _ = settings.settings.hotkeyModifiers
         } onChange: {
-            Task { @MainActor in
-                self.apply()
-                self.observe()
+            Task { @MainActor [weak self] in
+                self?.apply()
+                self?.observe()
             }
         }
     }

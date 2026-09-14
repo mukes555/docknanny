@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
+- Housekeeping round: polling loops are cancelled with their owners,
+  observation loops hold their owners weakly, names and icons are cached
+  instead of fetched on every change, every Accessibility call to a hung
+  app is bounded at a quarter second, malformed Accessibility replies can
+  no longer crash the process, window titles and bundle identifiers are
+  private in the log, Control-click opens the menu bar menu, Command-H
+  no longer hides every dock, a relaunch flushes settings first, and an
+  unreadable settings file is kept beside the new one.
 - Windows now reliably come to the front when opened from the menu bar:
   activation after the switch to a Dock-visible app waits for the switch
   to land and retries once. Clicking the Dock tile brings the open window

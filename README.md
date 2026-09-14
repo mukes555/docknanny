@@ -54,7 +54,8 @@ and if the Dock moves to another display macdock follows.
 
 **It stays out of the way.** No focus stealing: clicking a dock icon does not
 deactivate the app you are working in. Auto-hide retreats to a sliver at the
-screen edge. Idle cost is zero: no timers wake the CPU while nothing changes.
+screen edge. Idle cost is a rounding error: one two-second read of the Dock's
+preferences, measured at 0.0 to 0.1 percent CPU and 17 MB.
 
 **Keyboard.** Control-Option-1 to 9 open the first to ninth app on the dock
 under the pointer; Control-Option-D toggles hiding, the way

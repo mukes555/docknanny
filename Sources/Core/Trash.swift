@@ -42,6 +42,9 @@ enum Trash {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", "tell application \"Finder\" to empty trash"]
+        // The handler holds the process until it exits, so the child is
+        // reaped rather than left a zombie when this scope ends.
+        process.terminationHandler = { finished in finished.terminationHandler = nil }
         do {
             try process.run()
         } catch {

@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         self.displays = displays
         self.apps = apps
+        AppRestarter.beforeRestart = { [weak settings] in settings?.flush() }
         let coordinator = DockCoordinator(
             displays: displays,
             apps: apps,

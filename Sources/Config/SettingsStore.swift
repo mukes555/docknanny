@@ -83,13 +83,18 @@ final class SettingsStore {
 
     /// A settings file that cannot be read is replaced by defaults rather than
     /// blocking launch. Losing preferences is recoverable; a dock that will not
-    /// start is not.
+    /// start is not. The unreadable file is kept beside the new one, since a
+    /// hand edit with one stray comma is the usual cause and easily repaired.
     private static func load(from url: URL) -> Settings {
         guard let data = try? Data(contentsOf: url) else { return Settings() }
         do {
             return try JSONDecoder().decode(Settings.self, from: data)
         } catch {
-            Log.settings.error("Settings unreadable, using defaults: \(error.localizedDescription, privacy: .public)")
+            let reason = error.localizedDescription
+            Log.settings.error("Settings unreadable, using defaults: \(reason, privacy: .public)")
+            let keepsake = url.appendingPathExtension("unreadable")
+            try? FileManager.default.removeItem(at: keepsake)
+            try? FileManager.default.copyItem(at: url, to: keepsake)
             return Settings()
         }
     }

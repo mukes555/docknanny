@@ -28,7 +28,7 @@ final class DisplayRegistry {
 
     private let observers = ObserverTokens(center: .default)
     private var rebuildTask: Task<Void, Never>?
-    private var dockWatchTask: Task<Void, Never>?
+    private let dockWatch = TaskBox()
     private let settleDelay: Duration
 
     /// Hot-plug fires `didChangeScreenParametersNotification` several times as
@@ -38,7 +38,6 @@ final class DisplayRegistry {
         self.settleDelay = settleDelay
         rebuild()
         observeScreenChanges()
-        watchSystemDock()
     }
 
     func display(withID id: CGDirectDisplayID) -> Display? {
@@ -58,11 +57,16 @@ final class DisplayRegistry {
         observers.add(token)
     }
 
-    /// The Dock changes display without any notification. A rebuild only
-    /// publishes when something differs, so polling costs nothing when it
-    /// stays put.
-    private func watchSystemDock() {
-        dockWatchTask = Task { [weak self] in
+    /// The Dock changes display without any notification, so with more than
+    /// one display attached the registry checks every two seconds. With one
+    /// display the Dock has nowhere to go and nothing wakes up.
+    private func watchSystemDockIfNeeded() {
+        guard displays.count > 1 else {
+            dockWatch.task = nil
+            return
+        }
+        guard dockWatch.task == nil else { return }
+        dockWatch.task = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }
@@ -90,6 +94,7 @@ final class DisplayRegistry {
             primaryHeight = height
         }
 
+        defer { watchSystemDockIfNeeded() }
         guard rebuilt != displays else { return }
         displays = rebuilt
         Log.display.info("Displays changed: \(rebuilt.count, privacy: .public) attached")

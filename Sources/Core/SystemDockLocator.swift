@@ -19,9 +19,13 @@ enum SystemDockLocator {
         var identifiers = [CGDirectDisplayID](repeating: 0, count: 16)
         guard CGGetActiveDisplayList(UInt32(identifiers.count), &identifiers, &count) == .success else { return nil }
 
-        return identifiers.prefix(Int(count)).max { lhs, rhs in
+        let best = identifiers.prefix(Int(count)).max { lhs, rhs in
             overlap(of: dockBounds, with: lhs) < overlap(of: dockBounds, with: rhs)
         }
+        // A Dock window that overlaps no display (mid-transition, or oddly
+        // placed) must not pin the Dock to an arbitrary one.
+        guard let best, overlap(of: dockBounds, with: best) > 0 else { return nil }
+        return best
     }
 
     private static func overlap(of bounds: CGRect, with display: CGDirectDisplayID) -> CGFloat {

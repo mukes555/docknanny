@@ -156,3 +156,8 @@ no certificate, Apple ID or trust setting is needed for the default.
 
 After switching how a build is signed, remove any stale macdock entry from
 System Settings > Privacy & Security > Accessibility and grant once more.
+
+One caveat with the default: any ad hoc build claiming the identifier
+`app.macdock` satisfies that requirement, so on a development machine another
+such build would inherit the grant. That is a development convenience only;
+release builds are signed with a certificate.

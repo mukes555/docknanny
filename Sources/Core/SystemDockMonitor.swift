@@ -34,11 +34,11 @@ final class SystemDockMonitor {
     var tileSize: Double? { snapshot.tileSize }
     var isTrashFull: Bool { snapshot.isTrashFull }
 
-    private var pollTask: Task<Void, Never>?
+    private let poll = TaskBox()
 
     init() {
         refresh()
-        pollTask = Task { [weak self] in
+        poll.task = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }

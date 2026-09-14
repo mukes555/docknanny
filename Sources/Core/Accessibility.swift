@@ -62,20 +62,28 @@ struct AppWindow: Identifiable {
 /// Reads and raises an app's windows through Accessibility.
 @MainActor
 enum AppWindows {
-    /// A hung app would otherwise hold the menu open for the default six
-    /// seconds per attribute.
-    private static let messagingTimeout: Float = 0.25
+    /// A hung app would otherwise hold the caller, on the main thread, for
+    /// the default six seconds per attribute. Set on the system-wide element
+    /// it applies to every element this process talks to.
+    private static let messagingTimeoutInstalled: Bool = {
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.25)
+        return true
+    }()
+
+    /// More windows than this and a menu would scroll off the screen anyway;
+    /// it also bounds the time spent talking to a slow app.
+    private static let windowLimit = 40
 
     /// nil when Accessibility has not been granted; empty when the app has no
     /// standard windows.
     static func list(processIdentifier pid: pid_t) -> [AppWindow]? {
         guard Accessibility.isTrusted else { return nil }
+        _ = messagingTimeoutInstalled
 
         let application = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(application, messagingTimeout)
         guard let elements = attribute(kAXWindowsAttribute, of: application) as? [AXUIElement] else { return [] }
 
-        return elements.enumerated().compactMap { index, element -> AppWindow? in
+        return elements.prefix(windowLimit).enumerated().compactMap { index, element -> AppWindow? in
             // Palettes, sheets and popovers are windows to Accessibility but
             // not to a person; the Dock lists standard windows only.
             let subrole = attribute(kAXSubroleAttribute, of: element) as? String
@@ -105,15 +113,19 @@ enum AppWindows {
 
     /// In Accessibility's space: origin at the top-left of the primary display.
     static func frame(of window: AXUIElement) -> CGRect? {
-        guard let positionValue = attribute(kAXPositionAttribute, of: window),
-              let sizeValue = attribute(kAXSizeAttribute, of: window) else { return nil }
         var position = CGPoint.zero
         var size = CGSize.zero
-        // swiftlint:disable:next force_cast
-        guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &position),
-              // swiftlint:disable:next force_cast
-              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+        guard read(attribute(kAXPositionAttribute, of: window), as: .cgPoint, into: &position),
+              read(attribute(kAXSizeAttribute, of: window), as: .cgSize, into: &size) else { return nil }
         return CGRect(origin: position, size: size)
+    }
+
+    /// An app with a broken Accessibility implementation can answer a
+    /// position request with anything; only a real AXValue is unpacked.
+    private static func read<Value>(_ object: AnyObject?, as type: AXValueType, into result: inout Value) -> Bool {
+        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else { return false }
+        // swiftlint:disable:next force_cast
+        return AXValueGetValue(object as! AXValue, type, &result)
     }
 
     /// Position first, then size: an app clamps a size to its screen, so the
@@ -141,7 +153,8 @@ enum AppWindows {
         return !floating.contains(subrole) && !minimized
     }
 
-    /// For the log, when a window is rejected: what it said it was.
+    /// For the log, when a window is rejected: what it said it was. Logged
+    /// as private: a window title is the person's business.
     static func describe(_ element: AXUIElement) -> String {
         let role = attribute(kAXRoleAttribute, of: element) as? String ?? "no role"
         let subrole = attribute(kAXSubroleAttribute, of: element) as? String ?? "no subrole"

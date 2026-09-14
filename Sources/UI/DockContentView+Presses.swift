@@ -76,7 +76,7 @@ extension DockContentView {
     /// as a list rather than a window.
     private func handleTap(_ item: DockItem, at index: Int) {
         let flags = NSEvent.modifierFlags
-        Log.panel.debug("tap index=\(index, privacy: .public) tile=\(item.id, privacy: .public)")
+        Log.panel.debug("tap index=\(index, privacy: .public) tile=\(item.id, privacy: .private)")
 
         if flags.contains(.command) {
             actions.reveal(item)
