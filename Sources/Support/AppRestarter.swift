@@ -7,7 +7,13 @@ import AppKit
 /// than explaining that, the onboarding window offers a button.
 @MainActor
 enum AppRestarter {
+    /// Runs before the new instance is asked for. The settings store hooks
+    /// this to flush, or the new instance could read the file before the old
+    /// one's last change reached it.
+    static var beforeRestart: () -> Void = {}
+
     static func restart() {
+        beforeRestart()
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
 

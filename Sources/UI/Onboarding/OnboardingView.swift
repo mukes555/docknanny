@@ -4,8 +4,9 @@ import SwiftUI
 ///
 /// The docks need nothing granted, and the window says so. Accessibility is
 /// offered, not required: it lists an app's windows in its tile's menu and
-/// nothing else, and macOS ties the grant to a running process, so a relaunch
-/// button sits beside it rather than an explanation.
+/// keeps windows clear of the docks, nothing else. macOS applies a grant to
+/// a running process on its own terms, so a relaunch button sits beside it
+/// rather than an explanation.
 struct OnboardingView: View {
     let onOpenSettings: () -> Void
     let onDismiss: () -> Void

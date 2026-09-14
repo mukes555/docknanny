@@ -15,6 +15,7 @@ final class DockCoordinator {
 
     private var controllers: [CGDirectDisplayID: DockPanelController] = [:]
     private let systemDock = SystemDockMonitor()
+    private let metadata = AppMetadataCache()
 
     /// Built once and shared by every panel. The closures read current state
     /// when they run rather than closing over a snapshot, so a panel created
@@ -87,9 +88,9 @@ final class DockCoordinator {
             _ = settings.settings
             _ = systemDock.snapshot
         } onChange: {
-            Task { @MainActor in
-                self.synchronise()
-                self.observe()
+            Task { @MainActor [weak self] in
+                self?.synchronise()
+                self?.observe()
             }
         }
     }
@@ -132,7 +133,12 @@ final class DockCoordinator {
             showsTrash: configuration.showTrash,
             isTrashFull: systemDock.isTrashFull
         )
-        return DockContents.items(source: source, configuration: configuration, iconProvider: DockContents.icon(for:))
+        return DockContents.items(
+            source: source,
+            configuration: configuration,
+            iconProvider: metadata.icon(for:),
+            nameProvider: metadata.name(for:)
+        )
     }
 
     /// Global settings with the system Dock's lists substituted in while

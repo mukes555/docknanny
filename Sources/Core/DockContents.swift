@@ -26,9 +26,12 @@ enum DockContents {
     static func items(
         source: DockSource,
         configuration: ResolvedDockConfiguration,
-        iconProvider: @escaping (DockItem.Kind) -> NSImage?
+        iconProvider: @escaping (DockItem.Kind) -> NSImage?,
+        nameProvider: @escaping (String) -> String = DockContents.displayName(forBundleIdentifier:)
     ) -> [DockItem] {
-        var builder = Builder(source: source, configuration: configuration, iconProvider: iconProvider)
+        var builder = Builder(
+            source: source, configuration: configuration, iconProvider: iconProvider, nameProvider: nameProvider
+        )
         builder.addPinnedApps()
         if configuration.showRunningApps {
             builder.addRunningApps()
@@ -49,6 +52,7 @@ enum DockContents {
         let source: DockSource
         let configuration: ResolvedDockConfiguration
         let iconProvider: (DockItem.Kind) -> NSImage?
+        let nameProvider: (String) -> String
 
         private(set) var items: [DockItem] = []
         private var emitted = Set<String>()
@@ -57,11 +61,13 @@ enum DockContents {
         init(
             source: DockSource,
             configuration: ResolvedDockConfiguration,
-            iconProvider: @escaping (DockItem.Kind) -> NSImage?
+            iconProvider: @escaping (DockItem.Kind) -> NSImage?,
+            nameProvider: @escaping (String) -> String
         ) {
             self.source = source
             self.configuration = configuration
             self.iconProvider = iconProvider
+            self.nameProvider = nameProvider
             runningByIdentifier = Dictionary(
                 source.running.map { ($0.id, $0) },
                 uniquingKeysWith: { first, _ in first }
@@ -111,7 +117,7 @@ enum DockContents {
                 id: identifier,
                 kind: .app(bundleIdentifier: identifier),
                 section: section,
-                name: running?.localizedName ?? displayName(forBundleIdentifier: identifier),
+                name: running?.localizedName ?? nameProvider(identifier),
                 icon: running?.icon ?? iconProvider(.app(bundleIdentifier: identifier)),
                 isRunning: running != nil,
                 isPinned: isPinned,
@@ -146,7 +152,7 @@ enum DockContents {
 
         private func name(for kind: DockItem.Kind) -> String {
             switch kind {
-            case .app(let identifier): displayName(forBundleIdentifier: identifier)
+            case .app(let identifier): nameProvider(identifier)
             case .file(let url): FileManager.default.displayName(atPath: url.path)
             case .trash: "Trash"
             case .spacer: ""

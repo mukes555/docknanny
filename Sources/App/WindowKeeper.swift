@@ -27,7 +27,7 @@ final class WindowKeeper {
     private var beganWithMouseDown: Set<pid_t> = []
     /// Apps whose windows are changing, waiting for the change to settle.
     private var settleTasks: [pid_t: Task<Void, Never>] = [:]
-    private var trustPoll: Task<Void, Never>?
+    private let trustPoll = TaskBox()
 
     /// A zoom animates through several resize notifications a frame apart;
     /// only the final frame matters, and every millisecond of waiting is a
@@ -50,9 +50,9 @@ final class WindowKeeper {
             _ = settings.settings
             _ = apps.apps
         } onChange: {
-            Task { @MainActor in
-                self.reconcile()
-                self.observe()
+            Task { @MainActor [weak self] in
+                self?.reconcile()
+                self?.observe()
             }
         }
     }
@@ -62,8 +62,7 @@ final class WindowKeeper {
     private func reconcile() {
         guard settings.settings.keepWindowsClear else {
             removeAllObservers()
-            trustPoll?.cancel()
-            trustPoll = nil
+            trustPoll.task = nil
             return
         }
         guard Accessibility.isTrusted else {
@@ -72,13 +71,13 @@ final class WindowKeeper {
             Log.workspace.info("Window keeper waiting for Accessibility")
             return
         }
-        trustPoll?.cancel()
-        trustPoll = nil
+        trustPoll.task = nil
 
         let wanted = Set(apps.apps.map(\.processIdentifier))
         for pid in observers.keys where !wanted.contains(pid) {
             removeObserver(for: pid)
         }
+        startingUp = startingUp.filter { wanted.contains($0.key) }
         for pid in wanted where observers[pid] == nil {
             addObserver(for: pid)
         }
@@ -88,12 +87,11 @@ final class WindowKeeper {
     /// The grant lands in System Settings while the setting is already on,
     /// so the keeper checks back until it can start.
     private func pollForTrust() {
-        guard trustPoll == nil else { return }
-        trustPoll = Task { [weak self] in
+        guard trustPoll.task == nil else { return }
+        trustPoll.task = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3))
                 guard !Task.isCancelled, Accessibility.isTrusted else { continue }
-                self?.trustPoll = nil
                 self?.reconcile()
                 return
             }
@@ -135,6 +133,7 @@ final class WindowKeeper {
     private func retryLater(_ pid: pid_t) {
         let attempts = startingUp[pid, default: 0] + 1
         guard attempts <= Self.startupRetries else {
+            startingUp[pid] = nil
             Log.workspace.notice("pid \(pid, privacy: .public) never became observable")
             return
         }
@@ -196,7 +195,7 @@ final class WindowKeeper {
         guard AppWindows.isStandardWindow(element), !AppWindows.isFullScreen(element),
               let reported = AppWindows.frame(of: element) else {
             let what = AppWindows.describe(element)
-            Log.workspace.info("Window changed but is not a standard, readable window: \(what, privacy: .public)")
+            Log.workspace.info("Window is not a standard, readable window: \(what, privacy: .private)")
             return
         }
 
