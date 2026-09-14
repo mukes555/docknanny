@@ -108,7 +108,9 @@ final class WindowKeeper {
             let added = AXObserverAddNotification(observer, application, name as CFString, refcon)
             if added != .success {
                 let reason = added.rawValue
-                Log.workspace.notice("pid \(pid, privacy: .public) refused \(name, privacy: .public): \(reason, privacy: .public)")
+                Log.workspace.notice(
+                    "pid \(pid, privacy: .public) refused \(name, privacy: .public): \(reason, privacy: .public)"
+                )
             }
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
