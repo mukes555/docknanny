@@ -141,21 +141,18 @@ notarized DMG and a Homebrew cask.
 
 ## Signing for development
 
-macOS ties an Accessibility grant to the app's code signature. An ad hoc
-signature (`codesign --sign -`, which `tools/dev.sh` falls back to) has no
-certificate, so the identity is a hash of the binary and every rebuild is a
-new app as far as macOS is concerned: the grant stops applying while System
-Settings keeps listing macdock as allowed. Anything signed with a certificate
-has a stable identity and keeps its grant across rebuilds.
+macOS keys an Accessibility grant to the app's designated requirement. A
+plain ad hoc signature (`codesign --sign -`) has a requirement that is a
+hash of the binary, so every rebuild is a new app as far as macOS is
+concerned: the grant stops applying while System Settings keeps listing
+macdock as allowed.
 
-Make one identity once, either way:
+`tools/dev.sh` builds, signs and relaunches. Without a certificate it signs
+ad hoc with the bundle identifier as the requirement
+(`designated => identifier "app.macdock"`), which every build satisfies, so
+the grant survives rebuilds. With a code-signing certificate in the
+keychain, or one named with `MACDOCK_SIGN_IDENTITY`, it uses that instead;
+no certificate, Apple ID or trust setting is needed for the default.
 
-- Xcode > Settings > Accounts > add your Apple ID > Manage Certificates > +
-  > Apple Development. A free Apple ID is enough.
-- Keychain Access > Certificate Assistant > Create a Certificate. Name it
-  "macdock dev", identity type Self Signed Root, certificate type Code Signing.
-
-Then build and run with `tools/dev.sh`, which uses the first identity in the
-keychain, or name one with `MACDOCK_SIGN_IDENTITY`. After the first signed
-build, remove any stale macdock entry from System Settings > Privacy &
-Security > Accessibility and grant once more.
+After switching how a build is signed, remove any stale macdock entry from
+System Settings > Privacy & Security > Accessibility and grant once more.

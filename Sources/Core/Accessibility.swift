@@ -21,20 +21,20 @@ enum Accessibility {
         openSystemSettings()
     }
 
-    /// An ad hoc signature has no certificate, so macOS identifies the app by
-    /// a hash of the binary and forgets every grant on rebuild. True for a
-    /// developer's own build; false for anything signed with a certificate.
-    static var buildIsSignedAdHoc: Bool {
+    /// macOS keys a grant to the app's designated requirement. A plain ad hoc
+    /// signature's requirement is a hash of the binary, so every rebuild is a
+    /// new app and the grant silently stops applying. tools/dev.sh signs with
+    /// the bundle identifier as the requirement instead, which survives
+    /// rebuilds; this is true only for a build signed the naive way.
+    static var grantIsTiedToThisExactBinary: Bool {
         var code: SecCode?
         guard SecCodeCopySelf([], &code) == errSecSuccess, let code else { return false }
-        var staticCode: SecStaticCode?
-        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
-        var information: CFDictionary?
-        let flags = SecCSFlags(rawValue: kSecCSSigningInformation)
-        guard SecCodeCopySigningInformation(staticCode, flags, &information) == errSecSuccess,
-              let details = information as? [String: Any] else { return false }
-        let certificates = details[kSecCodeInfoCertificates as String] as? [Any] ?? []
-        return certificates.isEmpty
+        var requirement: SecRequirement?
+        guard SecCodeCopyDesignatedRequirement(code, [], &requirement) == errSecSuccess,
+              let requirement else { return false }
+        var text: CFString?
+        guard SecRequirementCopyString(requirement, [], &text) == errSecSuccess, let text else { return false }
+        return (text as String).hasPrefix("cdhash")
     }
 
     @MainActor

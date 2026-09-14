@@ -113,14 +113,14 @@ struct OnboardingView: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// A developer's own build loses the grant on every rebuild, and the
-    /// System Settings list keeps showing it as granted. Saying so here beats
-    /// a bug report.
+    /// A build signed the naive way loses the grant on every rebuild while
+    /// System Settings keeps showing it as granted. Saying so here beats a
+    /// bug report.
     private var adHocNote: String? {
-        guard Accessibility.buildIsSignedAdHoc else { return nil }
-        return "This build is signed ad hoc, so macOS forgets the grant after every rebuild even though "
-            + "System Settings still lists macdock as allowed. Remove macdock from that list, grant again, "
-            + "or sign the build with a certificate (CONTRIBUTING.md) so it sticks."
+        guard Accessibility.grantIsTiedToThisExactBinary else { return nil }
+        return "This build's signature ties the grant to this exact binary, so macOS forgets it after every "
+            + "rebuild even though System Settings still lists macdock as allowed. Remove macdock from that "
+            + "list and grant again, and build with tools/dev.sh so it sticks."
     }
 
     private var footer: some View {

@@ -1,14 +1,16 @@
 #!/bin/zsh
 # Builds a Debug macdock.app, signs it, and relaunches it.
 #
-# The signing identity matters more than it looks. macOS ties an
-# Accessibility grant to the app's code signature. An ad hoc signature has no
-# certificate, so the identity is a hash of the binary itself and every
-# rebuild is a new app to macOS: the grant silently stops applying. Signing
-# with any certificate, self-signed included, gives a stable identity, and
-# the grant survives rebuilds.
+# The signing matters more than it looks. macOS keys an Accessibility grant
+# to the app's designated requirement. A plain ad hoc signature's requirement
+# is a hash of the binary, so every rebuild is a new app to macOS and the
+# grant silently stops applying. Signing ad hoc with the bundle identifier as
+# the requirement instead gives an identity that survives rebuilds, with no
+# certificate, Apple ID or trust settings involved. A certificate in the
+# keychain is used when one is present or named; its default requirement is
+# stable too.
 #
-#   tools/dev.sh                             first identity in the keychain, else ad hoc
+#   tools/dev.sh                             ad hoc with a stable requirement, or the first identity
 #   MACDOCK_SIGN_IDENTITY="macdock dev" tools/dev.sh
 set -euo pipefail
 
@@ -28,11 +30,11 @@ xcodebuild build \
     -quiet \
     CODE_SIGNING_ALLOWED=NO
 
-codesign --force --deep --sign "$identity" "$app"
 if [[ "$identity" == "-" ]]; then
-    echo "note: signed ad hoc. macOS forgets the Accessibility grant on every rebuild;"
-    echo "      create a code-signing certificate (see CONTRIBUTING.md) to keep it."
+    codesign --force --sign - --requirements '=designated => identifier "app.macdock"' "$app"
+    echo "signed ad hoc, requirement: identifier app.macdock (grants survive rebuilds)"
 else
+    codesign --force --deep --sign "$identity" "$app"
     echo "signed as: $identity"
 fi
 
