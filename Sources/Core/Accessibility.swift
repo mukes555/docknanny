@@ -29,8 +29,10 @@ enum Accessibility {
     static var grantIsTiedToThisExactBinary: Bool {
         var code: SecCode?
         guard SecCodeCopySelf([], &code) == errSecSuccess, let code else { return false }
+        var staticCode: SecStaticCode?
+        guard SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode else { return false }
         var requirement: SecRequirement?
-        guard SecCodeCopyDesignatedRequirement(code, [], &requirement) == errSecSuccess,
+        guard SecCodeCopyDesignatedRequirement(staticCode, [], &requirement) == errSecSuccess,
               let requirement else { return false }
         var text: CFString?
         guard SecRequirementCopyString(requirement, [], &text) == errSecSuccess, let text else { return false }
