@@ -91,7 +91,7 @@ struct OnboardingView: View {
                     .settingsText(Theme.Text.caption, Theme.Ink.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if !isTrusted {
-                    Text("If the tile menus still show no windows after granting, relaunch.")
+                    Text(adHocNote ?? "If the tile menus still show no windows after granting, relaunch.")
                         .settingsText(Theme.Text.caption, Theme.Ink.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 2)
@@ -111,6 +111,16 @@ struct OnboardingView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .accessibilityElement(children: .contain)
+    }
+
+    /// A developer's own build loses the grant on every rebuild, and the
+    /// System Settings list keeps showing it as granted. Saying so here beats
+    /// a bug report.
+    private var adHocNote: String? {
+        guard Accessibility.buildIsSignedAdHoc else { return nil }
+        return "This build is signed ad hoc, so macOS forgets the grant after every rebuild even though "
+            + "System Settings still lists macdock as allowed. Remove macdock from that list, grant again, "
+            + "or sign the build with a certificate (CONTRIBUTING.md) so it sticks."
     }
 
     private var footer: some View {
