@@ -70,6 +70,17 @@ first, keyboard reachable throughout, spring animation, instant apply.
   window list.
 - Presets, and export, import and reset of the settings file.
 
+### 0.3.0 (complete)
+
+- Window lists in tile menus and Show All Windows, behind an optional
+  Accessibility grant offered from the setup window.
+- "Keep windows clear of the dock": the effect of the Dock's reserved strip,
+  done by nudging, after the probe showed the window server keeps one strip
+  for the whole system and the Dock rewrites it.
+- A stable ad hoc signing requirement so the grant survives rebuilds.
+- Activation through the call macOS still honours after a menu bar click.
+- A housekeeping round: lifetimes, caches, Accessibility safety, privacy.
+
 ### Phase 3: live window previews
 
 ScreenCaptureKit thumbnails cached by `CGWindowID`, strictly async. Without
