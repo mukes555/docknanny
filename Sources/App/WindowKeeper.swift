@@ -18,6 +18,13 @@ final class WindowKeeper {
     private let coordinator: DockCoordinator
 
     private var observers: [pid_t: AXObserver] = [:]
+    /// Apps that refused an observer because they were still starting up,
+    /// with how many times they have been retried.
+    private var startingUp: [pid_t: Int] = [:]
+    /// Changes that began with the mouse down are the person's own drag or
+    /// resize, and are left alone even if the button is up by the time the
+    /// change settles. Keyed like the settling windows.
+    private var beganWithMouseDown: Set<CFHashCode> = []
     /// Windows waiting for their change to settle, by the CF hash of the
     /// element: notifications carry fresh wrappers for the same window, and an
     /// element cannot ride into a task, so the task looks it up here instead.
@@ -25,9 +32,11 @@ final class WindowKeeper {
     private var settleTasks: [CFHashCode: Task<Void, Never>] = [:]
     private var trustPoll: Task<Void, Never>?
 
-    /// A zoom animates through several resize notifications; only the final
-    /// frame matters.
-    private static let settleDelay = Duration.milliseconds(160)
+    /// A zoom animates through several resize notifications a frame apart;
+    /// only the final frame matters, and every millisecond of waiting is a
+    /// millisecond the window sits under the dock.
+    private static let settleDelay = Duration.milliseconds(40)
+    private static let startupRetries = 5
 
     init(settings: SettingsStore, apps: RunningAppsMonitor, displays: DisplayRegistry, coordinator: DockCoordinator) {
         self.settings = settings
@@ -106,15 +115,36 @@ final class WindowKeeper {
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         for name in [kAXWindowCreatedNotification, kAXWindowResizedNotification] {
             let added = AXObserverAddNotification(observer, application, name as CFString, refcon)
-            if added != .success {
-                let reason = added.rawValue
-                Log.workspace.notice(
-                    "pid \(pid, privacy: .public) refused \(name, privacy: .public): \(reason, privacy: .public)"
-                )
+            guard added == .success else {
+                // An app that has just launched has no Accessibility server
+                // yet and answers "cannot complete". It will have one shortly.
+                if added == .cannotComplete {
+                    retryLater(pid)
+                } else {
+                    let reason = added.rawValue
+                    Log.workspace.notice(
+                        "pid \(pid, privacy: .public) refused \(name, privacy: .public): \(reason, privacy: .public)"
+                    )
+                }
+                return
             }
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
         observers[pid] = observer
+        startingUp[pid] = nil
+    }
+
+    private func retryLater(_ pid: pid_t) {
+        let attempts = startingUp[pid, default: 0] + 1
+        guard attempts <= Self.startupRetries else {
+            Log.workspace.notice("pid \(pid, privacy: .public) never became observable")
+            return
+        }
+        startingUp[pid] = attempts
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            self?.reconcile()
+        }
     }
 
     private func removeObserver(for pid: pid_t) {
@@ -142,25 +172,30 @@ final class WindowKeeper {
 
     private func scheduleCheck(of element: AXUIElement) {
         let key = CFHash(element)
+        if settling[key] == nil, NSEvent.pressedMouseButtons != 0 {
+            beganWithMouseDown.insert(key)
+        }
         settling[key] = element
         settleTasks[key]?.cancel()
         settleTasks[key] = Task { [weak self] in
             try? await Task.sleep(for: Self.settleDelay)
             guard !Task.isCancelled, let self else { return }
             settleTasks[key] = nil
+            let byHand = beganWithMouseDown.remove(key) != nil
             guard let window = settling.removeValue(forKey: key) else { return }
-            nudgeIfNeeded(window)
+            if byHand {
+                Log.workspace.info("Window changed by hand; left alone")
+            } else {
+                nudgeIfNeeded(window)
+            }
         }
     }
 
     private func nudgeIfNeeded(_ element: AXUIElement) {
-        guard NSEvent.pressedMouseButtons == 0 else {
-            Log.workspace.info("Window changed with the mouse down; left alone")
-            return
-        }
         guard AppWindows.isStandardWindow(element), !AppWindows.isFullScreen(element),
               let reported = AppWindows.frame(of: element) else {
-            Log.workspace.info("Window changed but is not a standard, readable window")
+            let what = AppWindows.describe(element)
+            Log.workspace.info("Window changed but is not a standard, readable window: \(what, privacy: .public)")
             return
         }
 
