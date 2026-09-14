@@ -42,7 +42,7 @@ exists purely to forward a call.
 Validate every risky API before depending on it. See
 [PHASE-0-RESULTS.md](PHASE-0-RESULTS.md). Outcome: all clear.
 
-### Phase 1: a dock on every display
+### Phase 1: a dock on every display (complete)
 
 `DisplayRegistry` with stable `CGDirectDisplayID` identity and debounced
 rebuilds on hot-plug. `RunningAppsMonitor` over `NSWorkspace`. One `DockPanel`
@@ -52,12 +52,23 @@ running indicators.
 Bottom, left and right edge placement from the start. Every competing tool
 assumes bottom; edge-agnostic layout is the gap worth owning.
 
-### Phase 2: settings UI and per-display filtering
+### Phase 2: settings UI and per-display filtering (complete)
 
 One `Settings` value type where every option is a property, plus
 `[DisplayID: DisplayOverride]`. The UI is driven by that model so adding an
 option never means touching plumbing twice. Raycast-grade interaction: dark
 first, keyboard reachable throughout, spring animation, instant apply.
+
+### Between phases 2 and 3 (complete, 0.2.0)
+
+- The system Dock mirror finished: Finder, folders, spacers, recents, Trash.
+- Folder tiles as list menus; Empty Trash through Finder; drops on the Trash.
+- Carbon hot keys for opening apps by number and toggling hiding.
+- A manual press gesture: press feedback, live-gap reordering, the poof, and
+  drops between docks on different displays.
+- Skipping whichever display the system Dock is on, located through the
+  window list.
+- Presets, and export, import and reset of the settings file.
 
 ### Phase 3: live window previews
 

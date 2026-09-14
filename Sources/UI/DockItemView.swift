@@ -12,10 +12,12 @@ struct DockItemView: View {
     let indicatorStyle: IndicatorStyle
     /// Clicked to launch and not yet running. Bounces until it is.
     let isLaunching: Bool
-    let actions: DockActions
+    /// Mouse is down on it: darkened, as the system Dock does.
+    var isPressed = false
+    /// Riding under the pointer mid-drag.
+    var isLifted = false
 
     @State private var bounceOffset: CGFloat = 0
-    @State private var isDropTarget = false
 
     /// A dock is on screen all day. Motion it did not ask for is the thing
     /// people turn this setting on to stop.
@@ -24,16 +26,11 @@ struct DockItemView: View {
     var body: some View {
         icon
             .frame(width: size, height: size)
+            .brightness(isPressed ? -0.3 : 0)
+            .shadow(color: .black.opacity(isLifted ? 0.45 : 0), radius: 10, y: 4)
             .offset(bounce)
             .overlay(alignment: indicatorAlignment) { indicator }
-            .overlay { dropIndicator }
             .contentShape(.rect)
-            .draggable(item.id) { dragPreview }
-            .dropDestination(for: String.self) { dropped, _ in
-                guard let source = dropped.first, source != item.id else { return false }
-                actions.move(source, item.id)
-                return true
-            } isTargeted: { isDropTarget = $0 }
             .onChange(of: isLaunching, initial: true) { _, launching in
                 launching ? startBouncing() : settle()
             }
@@ -68,8 +65,17 @@ struct DockItemView: View {
     }
 
     private var accessibilityLabel: String {
-        guard item.isRunning else { return "\(item.name), not running" }
-        return item.isActive ? "\(item.name), active" : "\(item.name), running"
+        switch item.kind {
+        case .app:
+            guard item.isRunning else { return "\(item.name), not running" }
+            return item.isActive ? "\(item.name), active" : "\(item.name), running"
+        case .file:
+            return item.name
+        case .trash(let isFull):
+            return isFull ? "Trash, full" : "Trash, empty"
+        case .spacer:
+            return "Spacer"
+        }
     }
 
     private var indicatorAlignment: Alignment {
@@ -82,7 +88,9 @@ struct DockItemView: View {
 
     @ViewBuilder
     private var icon: some View {
-        if let image = item.icon {
+        if case .spacer = item.kind {
+            Color.clear
+        } else if let image = item.icon {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)
@@ -95,26 +103,6 @@ struct DockItemView: View {
                         .font(.system(size: size * 0.4, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-        }
-    }
-
-    private var dragPreview: some View {
-        Group {
-            if let image = item.icon {
-                Image(nsImage: image).resizable().scaledToFit()
-            } else {
-                RoundedRectangle(cornerRadius: 8).fill(.secondary)
-            }
-        }
-        .frame(width: size, height: size)
-    }
-
-    /// Shows where a dragged tile will land.
-    @ViewBuilder
-    private var dropIndicator: some View {
-        if isDropTarget {
-            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                .strokeBorder(.tint, lineWidth: 2)
         }
     }
 

@@ -12,13 +12,17 @@ struct SpreadLayout: Layout {
     let spacing: CGFloat
     let centres: [CGFloat]
     let scales: [CGFloat]
+    /// A slot to leave empty, mid-drag: the subviews after it shift along one.
+    var skippedSlot: Int?
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         proposal.replacingUnspecifiedDimensions()
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        for (index, subview) in subviews.enumerated() where index < centres.count {
+        for (position, subview) in subviews.enumerated() {
+            let index = slot(forSubview: position)
+            guard index < centres.count else { continue }
             let scale = index < scales.count ? scales[index] : 1
             let side = iconSize * scale
             let size = ProposedViewSize(width: side, height: side)
@@ -45,5 +49,10 @@ struct SpreadLayout: Layout {
                 )
             }
         }
+    }
+
+    private func slot(forSubview position: Int) -> Int {
+        guard let skippedSlot, position >= skippedSlot else { return position }
+        return position + 1
     }
 }

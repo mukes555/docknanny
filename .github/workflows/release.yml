@@ -1,0 +1,40 @@
+name: Release
+
+# Pushing a version tag builds the DMG and attaches it to a GitHub release.
+# Without a Developer ID certificate the build is ad-hoc signed, which Gatekeeper
+# flags on first launch; the release notes say how to clear that. Add
+# CODESIGN_IDENTITY, a certificate and a notary profile as secrets to ship a
+# notarized build from here instead.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app
+
+      - name: Install tooling
+        run: brew install xcodegen
+
+      - name: Build DMG
+        run: tools/release.sh
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/release/*.dmg
+            build/release/*.sha256
+          generate_release_notes: true

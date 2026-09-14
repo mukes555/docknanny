@@ -61,6 +61,7 @@ struct DockPreview: View {
         .onChange(of: settings.pinnedBundleIdentifiers) { _, _ in reload() }
         .onChange(of: settings.hiddenBundleIdentifiers) { _, _ in reload() }
         .onChange(of: settings.mirrorSystemDock) { _, _ in reload() }
+        .onChange(of: settings.showTrash) { _, _ in reload() }
     }
 
     /// Stands in for a desktop so translucency and glass have something to sit
@@ -115,15 +116,14 @@ struct DockPreview: View {
 
     /// The preview shows what the dock shows, mirrored or custom.
     private var pinnedSource: [String] {
-        settings.mirrorSystemDock ? SystemDockMonitor.readPinned() : configuration.pinnedBundleIdentifiers
+        settings.mirrorSystemDock ? SystemDockMonitor.read().pins : configuration.pinnedBundleIdentifiers
     }
 
     private func reload() {
-        items = DockContents.items(
+        let source = DockSource(
             pinned: Array(pinnedSource.prefix(8)),
-            running: [],
-            configuration: configuration,
-            iconProvider: DockContents.icon(forBundleIdentifier:)
+            showsTrash: configuration.showTrash
         )
+        items = DockContents.items(source: source, configuration: configuration, iconProvider: DockContents.icon(for:))
     }
 }

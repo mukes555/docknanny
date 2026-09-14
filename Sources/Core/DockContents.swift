@@ -1,90 +1,160 @@
 import AppKit
 
-/// One tile in a dock.
-struct DockItem: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let icon: NSImage?
-    let isRunning: Bool
-    let isPinned: Bool
-    let isActive: Bool
-
-    static func == (lhs: DockItem, rhs: DockItem) -> Bool {
-        lhs.id == rhs.id
-            && lhs.isRunning == rhs.isRunning
-            && lhs.isPinned == rhs.isPinned
-            && lhs.isActive == rhs.isActive
-    }
+/// Everything a dock's tiles are built from, gathered by the coordinator.
+struct DockSource {
+    /// Bundle identifiers, with ``DockItem/spacerIdentifier`` for gaps.
+    var pinned: [String] = []
+    var running: [RunningApp] = []
+    /// The system Dock's Recent Applications, or nil when that section is
+    /// off. With it on, unpinned running apps join this section rather than
+    /// the apps section, which is where the system Dock puts them.
+    var recents: [String]?
+    /// File URLs as strings, plus spacers, for the section after the apps.
+    var others: [String] = []
+    var showsTrash = false
+    var isTrashFull = false
 }
 
-/// Merges pinned apps with running ones into the list a single dock shows.
+/// Turns a ``DockSource`` into the list a single dock shows.
 ///
-/// Pinned apps come first and keep their configured order, so tiles never move
-/// under the pointer just because something launched. Unpinned running apps
-/// follow, which is the same contract as the system Dock.
+/// Pinned apps come first and keep their configured order, so tiles never
+/// move under the pointer just because something launched. Running apps
+/// follow, then folders and the Trash. This is the system Dock's contract,
+/// including the detail that unpinned running apps sit in the apps section
+/// with no divider unless Recent Applications is on.
 enum DockContents {
     static func items(
-        pinned: [String],
-        running: [RunningApp],
+        source: DockSource,
         configuration: ResolvedDockConfiguration,
-        iconProvider: (String) -> NSImage?
+        iconProvider: @escaping (DockItem.Kind) -> NSImage?
     ) -> [DockItem] {
-        let runningByIdentifier = Dictionary(
-            running.map { ($0.id, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
+        var builder = Builder(source: source, configuration: configuration, iconProvider: iconProvider)
+        builder.addPinnedApps()
+        if configuration.showRunningApps {
+            builder.addRunningApps()
+        }
+        builder.addOthers()
+        if source.showsTrash {
+            builder.add(.trash(isFull: source.isTrashFull), section: .others)
+        }
+        return builder.items
+    }
 
-        // A bundle id may appear more than once on both sides: an app can run
-        // several processes (helpers, a relaunch mid-quit), and a hand-edited
-        // settings file can repeat a pin. Two tiles sharing an id give ForEach
-        // duplicate identity, which corrupts SwiftUI's diffing rather than
-        // merely looking wrong.
-        let pinnedItems = uniqued(pinned)
-            .filter(configuration.allows)
-            .map { identifier in
-                makeItem(
-                    identifier: identifier,
-                    running: runningByIdentifier[identifier],
-                    isPinned: true,
-                    iconProvider: iconProvider
-                )
-            }
+    /// Accumulates tiles while enforcing unique ids. A bundle id may appear
+    /// more than once on both sides: an app can run several processes, and a
+    /// hand-edited settings file can repeat a pin. Two tiles sharing an id
+    /// give ForEach duplicate identity, which corrupts SwiftUI's diffing
+    /// rather than merely looking wrong.
+    private struct Builder {
+        let source: DockSource
+        let configuration: ResolvedDockConfiguration
+        let iconProvider: (DockItem.Kind) -> NSImage?
 
-        guard configuration.showRunningApps else { return pinnedItems }
+        private(set) var items: [DockItem] = []
+        private var emitted = Set<String>()
+        private var runningByIdentifier: [String: RunningApp]
 
-        let pinnedSet = Set(pinned)
-        var emitted = pinnedSet
-        var extras: [DockItem] = []
-
-        for app in running where !pinnedSet.contains(app.id) && configuration.allows(bundleIdentifier: app.id) {
-            guard emitted.insert(app.id).inserted else { continue }
-            extras.append(makeItem(identifier: app.id, running: app, isPinned: false, iconProvider: iconProvider))
+        init(
+            source: DockSource,
+            configuration: ResolvedDockConfiguration,
+            iconProvider: @escaping (DockItem.Kind) -> NSImage?
+        ) {
+            self.source = source
+            self.configuration = configuration
+            self.iconProvider = iconProvider
+            runningByIdentifier = Dictionary(
+                source.running.map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
         }
 
-        return pinnedItems + extras
+        mutating func addPinnedApps() {
+            var spacers = 0
+            for entry in source.pinned {
+                if entry == DockItem.spacerIdentifier {
+                    add(.spacer(ordinal: spacers), section: .apps)
+                    spacers += 1
+                } else {
+                    addApp(entry, isPinned: true, section: .apps)
+                }
+            }
+        }
+
+        mutating func addRunningApps() {
+            for identifier in source.recents ?? [] {
+                addApp(identifier, isPinned: false, section: .recents)
+            }
+            let section: DockItem.Section = source.recents == nil ? .apps : .recents
+            for app in source.running {
+                addApp(app.id, isPinned: false, section: section)
+            }
+        }
+
+        mutating func addOthers() {
+            var spacers = 0
+            for entry in source.others {
+                if entry == DockItem.spacerIdentifier {
+                    add(.spacer(ordinal: spacers), section: .others)
+                    spacers += 1
+                } else if let url = URL(string: entry), url.isFileURL {
+                    add(.file(url), section: .others)
+                }
+            }
+        }
+
+        private mutating func addApp(_ identifier: String, isPinned: Bool, section: DockItem.Section) {
+            guard configuration.allows(bundleIdentifier: identifier), emitted.insert(identifier).inserted else {
+                return
+            }
+            let running = runningByIdentifier[identifier]
+            items.append(DockItem(
+                id: identifier,
+                kind: .app(bundleIdentifier: identifier),
+                section: section,
+                name: running?.localizedName ?? displayName(forBundleIdentifier: identifier),
+                icon: running?.icon ?? iconProvider(.app(bundleIdentifier: identifier)),
+                isRunning: running != nil,
+                isPinned: isPinned,
+                isActive: running?.isActive ?? false
+            ))
+        }
+
+        /// The fixtures: spacers, files and the Trash are pinned by nature.
+        mutating func add(_ kind: DockItem.Kind, section: DockItem.Section) {
+            let id = identifier(for: kind, section: section)
+            guard emitted.insert(id).inserted else { return }
+            items.append(DockItem(
+                id: id,
+                kind: kind,
+                section: section,
+                name: name(for: kind),
+                icon: iconProvider(kind),
+                isRunning: false,
+                isPinned: true,
+                isActive: false
+            ))
+        }
+
+        private func identifier(for kind: DockItem.Kind, section: DockItem.Section) -> String {
+            switch kind {
+            case .app(let identifier): identifier
+            case .file(let url): url.absoluteString
+            case .trash: "trash"
+            case .spacer(let ordinal): "\(DockItem.spacerIdentifier):\(section):\(ordinal)"
+            }
+        }
+
+        private func name(for kind: DockItem.Kind) -> String {
+            switch kind {
+            case .app(let identifier): displayName(forBundleIdentifier: identifier)
+            case .file(let url): FileManager.default.displayName(atPath: url.path)
+            case .trash: "Trash"
+            case .spacer: ""
+            }
+        }
     }
 
-    /// Order-preserving deduplication.
-    private static func uniqued(_ identifiers: [String]) -> [String] {
-        var seen = Set<String>()
-        return identifiers.filter { seen.insert($0).inserted }
-    }
-
-    private static func makeItem(
-        identifier: String,
-        running: RunningApp?,
-        isPinned: Bool,
-        iconProvider: (String) -> NSImage?
-    ) -> DockItem {
-        DockItem(
-            id: identifier,
-            name: running?.localizedName ?? Self.displayName(forBundleIdentifier: identifier),
-            icon: running?.icon ?? iconProvider(identifier),
-            isRunning: running != nil,
-            isPinned: isPinned,
-            isActive: running?.isActive ?? false
-        )
-    }
+    // MARK: Names and icons
 
     /// The name a person knows the app by.
     ///
@@ -100,6 +170,21 @@ enum DockContents {
         let info = Bundle(url: url)?.localizedInfoDictionary ?? Bundle(url: url)?.infoDictionary
         let declared = (info?["CFBundleDisplayName"] ?? info?["CFBundleName"]) as? String
         return declared ?? url.deletingPathExtension().lastPathComponent
+    }
+
+    static func icon(for kind: DockItem.Kind) -> NSImage? {
+        switch kind {
+        case .app(let identifier):
+            return icon(forBundleIdentifier: identifier)
+        case .file(let url):
+            return NSWorkspace.shared.icon(forFile: url.path)
+        case .trash(let isFull):
+            // The Trash folder's own file icon is a plain folder. These two
+            // named images are the ones the system Dock draws.
+            return NSImage(named: isFull ? NSImage.trashFullName : NSImage.trashEmptyName)
+        case .spacer:
+            return nil
+        }
     }
 
     static func icon(forBundleIdentifier identifier: String) -> NSImage? {

@@ -10,23 +10,47 @@ import AppKit
 enum TileMenu {
     static func make(for item: DockItem, actions: DockActions) -> NSMenu {
         let menu = NSMenu()
+        switch item.kind {
+        case .app:
+            addAppItems(to: menu, for: item, actions: actions)
+        case .file:
+            addHeader(item.name, to: menu)
+            menu.addItem(ClosureMenuItem(title: "Open") { actions.activate(item) })
+            menu.addItem(ClosureMenuItem(title: "Show in Finder") { actions.reveal(item) })
+            menu.addItem(ClosureMenuItem(title: "Remove from Dock") { actions.togglePin(item) })
+        case .trash(let isFull):
+            addHeader(item.name, to: menu)
+            menu.addItem(ClosureMenuItem(title: "Open") { actions.activate(item) })
+            let empty = ClosureMenuItem(title: "Empty Trash...") { actions.emptyTrash() }
+            empty.isEnabled = isFull
+            menu.addItem(empty)
+            menu.addItem(.separator())
+            menu.addItem(ClosureMenuItem(title: "Remove from Dock") { actions.togglePin(item) })
+        case .spacer:
+            menu.addItem(ClosureMenuItem(title: "Remove Spacer") { actions.togglePin(item) })
+        }
+        return menu
+    }
 
-        let header = ClosureMenuItem(title: item.name) {}
-        header.isEnabled = false
-        menu.addItem(header)
-        menu.addItem(.separator())
-
+    private static func addAppItems(to menu: NSMenu, for item: DockItem, actions: DockActions) {
+        addHeader(item.name, to: menu)
         menu.addItem(ClosureMenuItem(title: "Show in Finder") { actions.reveal(item) })
         menu.addItem(ClosureMenuItem(
             title: item.isPinned ? "Remove from Dock" : "Keep in Dock"
         ) { actions.togglePin(item) })
 
-        guard item.isRunning else { return menu }
+        guard item.isRunning else { return }
 
         menu.addItem(.separator())
         menu.addItem(ClosureMenuItem(title: "Hide") { actions.hide(item) })
         menu.addItem(ClosureMenuItem(title: "Quit") { actions.quit(item) })
-        return menu
+    }
+
+    private static func addHeader(_ title: String, to menu: NSMenu) {
+        let header = ClosureMenuItem(title: title) {}
+        header.isEnabled = false
+        menu.addItem(header)
+        menu.addItem(.separator())
     }
 }
 

@@ -40,16 +40,22 @@ extension Settings {
         magnificationScale = value(.magnificationScale, fallback.magnificationScale)
 
         showRunningApps = value(.showRunningApps, fallback.showRunningApps)
-        showOnPrimaryDisplay = value(.showOnPrimaryDisplay, fallback.showOnPrimaryDisplay)
+        skipSystemDockDisplay = value(.skipSystemDockDisplay, fallback.skipSystemDockDisplay)
         autoHide = value(.autoHide, fallback.autoHide)
         autoHideDelay = value(.autoHideDelay, fallback.autoHideDelay)
         activeClickBehavior = value(.activeClickBehavior, fallback.activeClickBehavior)
         launchAtLogin = value(.launchAtLogin, fallback.launchAtLogin)
         hasSeenWelcome = value(.hasSeenWelcome, fallback.hasSeenWelcome)
 
+        tileHotkeysEnabled = value(.tileHotkeysEnabled, fallback.tileHotkeysEnabled)
+        hidingHotkeyEnabled = value(.hidingHotkeyEnabled, fallback.hidingHotkeyEnabled)
+        hotkeyModifiers = value(.hotkeyModifiers, fallback.hotkeyModifiers)
+
         mirrorSystemDock = value(.mirrorSystemDock, fallback.mirrorSystemDock)
         pinnedBundleIdentifiers = value(.pinnedBundleIdentifiers, fallback.pinnedBundleIdentifiers)
+        pinnedOthers = value(.pinnedOthers, fallback.pinnedOthers)
         hiddenBundleIdentifiers = value(.hiddenBundleIdentifiers, fallback.hiddenBundleIdentifiers)
+        showTrash = value(.showTrash, fallback.showTrash)
 
         // Decoded entry by entry: one corrupt display override should cost the
         // user that display's settings, not every display's.

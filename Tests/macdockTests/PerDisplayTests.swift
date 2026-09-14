@@ -100,4 +100,22 @@ struct PerDisplayTests {
         #expect(settings.perDisplay["11"] == nil)
         #expect(settings.resolved(for: display(id: 11)).tint == .sand)
     }
+
+    @Test("The display with the system Dock is skipped by default, and only that one")
+    func systemDockDisplayIsSkipped() {
+        var settings = Settings()
+        var withDock = display(id: 4)
+        withDock.hasSystemDock = true
+
+        #expect(!settings.resolved(for: withDock).isEnabled)
+        #expect(settings.resolved(for: display(id: 5)).isEnabled)
+
+        settings.skipSystemDockDisplay = false
+        #expect(settings.resolved(for: withDock).isEnabled)
+
+        // An explicit per-display choice beats the rule either way.
+        settings.skipSystemDockDisplay = true
+        settings.setOverride(DisplayOverride(isEnabled: true), forDisplay: 4)
+        #expect(settings.resolved(for: withDock).isEnabled)
+    }
 }

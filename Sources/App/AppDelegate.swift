@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var displays: DisplayRegistry?
     private var apps: RunningAppsMonitor?
     private var coordinator: DockCoordinator?
+    private var hotkeys: HotkeyController?
     private var statusItem: StatusItemController?
     private var onboarding: OnboardingWindowController?
     private var settingsWindow: SettingsWindowController?
@@ -39,7 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         self.displays = displays
         self.apps = apps
-        self.coordinator = DockCoordinator(displays: displays, apps: apps, settings: settings)
+        let coordinator = DockCoordinator(displays: displays, apps: apps, settings: settings)
+        self.coordinator = coordinator
+        self.hotkeys = HotkeyController(settings: settings, coordinator: coordinator)
         self.tray = TrayPanelController(
             store: settings,
             displays: displays,

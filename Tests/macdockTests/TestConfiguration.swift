@@ -16,6 +16,8 @@ enum TestConfiguration {
         autoHide: Bool = false,
         hidden: Set<String> = [],
         pinned: [String] = [],
+        others: [String] = [],
+        showTrash: Bool = false,
         allowed: [String]? = nil
     ) -> ResolvedDockConfiguration {
         ResolvedDockConfiguration(
@@ -35,6 +37,8 @@ enum TestConfiguration {
             autoHideDelay: 0.15,
             activeClickBehavior: .hide,
             pinnedBundleIdentifiers: pinned,
+            pinnedOthers: others,
+            showTrash: showTrash,
             hiddenBundleIdentifiers: hidden,
             allowedBundleIdentifiers: allowed
         )

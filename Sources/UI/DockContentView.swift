@@ -5,8 +5,8 @@ import SwiftUI
 /// Magnified tiles push their neighbours apart, as the system Dock's do, so
 /// two tiles never occupy the same pixels and a click can only ever mean one
 /// thing. Every position here derives from one array of centres, handed to
-/// the layout, the chrome, the separator and the label alike, so none of them
-/// can disagree with each other or with the slot maths that routes clicks.
+/// the layout, the chrome, the separators and the label alike, so none of
+/// them can disagree with each other or with the slot maths that routes clicks.
 struct DockContentView: View {
     let items: [DockItem]
     let fit: DockFit
@@ -14,22 +14,29 @@ struct DockContentView: View {
     var isRevealed: Bool = true
     let actions: DockActions
     var onPointerInside: (Bool) -> Void = { _ in }
+    /// Pops a menu up from a point in this view's coordinates, clear of the
+    /// slab. The panel owns the AppKit side of that.
+    var presentMenu: (NSMenu, CGPoint) -> Void = { _, _ in }
+    /// A tile let go beyond this dock, at a point in this view's coordinates.
+    /// Another display's dock may take it, or it may be thrown away.
+    var onDragOutside: (DockItem, CGPoint) -> DragReleaseOutcome = { _, _ in .cancelled }
 
     /// Pointer position in slot space (the resting slab's own axis), or nil
     /// when the pointer is elsewhere.
-    @State private var pointerSlotPosition: CGFloat?
+    @State var pointerSlotPosition: CGFloat?
     @State private var isDropTarget = false
     /// Apps clicked while not running. They bounce until they are.
-    @State private var launching: Set<String> = []
+    @State var launching: Set<String> = []
+    @State var session: DockDragSession?
+    @State var poof: CGPoint?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var visibleItems: [DockItem] { Array(items.prefix(fit.visibleItemCount)) }
-    private var isVertical: Bool { configuration.edge.isVertical }
-    private var spacing: CGFloat { configuration.itemSpacing }
-    private var iconSize: CGFloat { fit.iconSize }
-    private var slabThickness: CGFloat { DockMetrics.slabThickness(iconSize: iconSize, spacing: spacing) }
-    private var panelThickness: CGFloat { isVertical ? fit.panelSize.width : fit.panelSize.height }
+    var visibleItems: [DockItem] { Array(items.prefix(fit.visibleItemCount)) }
+    var geometry: DockGeometry {
+        DockGeometry(fit: fit, edge: configuration.edge, spacing: configuration.itemSpacing)
+    }
+    var dragging: DockDragSession? { session?.isDragging == true ? session : nil }
 
     var body: some View {
         Group {
@@ -40,11 +47,8 @@ struct DockContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: anchorAlignment)
-        .dropDestination(for: URL.self) { urls, _ in
-            let identifiers = DockCommands.bundleIdentifiers(forDroppedURLs: urls)
-            guard !identifiers.isEmpty else { return false }
-            actions.pin(identifiers)
-            return true
+        .dropDestination(for: URL.self) { urls, location in
+            handleDrop(of: urls, at: location)
         } isTargeted: { isDropTarget = $0 }
     }
 
@@ -68,35 +72,46 @@ struct DockContentView: View {
     }
 
     private var dock: some View {
-        let hovered = hoveredIndex
+        let geometry = geometry
+        let hovered = dragging == nil ? hoveredIndex : nil
+        // Magnification rests while a tile is being dragged, so the slots it
+        // can land in hold still.
         let scales = DockMetrics.scales(
-            pointerAxisPosition: pointerSlotPosition,
+            pointerAxisPosition: dragging == nil ? pointerSlotPosition : nil,
             tileCount: fit.drawnTileCount,
-            iconSize: iconSize,
-            spacing: spacing,
+            iconSize: geometry.iconSize,
+            spacing: geometry.spacing,
             configuration: configuration
         )
         let centres = DockMetrics.spreadCentres(
             scales: scales,
             anchor: hovered,
-            iconSize: iconSize,
-            spacing: spacing,
+            iconSize: geometry.iconSize,
+            spacing: geometry.spacing,
             restOrigin: fit.lengthHeadroom
         )
+        let hole: Int? = dragging.map { landing(for: $0).slot }
 
         return ZStack(alignment: .topLeading) {
-            chrome(liveSlab(centres: centres, scales: scales))
-            separator(centres: centres, scales: scales)
+            chrome(geometry.liveSlab(centres: centres, scales: scales))
+            if dragging == nil {
+                SectionSeparators(items: visibleItems, centres: centres, scales: scales, geometry: geometry)
+            }
             SpreadLayout(
                 edge: configuration.edge,
-                iconSize: iconSize,
-                spacing: spacing,
+                iconSize: geometry.iconSize,
+                spacing: geometry.spacing,
                 centres: centres,
-                scales: scales
+                scales: scales,
+                skippedSlot: hole
             ) {
                 tileViews(scales: scales)
             }
-            label(hovered: hovered, centres: centres, scales: scales)
+            liftedTile
+            hoverLabel(hovered: hovered, centres: centres, scales: scales)
+            if let poof {
+                PoofBurst().position(poof)
+            }
         }
         .frame(width: fit.panelSize.width, height: fit.panelSize.height)
         .contentShape(.rect)
@@ -104,19 +119,21 @@ struct DockContentView: View {
             reduceMotion ? nil : .interactiveSpring(response: 0.14, dampingFraction: 0.86),
             value: pointerSlotPosition
         )
+        .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.8), value: hole)
         .onContinuousHover(coordinateSpace: .local) { phase in
             switch phase {
             case .active(let location):
-                pointerSlotPosition = axis(of: location) - fit.lengthHeadroom
+                pointerSlotPosition = geometry.slotPosition(of: location)
                 onPointerInside(true)
             case .ended:
+                // Leaving the window mid-drag must not collapse it: the
+                // release still has to land somewhere.
+                guard dragging == nil else { return }
                 pointerSlotPosition = nil
                 onPointerInside(false)
             }
         }
-        .onTapGesture(coordinateSpace: .local) { location in
-            handleTap(at: location)
-        }
+        .gesture(pressGesture)
         .onChange(of: items) { _, current in
             launching.subtract(current.filter(\.isRunning).map(\.id))
         }
@@ -125,23 +142,50 @@ struct DockContentView: View {
     private var hoveredIndex: Int? {
         pointerSlotPosition.flatMap {
             DockMetrics.tileIndex(
-                atAxisPosition: $0, tileCount: fit.drawnTileCount, iconSize: iconSize, spacing: spacing
+                atAxisPosition: $0, tileCount: fit.drawnTileCount, iconSize: fit.iconSize, spacing: geometry.spacing
             )
         }
     }
 
     // MARK: Pieces
 
+    /// The tile riding under the pointer mid-drag.
+    @ViewBuilder
+    private var liftedTile: some View {
+        if let dragging {
+            DockItemView(
+                item: dragging.item,
+                size: fit.iconSize * 1.08,
+                edge: configuration.edge,
+                indicatorStyle: .none,
+                isLaunching: false,
+                isLifted: true
+            )
+            .position(dragging.location)
+            .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private func hoverLabel(hovered: Int?, centres: [CGFloat], scales: [CGFloat]) -> some View {
+        if let index = hovered, index < visibleItems.count, index < centres.count, index < scales.count,
+           !visibleItems[index].name.isEmpty {
+            HoverLabel(text: visibleItems[index].name, centre: centres[index], scale: scales[index], geometry: geometry)
+        }
+    }
+
     private func chrome(_ range: ClosedRange<CGFloat>) -> some View {
+        let geometry = geometry
         let length = range.upperBound - range.lowerBound
+        let thickness = geometry.slabThickness
         return DockChrome(
             style: configuration.chromeStyle,
-            cornerRadius: DockMetrics.cornerRadius(iconSize: iconSize, configuration: configuration),
+            cornerRadius: DockMetrics.cornerRadius(iconSize: geometry.iconSize, configuration: configuration),
             tint: configuration.tint
         )
-        .frame(width: isVertical ? slabThickness : length, height: isVertical ? length : slabThickness)
+        .frame(width: geometry.isVertical ? thickness : length, height: geometry.isVertical ? length : thickness)
         .overlay { dropHighlight }
-        .position(point(axis: (range.lowerBound + range.upperBound) / 2, depth: slabThickness / 2))
+        .position(geometry.point(axis: (range.lowerBound + range.upperBound) / 2, depth: thickness / 2))
     }
 
     /// Dropping an app onto a dock pins it. Without a target highlight the drag
@@ -150,145 +194,31 @@ struct DockContentView: View {
     private var dropHighlight: some View {
         if isDropTarget {
             RoundedRectangle(
-                cornerRadius: DockMetrics.cornerRadius(iconSize: iconSize, configuration: configuration),
+                cornerRadius: DockMetrics.cornerRadius(iconSize: fit.iconSize, configuration: configuration),
                 style: .continuous
             )
             .strokeBorder(.tint, lineWidth: 2)
         }
     }
 
-    /// The hairline between pinned tiles and merely-running ones, placed in the
-    /// gap wherever the gap currently is.
-    @ViewBuilder
-    private func separator(centres: [CGFloat], scales: [CGFloat]) -> some View {
-        if let boundary = visibleItems.firstIndex(where: { !$0.isPinned }),
-           boundary > 0, boundary < centres.count, boundary < scales.count {
-            let before = centres[boundary - 1] + iconSize * scales[boundary - 1] / 2
-            let after = centres[boundary] - iconSize * scales[boundary] / 2
-            let length = iconSize * 0.8
-
-            Rectangle()
-                .fill(.white.opacity(0.18))
-                .frame(width: isVertical ? length : 1, height: isVertical ? 1 : length)
-                .position(point(axis: (before + after) / 2, depth: slabThickness / 2))
-                .allowsHitTesting(false)
-        }
-    }
-
+    /// Mid-drag the dragged tile leaves the row (it rides under the pointer
+    /// instead) and the others are drawn at rest size around the hole.
     @ViewBuilder
     private func tileViews(scales: [CGFloat]) -> some View {
-        ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
+        let shown = dragging.map { DockDrag.others(than: $0.item, in: visibleItems) } ?? visibleItems
+        ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
             DockItemView(
                 item: item,
-                size: iconSize * (index < scales.count ? scales[index] : 1),
+                size: fit.iconSize * (dragging == nil && index < scales.count ? scales[index] : 1),
                 edge: configuration.edge,
                 indicatorStyle: configuration.indicatorStyle,
                 isLaunching: launching.contains(item.id) && !item.isRunning,
-                actions: actions
+                isPressed: dragging == nil && session?.index == index
             )
         }
 
         if fit.overflowCount > 0 {
-            overflowTile(size: iconSize * (scales.last ?? 1))
-        }
-    }
-
-    /// Shown instead of the last tile when the display is too short to hold
-    /// every item, so nothing is dropped without the user being told.
-    private func overflowTile(size: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-            .fill(.secondary.opacity(0.22))
-            .frame(width: size, height: size)
-            .overlay {
-                Text("+\(fit.overflowCount)")
-                    .font(.system(size: size * 0.32, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .minimumScaleFactor(0.5)
-            }
-            .help("\(fit.overflowCount) more apps do not fit on this display")
-            .accessibilityLabel("\(fit.overflowCount) more apps")
-    }
-
-    /// The name rides clear of the icon at whatever size the icon currently is,
-    /// the way the system Dock's does.
-    @ViewBuilder
-    private func label(hovered: Int?, centres: [CGFloat], scales: [CGFloat]) -> some View {
-        if let index = hovered, index < visibleItems.count, index < centres.count, index < scales.count {
-            let iconReach = slabThickness - spacing + iconSize * scales[index]
-            let depth = iconReach + (isVertical ? 8 + DockMetrics.labelMaximumWidth / 2 : 14)
-
-            TileLabel(text: visibleItems[index].name)
-                .frame(width: isVertical ? DockMetrics.labelMaximumWidth : nil, alignment: labelAlignment)
-                .position(point(axis: centres[index], depth: depth))
-                .allowsHitTesting(false)
-                .transition(.opacity)
-        }
-    }
-
-    private var labelAlignment: Alignment {
-        switch configuration.edge {
-        case .bottom: .center
-        case .left: .leading
-        case .right: .trailing
-        }
-    }
-
-    // MARK: Geometry
-
-    private func axis(of point: CGPoint) -> CGFloat {
-        isVertical ? point.y : point.x
-    }
-
-    /// Panel coordinates for a point given along the dock's axis and by its
-    /// distance in from the screen edge.
-    private func point(axis: CGFloat, depth: CGFloat) -> CGPoint {
-        switch configuration.edge {
-        case .bottom: CGPoint(x: axis, y: panelThickness - depth)
-        case .left: CGPoint(x: depth, y: axis)
-        case .right: CGPoint(x: panelThickness - depth, y: axis)
-        }
-    }
-
-    /// Where the glass currently starts and ends along the axis, following the
-    /// tiles as they spread.
-    private func liveSlab(centres: [CGFloat], scales: [CGFloat]) -> ClosedRange<CGFloat> {
-        guard let first = centres.first, let last = centres.last,
-              let firstScale = scales.first, let lastScale = scales.last else {
-            let restLength = isVertical ? fit.slabSize.height : fit.slabSize.width
-            return fit.lengthHeadroom...(fit.lengthHeadroom + restLength)
-        }
-        let start = first - iconSize * firstScale / 2 - spacing
-        let end = last + iconSize * lastScale / 2 + spacing
-        return min(start, end)...max(start, end)
-    }
-
-    // MARK: Clicks
-
-    /// Resolves a tap to a slot and acts on it. Modifier keys follow the
-    /// system Dock: Command reveals the app in Finder, Option activates it and
-    /// hides everything else.
-    private func handleTap(at location: CGPoint) {
-        let slot = axis(of: location) - fit.lengthHeadroom
-        guard let index = DockMetrics.tileIndex(
-            atAxisPosition: slot, tileCount: fit.drawnTileCount, iconSize: iconSize, spacing: spacing
-        ), index < visibleItems.count else { return }
-
-        let item = visibleItems[index]
-        let flags = NSEvent.modifierFlags
-        Log.panel.debug(
-            "tap slot=\(slot, privacy: .public) index=\(index, privacy: .public) app=\(item.id, privacy: .public)"
-        )
-
-        if flags.contains(.command) {
-            actions.reveal(item)
-            return
-        }
-        if !item.isRunning {
-            launching.insert(item.id)
-        }
-        actions.activate(item)
-        if flags.contains(.option) {
-            actions.hideOthers(item)
+            OverflowTile(count: fit.overflowCount, size: fit.iconSize * (scales.last ?? 1))
         }
     }
 }

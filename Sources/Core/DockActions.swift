@@ -13,12 +13,17 @@ struct DockActions {
     var reveal: (DockItem) -> Void
     var hide: (DockItem) -> Void
     var quit: (DockItem) -> Void
-    var pin: (_ bundleIdentifiers: [String]) -> Void
-    /// Drops the first identifier into the second's position, pinning it if it
-    /// was only running.
-    var move: (_ identifier: String, _ onto: String) -> Void
+    /// Files dropped on the dock: apps get pinned, folders and documents join
+    /// the section after the apps.
+    var drop: (_ urls: [URL]) -> Void
+    /// Puts the app in front of the given tile in the pin list, or at the end
+    /// of it for nil, pinning it if it was only running.
+    var move: (_ identifier: String, _ before: DockItem?) -> Void
     /// Hide every other app, the system Dock's Option-click.
     var hideOthers: (DockItem) -> Void
+    var emptyTrash: () -> Void
+    /// Files dropped on the Trash tile.
+    var trash: (_ urls: [URL]) -> Void
 
     static let inert = DockActions(
         activate: { _ in },
@@ -26,9 +31,11 @@ struct DockActions {
         reveal: { _ in },
         hide: { _ in },
         quit: { _ in },
-        pin: { _ in },
+        drop: { _ in },
         move: { _, _ in },
-        hideOthers: { _ in }
+        hideOthers: { _ in },
+        emptyTrash: {},
+        trash: { _ in }
     )
 }
 
@@ -36,12 +43,33 @@ struct DockActions {
 /// NSWorkspace rather than to macdock's own state.
 @MainActor
 enum DockCommands {
-    static func reveal(_ item: DockItem) {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.id) else {
-            Log.workspace.notice("Cannot reveal an application that is not installed")
+    /// What a click means for a tile that is not an app.
+    static func open(_ item: DockItem) {
+        switch item.kind {
+        case .file(let url):
+            NSWorkspace.shared.open(url)
+        case .trash:
+            Trash.open()
+        case .app, .spacer:
             return
         }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    static func reveal(_ item: DockItem) {
+        switch item.kind {
+        case .app(let identifier):
+            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
+                Log.workspace.notice("Cannot reveal an application that is not installed")
+                return
+            }
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        case .file(let url):
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        case .trash:
+            Trash.open()
+        case .spacer:
+            return
+        }
     }
 
     static func hide(_ item: DockItem) {
@@ -54,7 +82,7 @@ enum DockCommands {
         let own = Bundle.main.bundleIdentifier
         for application in NSWorkspace.shared.runningApplications
         where application.activationPolicy == .regular
-            && application.bundleIdentifier != item.id
+            && application.bundleIdentifier != item.bundleIdentifier
             && application.bundleIdentifier != own {
             application.hide()
         }
@@ -66,17 +94,8 @@ enum DockCommands {
         runningApplication(for: item)?.terminate()
     }
 
-    /// Bundle identifiers for application URLs, used when apps are dropped onto
-    /// a dock. Anything that is not a readable bundle is skipped silently: a
-    /// stray drag is not worth an alert.
-    static func bundleIdentifiers(forDroppedURLs urls: [URL]) -> [String] {
-        urls.compactMap { url in
-            guard url.pathExtension == "app" else { return nil }
-            return Bundle(url: url)?.bundleIdentifier
-        }
-    }
-
     private static func runningApplication(for item: DockItem) -> NSRunningApplication? {
-        NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == item.id }
+        guard let identifier = item.bundleIdentifier else { return nil }
+        return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == identifier }
     }
 }

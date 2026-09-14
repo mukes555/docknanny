@@ -8,13 +8,31 @@ import Foundation
 /// com.apple.dock domain through cfprefsd whenever it changes, so reading that
 /// domain is enough to follow rearrangements, with no private API and no
 /// permission. Polling is deliberate: the Dock replaces its plist wholesale,
-/// which defeats a file watcher, and a two-second read of one preference is
-/// free.
+/// which defeats a file watcher, and a two-second read of a few preferences is
+/// free. The Trash's state rides along because it is polled on the same clock.
 @MainActor
 @Observable
 final class SystemDockMonitor {
-    private(set) var pinnedBundleIdentifiers: [String] = []
-    private(set) var tileSize: Double?
+    struct Snapshot: Equatable, Sendable {
+        var pins: [String] = []
+        var others: [String] = []
+        /// nil when "Show recent applications in Dock" is off.
+        var recents: [String]?
+        var tileSize: Double?
+        /// nil when magnification is off.
+        var magnifiedTileSize: Double?
+        var autoHides = false
+        var edge: DockEdge?
+        var isTrashFull = false
+    }
+
+    private(set) var snapshot = Snapshot()
+
+    var pins: [String] { snapshot.pins }
+    var others: [String] { snapshot.others }
+    var recents: [String]? { snapshot.recents }
+    var tileSize: Double? { snapshot.tileSize }
+    var isTrashFull: Bool { snapshot.isTrashFull }
 
     private var pollTask: Task<Void, Never>?
 
@@ -30,49 +48,40 @@ final class SystemDockMonitor {
     }
 
     func refresh() {
-        let latestPins = Self.readPinned()
-        if latestPins != pinnedBundleIdentifiers {
-            pinnedBundleIdentifiers = latestPins
-        }
-        let latestSize = Self.readTileSize()
-        if latestSize != tileSize {
-            tileSize = latestSize
-        }
+        let latest = Self.read()
+        guard latest != snapshot else { return }
+        snapshot = latest
     }
 
     /// A String, not a CFString: only Sendable statics may be nonisolated
-    /// under Swift 6, and the readers run off the main actor.
+    /// under Swift 6, and the reader runs off the main actor.
     nonisolated private static let domain = "com.apple.dock"
 
-    nonisolated static func readPinned() -> [String] {
+    nonisolated static func read() -> Snapshot {
         CFPreferencesAppSynchronize(domain as CFString)
-        let value = CFPreferencesCopyAppValue("persistent-apps" as CFString, domain as CFString)
-        guard let raw = value as? [[String: Any]] else { return [] }
-        return bundleIdentifiers(fromPersistentApps: raw)
+
+        // The Dock's own default for recents is on; the key only exists once
+        // someone has touched the checkbox.
+        let showsRecents = (value("show-recents") as? NSNumber)?.boolValue ?? true
+        let magnifies = (value("magnification") as? NSNumber)?.boolValue ?? false
+
+        return Snapshot(
+            pins: SystemDockTiles.pins(fromPersistentApps: tiles("persistent-apps")),
+            others: SystemDockTiles.others(fromPersistentOthers: tiles("persistent-others")),
+            recents: showsRecents ? SystemDockTiles.bundleIdentifiers(fromRecentApps: tiles("recent-apps")) : nil,
+            tileSize: (value("tilesize") as? NSNumber)?.doubleValue,
+            magnifiedTileSize: magnifies ? (value("largesize") as? NSNumber)?.doubleValue : nil,
+            autoHides: (value("autohide") as? NSNumber)?.boolValue ?? false,
+            edge: DockEdge(dockOrientation: value("orientation") as? String),
+            isTrashFull: Trash.isFull()
+        )
     }
 
-    nonisolated static func readTileSize() -> Double? {
-        CFPreferencesAppSynchronize(domain as CFString)
-        return (CFPreferencesCopyAppValue("tilesize" as CFString, domain as CFString) as? NSNumber)?.doubleValue
+    nonisolated private static func tiles(_ key: String) -> [[String: Any]] {
+        value(key) as? [[String: Any]] ?? []
     }
 
-    /// The Dock stores each pinned app as a tile-data dictionary. Modern
-    /// entries carry the bundle identifier directly; older ones carry only a
-    /// file URL, which is resolved through the bundle on disk. Anything
-    /// unreadable is skipped rather than failing the whole list.
-    nonisolated static func bundleIdentifiers(fromPersistentApps entries: [[String: Any]]) -> [String] {
-        var seen = Set<String>()
-        return entries
-            .compactMap { entry -> String? in
-                guard let tile = entry["tile-data"] as? [String: Any] else { return nil }
-                if let identifier = tile["bundle-identifier"] as? String, !identifier.isEmpty {
-                    return identifier
-                }
-                guard let file = tile["file-data"] as? [String: Any],
-                      let urlString = file["_CFURLString"] as? String,
-                      let url = URL(string: urlString) else { return nil }
-                return Bundle(url: url)?.bundleIdentifier
-            }
-            .filter { seen.insert($0).inserted }
+    nonisolated private static func value(_ key: String) -> Any? {
+        CFPreferencesCopyAppValue(key as CFString, domain as CFString)
     }
 }

@@ -6,6 +6,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case behavior
     case displays
     case apps
+    case presets
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .behavior: "Behavior"
         case .displays: "Displays"
         case .apps: "Apps"
+        case .presets: "Presets"
         }
     }
 
@@ -26,6 +28,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .behavior: "switch.2"
         case .displays: "display.2"
         case .apps: "square.grid.2x2.fill"
+        case .presets: "wand.and.stars"
         }
     }
 
@@ -38,6 +41,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .behavior: Color(hex: 0xE2703A)
         case .displays: Color(hex: 0x2FB8A8)
         case .apps: Color(hex: 0x8BC53F)
+        case .presets: Color(hex: 0xE0559A)
         }
     }
 }
@@ -146,6 +150,7 @@ struct SettingsRootView: View {
         case .behavior: BehaviorSettingsView(store: store)
         case .displays: DisplaysSettingsView(store: store, displays: displays)
         case .apps: AppsSettingsView(store: store)
+        case .presets: PresetsSettingsView(store: store)
         }
     }
 }

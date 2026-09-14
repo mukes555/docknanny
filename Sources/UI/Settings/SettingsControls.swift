@@ -8,6 +8,7 @@ protocol SettingsOption: CaseIterable, Hashable, Identifiable {
 extension DockEdge: SettingsOption { var id: String { rawValue } }
 extension DockAlignment: SettingsOption { var id: String { rawValue } }
 extension ChromeStyle: SettingsOption { var id: String { rawValue } }
+extension HotkeyModifiers: SettingsOption { var id: String { rawValue } }
 extension IndicatorStyle: SettingsOption { var id: String { rawValue } }
 extension ActiveClickBehavior: SettingsOption { var id: String { rawValue } }
 

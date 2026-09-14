@@ -22,7 +22,7 @@ struct SettingsDecodingTests {
           "margin": 8,
           "perDisplay": {},
           "pinnedBundleIdentifiers": ["com.apple.finder", "com.example.thing"],
-          "showOnPrimaryDisplay": false,
+          "skipSystemDockDisplay": false,
           "showRunningApps": true
         }
         """
@@ -31,7 +31,7 @@ struct SettingsDecodingTests {
 
         // Values that were present survive.
         #expect(settings.iconSize == 64)
-        #expect(settings.showOnPrimaryDisplay == false)
+        #expect(settings.skipSystemDockDisplay == false)
         #expect(settings.pinnedBundleIdentifiers == ["com.apple.finder", "com.example.thing"])
 
         // Values that did not exist yet take their defaults.

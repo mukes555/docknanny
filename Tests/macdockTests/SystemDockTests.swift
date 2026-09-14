@@ -16,7 +16,7 @@ struct SystemDockTests {
             tile(["bundle-identifier": "com.apple.systempreferences"]),
             tile(["bundle-identifier": "com.google.Chrome"])
         ]
-        #expect(SystemDockMonitor.bundleIdentifiers(fromPersistentApps: entries)
+        #expect(SystemDockTiles.pins(fromPersistentApps: entries)
             == ["com.googlecode.iterm2", "com.apple.systempreferences", "com.google.Chrome"])
     }
 
@@ -27,18 +27,54 @@ struct SystemDockTests {
         let entries = [
             tile(["file-data": ["_CFURLString": "file:///System/Applications/Calculator.app/", "_CFURLStringType": 15]])
         ]
-        #expect(SystemDockMonitor.bundleIdentifiers(fromPersistentApps: entries) == ["com.apple.calculator"])
+        #expect(SystemDockTiles.pins(fromPersistentApps: entries) == ["com.apple.calculator"])
     }
 
     @Test("Malformed entries are skipped, not fatal")
     func malformedEntriesAreSkipped() {
         let entries: [[String: Any]] = [
-            ["tile-type": "spacer-tile"],
             tile(["bundle-identifier": ""]),
             tile(["file-data": ["_CFURLString": "file:///nonexistent/Nothing.app/"]]),
+            ["tile-type": "file-tile"],
             tile(["bundle-identifier": "com.apple.finder"])
         ]
-        #expect(SystemDockMonitor.bundleIdentifiers(fromPersistentApps: entries) == ["com.apple.finder"])
+        #expect(SystemDockTiles.pins(fromPersistentApps: entries) == ["com.apple.finder"])
+    }
+
+    @Test("A spacer becomes the spacer sentinel, in place")
+    func spacersKeepTheirPlace() {
+        let entries: [[String: Any]] = [
+            tile(["bundle-identifier": "a"]),
+            ["tile-type": "spacer-tile"],
+            ["tile-type": "small-spacer-tile"],
+            tile(["bundle-identifier": "b"])
+        ]
+        #expect(SystemDockTiles.pins(fromPersistentApps: entries)
+            == ["a", DockItem.spacerIdentifier, DockItem.spacerIdentifier, "b"])
+    }
+
+    @Test("Folders in the others section are read as file URLs, whether stored as URL or path")
+    func othersAreFileURLs() {
+        let entries: [[String: Any]] = [
+            ["tile-type": "directory-tile", "tile-data": [
+                "file-data": ["_CFURLString": "file:///Users/nobody/Downloads/", "_CFURLStringType": 15]
+            ]],
+            ["tile-type": "file-tile", "tile-data": [
+                "file-data": ["_CFURLString": "/Users/nobody/Notes.txt", "_CFURLStringType": 0]
+            ]],
+            ["tile-type": "url-tile", "tile-data": ["url": ["_CFURLString": "https://example.com"]]],
+            ["tile-type": "spacer-tile"]
+        ]
+        #expect(SystemDockTiles.others(fromPersistentOthers: entries)
+            == ["file:///Users/nobody/Downloads/", "file:///Users/nobody/Notes.txt", DockItem.spacerIdentifier])
+    }
+
+    @Test("The Trash is on by default, and a file without the key keeps it")
+    func trashIsTheDefault() throws {
+        #expect(Settings().showTrash)
+        let decoded = try JSONDecoder().decode(Settings.self, from: Data("{}".utf8))
+        #expect(decoded.showTrash)
+        #expect(decoded.pinnedOthers.isEmpty)
     }
 
     @Test("A duplicated app appears once")
@@ -47,7 +83,7 @@ struct SystemDockTests {
             tile(["bundle-identifier": "com.apple.Safari"]),
             tile(["bundle-identifier": "com.apple.Safari"])
         ]
-        #expect(SystemDockMonitor.bundleIdentifiers(fromPersistentApps: entries) == ["com.apple.Safari"])
+        #expect(SystemDockTiles.pins(fromPersistentApps: entries) == ["com.apple.Safari"])
     }
 
     @Test("Mirroring is on by default, and a file without the key gets it")
