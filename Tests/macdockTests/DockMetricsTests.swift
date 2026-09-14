@@ -99,14 +99,21 @@ struct DockMetricsTests {
         #expect(fit.panelSize.height > fit.slabSize.height)
     }
 
-    @Test("Headroom follows whichever scale is in play, and vanishes when neither is")
-    func headroomTracksTheActiveScale() {
-        let magnified = TestConfiguration.make(magnified: true, magnificationScale: 2, hoverScale: 1.1)
-        let plain = TestConfiguration.make(magnified: false, magnificationScale: 2, hoverScale: 1.1)
-        let still = TestConfiguration.make(magnified: false, hoverScale: 1)
+    /// One magnitude serves both modes, so the room reserved for growth must
+    /// not change when magnification is toggled: only how many tiles reach it
+    /// does. A panel that resized on that toggle would jump under the pointer.
+    @Test("Headroom is the same whether magnification is on or off")
+    func headroomIsModeIndependent() {
+        let magnified = TestConfiguration.make(magnified: true, magnificationScale: 2)
+        let plain = TestConfiguration.make(magnified: false, magnificationScale: 2)
 
         #expect(DockMetrics.headroom(iconSize: 48, configuration: magnified) == 48)
-        #expect(DockMetrics.headroom(iconSize: 48, configuration: plain) > 0)
+        #expect(DockMetrics.headroom(iconSize: 48, configuration: plain) == 48)
+    }
+
+    @Test("A dock that never scales needs no headroom")
+    func noScalingMeansNoHeadroom() {
+        let still = TestConfiguration.make(magnificationScale: 1)
         #expect(DockMetrics.headroom(iconSize: 48, configuration: still) == 0)
     }
 

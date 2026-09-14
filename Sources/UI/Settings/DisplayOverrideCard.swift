@@ -15,19 +15,19 @@ struct DisplayOverrideCard: View {
                     set: { override.isEnabled = $0 }
                 )
             )
-            Divider()
+            SettingsDivider()
             SettingsOptionalPicker(
                 title: "Edge",
                 selection: $override.edge,
                 inheritedName: globalSettings.edge.localizedName
             )
-            Divider()
+            SettingsDivider()
             SettingsOptionalPicker(
                 title: "Alignment",
                 selection: $override.alignment,
                 inheritedName: globalSettings.alignment.localizedName
             )
-            Divider()
+            SettingsDivider()
             SettingsSlider(
                 title: "Icon size",
                 subtitle: override.iconSize == nil ? "Following the global size." : nil,
@@ -37,9 +37,26 @@ struct DisplayOverrideCard: View {
                 ),
                 range: Settings.Limits.iconSize
             )
-            Divider()
+            SettingsDivider()
+            SettingsToggle(
+                title: "Hide automatically",
+                isOn: Binding(
+                    get: { override.autoHide ?? globalSettings.autoHide },
+                    set: { override.autoHide = $0 }
+                )
+            )
+            SettingsDivider()
+            TintRow(
+                title: "Tint",
+                subtitle: "Tell this screen's dock apart from the others.",
+                selection: Binding(
+                    get: { override.tint ?? globalSettings.tint },
+                    set: { override.tint = $0 }
+                )
+            )
+            SettingsDivider()
             appFilterRow
-            Divider()
+            SettingsDivider()
             resetRow
         }
     }

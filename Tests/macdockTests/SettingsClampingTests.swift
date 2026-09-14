@@ -37,13 +37,11 @@ struct SettingsClampingTests {
         var settings = Settings()
         settings.iconSize = .nan
         settings.margin = .infinity
-        settings.chromeOpacity = -.infinity
 
         let resolved = settings.resolved(for: display)
 
         #expect(resolved.iconSize.isFinite)
         #expect(resolved.margin.isFinite)
-        #expect(resolved.chromeOpacity.isFinite)
     }
 
     @Test("A per-display icon size override is clamped too")

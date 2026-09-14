@@ -7,6 +7,12 @@ import AppKit
 /// a dock icon leave focus where it was, and `canJoinAllSpaces` is what keeps
 /// the dock present when the user switches Space.
 final class DockPanel: NSPanel {
+    /// Asked for a menu when the panel is right-clicked, with the click's
+    /// location in window space. Handled here rather than in a view so it
+    /// never depends on which magnified tile happens to be on top in the view
+    /// hierarchy.
+    var menuForRightClick: ((NSPoint) -> NSMenu?)?
+
     init(contentRect: CGRect) {
         super.init(
             contentRect: contentRect,
@@ -21,7 +27,10 @@ final class DockPanel: NSPanel {
         hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // The slab draws its own shadow, which follows its rounded outline. A
+        // window shadow would follow the rectangular frame instead, boxing the
+        // transparent headroom above the dock.
+        hasShadow = false
         isMovable = false
         isMovableByWindowBackground = false
 
@@ -31,6 +40,14 @@ final class DockPanel: NSPanel {
         // unplugged.
         isReleasedWhenClosed = false
         animationBehavior = .utilityWindow
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        guard let menu = menuForRightClick?(event.locationInWindow), let view = contentView else {
+            super.rightMouseDown(with: event)
+            return
+        }
+        NSMenu.popUpContextMenu(menu, with: event, for: view)
     }
 
     /// Becoming key or main is exactly the focus theft this window exists to

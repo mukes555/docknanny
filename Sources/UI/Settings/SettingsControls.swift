@@ -11,35 +11,47 @@ extension ChromeStyle: SettingsOption { var id: String { rawValue } }
 extension IndicatorStyle: SettingsOption { var id: String { rawValue } }
 extension ActiveClickBehavior: SettingsOption { var id: String { rawValue } }
 
-/// One labelled row: title and optional explanation on the left, control on
-/// the right.
-///
-/// Every pane is built from these, which is what keeps a pane a short list of
-/// declarations instead of a thousand lines of bespoke layout.
+/// One row: label and optional explanation on the left, control on the right,
+/// at a fixed height so a column of them reads as a ruled list rather than a
+/// stack of differently sized cards.
 struct SettingRow<Control: View>: View {
     let title: String
     var subtitle: String?
     @ViewBuilder let control: () -> Control
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .font(.system(size: 12))
+                    .settingsText(Theme.Text.row, Theme.Ink.primary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.secondary)
+                        .settingsText(Theme.Text.caption, Theme.Ink.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .accessibilityElement(children: .combine)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 10)
 
             control()
-                .frame(minWidth: 150, maxWidth: 190, alignment: .trailing)
+                .frame(width: Theme.Metric.controlWidth, alignment: .trailing)
         }
-        .padding(.vertical, 5)
+        .padding(.horizontal, Theme.Metric.rowPadding)
+        .frame(minHeight: subtitle == nil ? Theme.Metric.rowHeight : Theme.Metric.rowHeight + 12)
+    }
+}
+
+/// The rule between rows. Inset from the left so it reads as a list separator
+/// rather than a box edge.
+struct SettingsDivider: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Rectangle()
+            .fill(Theme.Line.hairline(for: contrast))
+            .frame(height: 1)
+            .padding(.leading, Theme.Metric.rowPadding)
     }
 }
 
@@ -54,7 +66,10 @@ struct SettingsToggle: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
+                .tint(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .trailing)
+                .accessibilityLabel(title)
+                .accessibilityHint(subtitle ?? "")
         }
     }
 }
@@ -73,6 +88,32 @@ struct SettingsPicker<Option: SettingsOption>: View where Option.AllCases: Rando
             }
             .labelsHidden()
             .controlSize(.small)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection.localizedName)
+        }
+    }
+}
+
+struct SettingsOptionalPicker<Option: SettingsOption>: View
+where Option.AllCases: RandomAccessCollection {
+    let title: String
+    var subtitle: String?
+    @Binding var selection: Option?
+    let inheritedName: String
+
+    var body: some View {
+        SettingRow(title: title, subtitle: subtitle) {
+            Picker("", selection: $selection) {
+                Text("Global (\(inheritedName))").tag(Option?.none)
+                Divider()
+                ForEach(Option.allCases) { option in
+                    Text(option.localizedName).tag(Option?.some(option))
+                }
+            }
+            .labelsHidden()
+            .controlSize(.small)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection?.localizedName ?? "global")
         }
     }
 }
@@ -87,15 +128,34 @@ struct SettingsSlider: View {
 
     var body: some View {
         SettingRow(title: title, subtitle: subtitle) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Slider(value: $value, in: range, step: step)
-                    .controlSize(.small)
-                Text(format(value))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 38, alignment: .trailing)
+                    .controlSize(.mini)
+                    .tint(Theme.accent)
+                    .accessibilityLabel(title)
+                    .accessibilityValue(format(value))
+                ValueChip(text: format(value))
             }
         }
+    }
+}
+
+/// The numeric readout beside a slider, given the inset treatment that makes it
+/// read as a value rather than as a label.
+struct ValueChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+            .foregroundStyle(Theme.Ink.secondary)
+            .frame(minWidth: 46)
+            .padding(.vertical, 4)
+            .background(Theme.Surface.groupControl, in: .rect(cornerRadius: 6))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Theme.Line.hairline, lineWidth: 1)
+            }
     }
 }
 
@@ -105,18 +165,18 @@ struct SettingsGroup<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 2)
+        VStack(alignment: .leading, spacing: 12) {
+            // Title Case in primary ink. The uppercase tertiary label this
+            // replaced failed WCAG and, it turns out, is not what Raycast does.
+            Text(title)
+                .settingsText(Theme.Text.section, Theme.Ink.primary)
+                .padding(.leading, 4)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: 0) {
                 content()
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 9))
+            .raisedSurface()
         }
     }
 }
@@ -127,34 +187,89 @@ struct SettingsPane<Content: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: Theme.Metric.gutter) {
                 content()
             }
-            .padding(20)
+            .padding(.horizontal, 30)
+            .padding(.vertical, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollContentBackground(.hidden)
+    }
+}
+
+/// A segmented pill, for choices small enough to show all at once.
+///
+/// A dropdown hides every option but one and costs a click to reveal them. With
+/// three or four choices there is no reason for that: showing them is faster to
+/// read, faster to change, and makes the shape of the decision obvious. Reserved
+/// for short enums; anything longer stays a menu.
+struct SettingsSegmented<Option: SettingsOption>: View where Option.AllCases: RandomAccessCollection {
+    let title: String
+    var subtitle: String?
+    @Binding var selection: Option
+
+    var body: some View {
+        SettingRow(title: title, subtitle: subtitle) {
+            HStack(spacing: 2) {
+                ForEach(Option.allCases) { option in
+                    Segment(
+                        label: option.localizedName,
+                        isSelected: option == selection,
+                        action: { selection = option }
+                    )
+                }
+            }
+            .padding(2)
+            .background(Theme.Surface.groupControl, in: .rect(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Theme.Line.hairline, lineWidth: 1)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(title)
+            .accessibilityValue(selection.localizedName)
         }
     }
 }
 
-/// A picker whose nil case means "inherit the global setting".
-struct SettingsOptionalPicker<Option: SettingsOption>: View
-where Option.AllCases: RandomAccessCollection {
-    let title: String
-    var subtitle: String?
-    @Binding var selection: Option?
-    let inheritedName: String
+private struct Segment: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
-        SettingRow(title: title, subtitle: subtitle) {
-            Picker("", selection: $selection) {
-                Text("Same as global (\(inheritedName))").tag(Option?.none)
-                Divider()
-                ForEach(Option.allCases) { option in
-                    Text(option.localizedName).tag(Option?.some(option))
+        Button(action: action) {
+            Text(label)
+                .settingsText(
+                    .system(size: 12.5, weight: .medium),
+                    isSelected ? Theme.Ink.primary : Theme.Ink.secondary
+                )
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(background)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        if isSelected {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Theme.Surface.selected)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(Theme.Line.highlight, lineWidth: 1)
                 }
-            }
-            .labelsHidden()
-            .controlSize(.small)
+        } else if isHovered {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Theme.Surface.raised)
         }
     }
 }

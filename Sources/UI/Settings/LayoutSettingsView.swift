@@ -5,19 +5,21 @@ struct LayoutSettingsView: View {
 
     var body: some View {
         SettingsPane {
+            DockPreview(settings: store.settings)
+
             SettingsGroup(title: "Placement") {
-                SettingsPicker(
+                EdgeCardPicker(
                     title: "Edge",
                     subtitle: "Which side of each display the dock hugs.",
                     selection: $store.settings.edge
                 )
-                Divider()
-                SettingsPicker(
+                SettingsDivider()
+                SettingsSegmented(
                     title: "Alignment",
                     subtitle: "Where along that edge it sits.",
                     selection: $store.settings.alignment
                 )
-                Divider()
+                SettingsDivider()
                 SettingsSlider(
                     title: "Margin",
                     subtitle: "Gap between the dock and the screen edge.",

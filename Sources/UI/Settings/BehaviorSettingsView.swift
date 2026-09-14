@@ -19,8 +19,25 @@ struct BehaviorSettingsView: View {
                 )
             }
 
+            SettingsGroup(title: "Hiding") {
+                SettingsToggle(
+                    title: "Hide automatically",
+                    subtitle: "The dock retreats to a sliver at the screen edge until you point at it.",
+                    isOn: $store.settings.autoHide
+                )
+                SettingsDivider()
+                SettingsSlider(
+                    title: "Reveal delay",
+                    subtitle: "How long the pointer must rest at the edge.",
+                    value: $store.settings.autoHideDelay,
+                    range: Settings.Limits.revealDelay,
+                    step: 0.05,
+                    format: { String(format: "%.2fs", $0) }
+                )
+            }
+
             SettingsGroup(title: "Clicking") {
-                SettingsPicker(
+                SettingsSegmented(
                     title: "When the app is already active",
                     selection: $store.settings.activeClickBehavior
                 )

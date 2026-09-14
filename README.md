@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/branding/icon-512.png" width="128" alt="macdock" />
+<img src="assets/branding/icon-1024.png" width="128" alt="macdock" />
 
 # macdock
 
@@ -31,9 +31,8 @@ alone.
 - **A dock on every screen**, positioned bottom, left or right, independently
   per display
 - **Per-display app filtering**, so comms live on one screen and tools on another
-- **Live window previews** on hover, via ScreenCaptureKit
-- **Current-Space filtering**, so each dock shows only what is actually on
-  the Space in front of you
+- **Auto-hide**, retreating to a sliver at the screen edge until you point at it
+- **No permissions required.** macdock asks for nothing at all
 - **Native Liquid Glass** on macOS 26, not a CSS imitation
 - **Never steals focus.** Clicking a dock icon does not deactivate the app
   you are working in
@@ -49,9 +48,10 @@ required API is confirmed working on macOS 26.5.1. See
 
 macOS 26 (Tahoe) or later, Apple Silicon.
 
-**Permissions.** macdock asks for Accessibility, which it needs to move and
-raise windows. Screen Recording is optional and only powers window previews;
-decline it and you get a titles-only window list instead.
+**Permissions.** None. Every action macdock performs goes through
+`NSRunningApplication` and `NSWorkspace`, neither of which needs a grant. If a
+future version needs one, it will ask at the moment the feature is used and not
+before.
 
 ## Why it is not on the Mac App Store
 

@@ -14,7 +14,7 @@ final class SettingsStore {
         }
     }
 
-    private let fileURL: URL
+    let fileURL: URL
     private let writeDelay: Duration
     private var saveTask: Task<Void, Never>?
 

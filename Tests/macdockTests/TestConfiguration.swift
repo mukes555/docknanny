@@ -12,9 +12,10 @@ enum TestConfiguration {
         itemSpacing: CGFloat = 6,
         magnified: Bool = false,
         magnificationScale: CGFloat = 1.6,
-        hoverScale: CGFloat = 1.12,
         showRunningApps: Bool = true,
+        autoHide: Bool = false,
         hidden: Set<String> = [],
+        pinned: [String] = [],
         allowed: [String]? = nil
     ) -> ResolvedDockConfiguration {
         ResolvedDockConfiguration(
@@ -25,14 +26,15 @@ enum TestConfiguration {
             iconSize: iconSize,
             itemSpacing: itemSpacing,
             chromeStyle: .glass,
-            chromeOpacity: 1,
-            cornerRadiusScale: 0.28,
             indicatorStyle: .dot,
+            tint: .none,
             isMagnificationEnabled: magnified,
             magnificationScale: magnificationScale,
-            hoverScale: hoverScale,
             showRunningApps: showRunningApps,
+            autoHide: autoHide,
+            autoHideDelay: 0.15,
             activeClickBehavior: .hide,
+            pinnedBundleIdentifiers: pinned,
             hiddenBundleIdentifiers: hidden,
             allowedBundleIdentifiers: allowed
         )

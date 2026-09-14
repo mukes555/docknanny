@@ -8,10 +8,10 @@ import SwiftUI
 @MainActor
 final class OnboardingWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
-    private let permissions: PermissionsService
+    private let onOpenSettings: () -> Void
 
-    init(permissions: PermissionsService) {
-        self.permissions = permissions
+    init(onOpenSettings: @escaping () -> Void) {
+        self.onOpenSettings = onOpenSettings
 
         let hosting = NSHostingController(rootView: AnyView(EmptyView()))
         self.window = NSWindow(contentViewController: hosting)
@@ -20,9 +20,11 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
         hosting.rootView = AnyView(
             OnboardingView(
-                permissions: permissions,
-                onRestart: { AppRestarter.restart() },
-                onContinue: { [weak self] in self?.close() }
+                onOpenSettings: { [weak self] in
+                    self?.close()
+                    onOpenSettings()
+                },
+                onDismiss: { [weak self] in self?.close() }
             )
         )
 
@@ -30,7 +32,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        ActivationPolicy.windowDidOpen()
+        ActivationPolicy.windowDidOpen(window)
         window.center()
         window.makeKeyAndOrderFront(nil)
     }
@@ -40,7 +42,6 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        permissions.stopPolling()
         ActivationPolicy.windowDidClose()
     }
 
@@ -48,7 +49,10 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         window.delegate = self
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
-        window.title = "Set Up macdock"
+        window.title = "Welcome to macdock"
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.appearance = NSAppearance(named: .darkAqua)
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
     }

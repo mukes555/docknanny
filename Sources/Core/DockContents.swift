@@ -78,7 +78,7 @@ enum DockContents {
     ) -> DockItem {
         DockItem(
             id: identifier,
-            name: running?.localizedName ?? Self.displayName(for: identifier),
+            name: running?.localizedName ?? Self.displayName(forBundleIdentifier: identifier),
             icon: running?.icon ?? iconProvider(identifier),
             isRunning: running != nil,
             isPinned: isPinned,
@@ -86,13 +86,20 @@ enum DockContents {
         )
     }
 
+    /// The name a person knows the app by.
+    ///
+    /// Prefers the bundle's own display name, then its bundle name, then the
+    /// filename without its extension. FileManager.displayName was used before
+    /// and returned "Finder.app" whenever Finder is set to show all extensions.
     /// Falls back to the last path component of the bundle id, which reads far
-    /// better than an empty tooltip when an app is pinned but not installed.
-    private static func displayName(for bundleIdentifier: String) -> String {
+    /// better than an empty label when an app is pinned but not installed.
+    static func displayName(forBundleIdentifier bundleIdentifier: String) -> String {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
             return bundleIdentifier.components(separatedBy: ".").last ?? bundleIdentifier
         }
-        return FileManager.default.displayName(atPath: url.path)
+        let info = Bundle(url: url)?.localizedInfoDictionary ?? Bundle(url: url)?.infoDictionary
+        let declared = (info?["CFBundleDisplayName"] ?? info?["CFBundleName"]) as? String
+        return declared ?? url.deletingPathExtension().lastPathComponent
     }
 
     static func icon(forBundleIdentifier identifier: String) -> NSImage? {
