@@ -9,6 +9,16 @@ enum DockEdge: String, Codable, CaseIterable, Sendable {
     case left
     case right
 
+    /// The Dock's own `orientation` preference. Absent means bottom.
+    init?(dockOrientation: String?) {
+        switch dockOrientation {
+        case nil, "bottom": self = .bottom
+        case "left": self = .left
+        case "right": self = .right
+        default: return nil
+        }
+    }
+
     var isVertical: Bool {
         self == .left || self == .right
     }

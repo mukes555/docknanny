@@ -33,6 +33,27 @@ final class SettingsStore {
         write(settings)
     }
 
+    /// The same file that is saved, written wherever asked, so a backup and
+    /// the live file are interchangeable.
+    func export(to url: URL) throws {
+        try Self.encode(settings).write(to: url, options: .atomic)
+    }
+
+    /// Reads with the same tolerance as launch: unknown keys are ignored and
+    /// missing ones take defaults, so a file from an older or newer macdock
+    /// still imports. What was seen on first run stays seen.
+    func importSettings(from url: URL) throws {
+        var imported = try JSONDecoder().decode(Settings.self, from: Data(contentsOf: url))
+        imported.hasSeenWelcome = settings.hasSeenWelcome
+        settings = imported
+    }
+
+    func resetToDefaults() {
+        var defaults = Settings()
+        defaults.hasSeenWelcome = settings.hasSeenWelcome
+        settings = defaults
+    }
+
     private func scheduleSave() {
         saveTask?.cancel()
         saveTask = Task { [weak self, writeDelay, settings] in
@@ -44,16 +65,20 @@ final class SettingsStore {
 
     private func write(_ settings: Settings) {
         do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             try FileManager.default.createDirectory(
                 at: fileURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try encoder.encode(settings).write(to: fileURL, options: .atomic)
+            try Self.encode(settings).write(to: fileURL, options: .atomic)
         } catch {
             Log.settings.error("Could not save settings: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private static func encode(_ settings: Settings) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(settings)
     }
 
     /// A settings file that cannot be read is replaced by defaults rather than

@@ -19,6 +19,10 @@ final class SystemDockMonitor {
         /// nil when "Show recent applications in Dock" is off.
         var recents: [String]?
         var tileSize: Double?
+        /// nil when magnification is off.
+        var magnifiedTileSize: Double?
+        var autoHides = false
+        var edge: DockEdge?
         var isTrashFull = false
     }
 
@@ -59,12 +63,16 @@ final class SystemDockMonitor {
         // The Dock's own default for recents is on; the key only exists once
         // someone has touched the checkbox.
         let showsRecents = (value("show-recents") as? NSNumber)?.boolValue ?? true
+        let magnifies = (value("magnification") as? NSNumber)?.boolValue ?? false
 
         return Snapshot(
             pins: SystemDockTiles.pins(fromPersistentApps: tiles("persistent-apps")),
             others: SystemDockTiles.others(fromPersistentOthers: tiles("persistent-others")),
             recents: showsRecents ? SystemDockTiles.bundleIdentifiers(fromRecentApps: tiles("recent-apps")) : nil,
             tileSize: (value("tilesize") as? NSNumber)?.doubleValue,
+            magnifiedTileSize: magnifies ? (value("largesize") as? NSNumber)?.doubleValue : nil,
+            autoHides: (value("autohide") as? NSNumber)?.boolValue ?? false,
+            edge: DockEdge(dockOrientation: value("orientation") as? String),
             isTrashFull: Trash.isFull()
         )
     }
