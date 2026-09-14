@@ -129,10 +129,27 @@ enum AppWindows {
         }
     }
 
+    /// A window a person works in: not a sheet, palette, popover or the app
+    /// element itself, and not minimized. Some apps report no subrole for
+    /// their main windows, so an absent subrole counts as standard as long
+    /// as the role is a window's.
     static func isStandardWindow(_ window: AXUIElement) -> Bool {
+        guard attribute(kAXRoleAttribute, of: window) as? String == kAXWindowRole else { return false }
         let subrole = attribute(kAXSubroleAttribute, of: window) as? String
         let minimized = attribute(kAXMinimizedAttribute, of: window) as? Bool ?? false
-        return (subrole == nil || subrole == kAXStandardWindowSubrole) && !minimized
+        let standard = subrole == nil || subrole == kAXStandardWindowSubrole || subrole == kAXDialogSubrole
+        return standard && !minimized
+    }
+
+    /// For the log, when a window is rejected: what it said it was.
+    static func describe(_ element: AXUIElement) -> String {
+        let role = attribute(kAXRoleAttribute, of: element) as? String ?? "no role"
+        let subrole = attribute(kAXSubroleAttribute, of: element) as? String ?? "no subrole"
+        let title = attribute(kAXTitleAttribute, of: element) as? String ?? ""
+        let minimized = attribute(kAXMinimizedAttribute, of: element) as? Bool ?? false
+        var position: AnyObject?
+        let positionStatus = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position)
+        return "\(role)/\(subrole) title=\(title.prefix(30)) minimized=\(minimized) position=\(positionStatus.rawValue)"
     }
 
     /// A full-screen window has its own Space and nothing to be clear of.
