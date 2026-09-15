@@ -13,9 +13,13 @@ final class DockCoordinator {
     private let settings: SettingsStore
     private let openSetup: () -> Void
 
+    /// Ticks whenever a dock's claim on its display changes, for the keeper.
+    let layout = DockLayoutClock()
+
     private var controllers: [CGDirectDisplayID: DockPanelController] = [:]
     private let systemDock = SystemDockMonitor()
     private let metadata = AppMetadataCache()
+    private var claims: [Claim] = []
 
     /// Built once and shared by every panel. The closures read current state
     /// when they run rather than closing over a snapshot, so a panel created
@@ -122,6 +126,33 @@ final class DockCoordinator {
         }
 
         closeControllers(notIn: surviving)
+        noteClaims()
+    }
+
+    /// What each dock claims of its display, reduced to what the keeper
+    /// judges windows against.
+    private struct Claim: Equatable {
+        let display: CGDirectDisplayID
+        let edge: DockEdge
+        let autoHide: Bool
+        let thickness: CGFloat
+        let visibleFrame: CGRect
+    }
+
+    private func noteClaims() {
+        let current = controllers.keys.sorted().compactMap { identifier -> Claim? in
+            guard let controller = controllers[identifier] else { return nil }
+            return Claim(
+                display: identifier,
+                edge: controller.configuration.edge,
+                autoHide: controller.configuration.autoHide,
+                thickness: controller.reservedThickness,
+                visibleFrame: controller.display.visibleFrame
+            )
+        }
+        guard current != claims else { return }
+        claims = current
+        layout.tick()
     }
 
     private func buildItems(for configuration: ResolvedDockConfiguration) -> [DockItem] {
@@ -137,7 +168,8 @@ final class DockCoordinator {
             source: source,
             configuration: configuration,
             iconProvider: metadata.icon(for:),
-            nameProvider: metadata.name(for:)
+            nameProvider: metadata.name(for:),
+            fileNameProvider: metadata.name(forFile:)
         )
     }
 
@@ -267,5 +299,19 @@ final class DockCoordinator {
             controllers[identifier]?.close()
             controllers[identifier] = nil
         }
+    }
+}
+
+/// One number that moves whenever a dock is created, closed, moved to
+/// another edge, resized or switched to hiding. The window keeper watches it
+/// instead of every source the coordinator reads, and so always runs after
+/// the docks have been brought up to date.
+@MainActor
+@Observable
+final class DockLayoutClock {
+    private(set) var version = 0
+
+    func tick() {
+        version += 1
     }
 }
