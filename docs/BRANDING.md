@@ -112,13 +112,15 @@ the meantime.
 The `.icns` ladder (16 through 1024, each at 1x and 2x) is produced from a
 single 1024 master by script, never by generating each size separately.
 
-## The placeholder mark
+## Generating the icon
 
-Until the mascot artwork is generated, `tools/make-icon.swift` draws the glasses
-mark from the brand geometry and writes the whole icon ladder:
+`tools/make-icon.swift` draws the icon ladder and the menu bar mark; copy the
+results into the asset catalogue afterwards:
 
-```bash
+```
 swift tools/make-icon.swift assets/branding
+cp assets/branding/macdock.iconset/*.png Resources/Assets.xcassets/AppIcon.appiconset/
+cp assets/branding/menubar*.png Resources/Assets.xcassets/MenuBarIcon.imageset/
 ```
 
 It emits `macdock.iconset/` (the ten rungs macOS expects), a 1024 composite, and
