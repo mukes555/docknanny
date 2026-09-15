@@ -35,7 +35,7 @@ struct OnboardingView: View {
 
     private var header: some View {
         VStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: Brand.appIcon)
                 .resizable()
                 .frame(width: 68, height: 68)
 

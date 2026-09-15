@@ -104,7 +104,7 @@ struct SettingsRootView: View {
 
     private var sidebarHeader: some View {
         HStack(spacing: 11) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: Brand.appIcon)
                 .resizable()
                 .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 1) {

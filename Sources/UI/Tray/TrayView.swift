@@ -40,7 +40,7 @@ struct TrayView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image(nsImage: Brand.appIcon)
                 .resizable()
                 .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 1) {

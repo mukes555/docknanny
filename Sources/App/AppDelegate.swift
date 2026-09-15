@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // lives permanently on screen.
         NSApp.setActivationPolicy(.accessory)
         MainMenu.install()
+        Brand.installAppIcon()
 
         let settings = SettingsStore()
         let displays = DisplayRegistry()
