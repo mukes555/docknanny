@@ -8,7 +8,8 @@ import ApplicationServices
 /// support question about a window that will not nudge is answered by this
 /// in seconds, with DockNanny's own Accessibility grant, where a bug report
 /// would take a week of guessing. Read-only. It has to be launched the way
-/// macOS launches apps (`open -a DockNanny --args --probe-windows=iTerm2`),
+/// macOS launches apps (`open -n -a DockNanny --args --probe-windows=iTerm2`;
+/// `-n` starts a second instance rather than reopening the running one),
 /// because a process started from a shell carries the shell's identity for
 /// permission checks; the report is in the log under the "probe" category.
 @MainActor
@@ -44,6 +45,10 @@ enum WindowProbe {
     /// Leaves the main window at the given width: a way to put a window
     /// under a dock on purpose, to test what the keeper does about it.
     private static func setWidth(_ width: Double, pid: pid_t) {
+        guard width.isFinite, width > 0 else {
+            say("Set width: \(width) is not a width")
+            return
+        }
         let element = AXUIElementCreateApplication(pid)
         guard let window = windows(of: element, attribute: kAXMainWindowAttribute).first,
               let number = PrivateSymbols.windowNumber(of: window),
