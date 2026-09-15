@@ -33,6 +33,10 @@ final class WindowKeeper {
     private var settleGeneration = 0
     private let trustPoll = TaskBox()
     private let sweep = TaskBox()
+    /// Which apps the pending sweep judges: nil for every watched app, empty
+    /// when none is pending. Requests merge, so an app joining while a full
+    /// sweep is pending does not narrow it.
+    private var sweepScope: Set<pid_t>? = []
     /// Reconcile runs on every settings change; the log line is worth
     /// having only when the set of watched apps actually changed.
     private var lastReportedCount = -1
@@ -103,9 +107,11 @@ final class WindowKeeper {
 
         let wanted = Set(apps.apps.map(\.processIdentifier))
         forget(appsNotIn: wanted)
-        var joined = false
+        var joined: Set<pid_t> = []
         for pid in wanted where observers.byProcess[pid] == nil && retries[pid] == nil && !gaveUp.contains(pid) {
-            joined = addObserver(for: pid) || joined
+            if addObserver(for: pid) {
+                joined.insert(pid)
+            }
         }
         if observers.byProcess.count != lastReportedCount {
             lastReportedCount = observers.byProcess.count
@@ -116,23 +122,33 @@ final class WindowKeeper {
         // moves or grows, never posts a notification about it, and a window
         // that is already zoomed posts nothing when double-clicked again. So
         // every watched window is judged once whenever the docks' claims
-        // change or an app joins. An app merely coming to the front is not
-        // worth a pass over every window on the machine.
+        // change, and an app's own windows once when it joins: the ones that
+        // opened before its observer did. An app merely coming to the front
+        // is not worth a pass over anything.
         let layoutChanged = coordinator.layout.version != lastLayoutVersion
         lastLayoutVersion = coordinator.layout.version
-        if joined || layoutChanged {
+        if layoutChanged {
             scheduleSweep()
+        } else if !joined.isEmpty {
+            scheduleSweep(of: joined)
         }
     }
 
     /// A moment after the changes stop, one copy of the window list serves
-    /// every app.
-    private func scheduleSweep() {
+    /// every app judged.
+    private func scheduleSweep(of pids: Set<pid_t>? = nil) {
+        if let pids, let pending = sweepScope {
+            sweepScope = pending.union(pids)
+        } else {
+            sweepScope = nil
+        }
         sweep.task = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled, let self else { return }
+            let scope = sweepScope ?? Set(observers.byProcess.keys)
+            sweepScope = []
             let onScreen = WindowServer.windowBoundsByProcess()
-            for pid in observers.byProcess.keys {
+            for pid in scope where observers.byProcess[pid] != nil {
                 judgeWindows(of: pid, onScreen: onScreen[pid] ?? [:])
             }
         }
@@ -209,7 +225,7 @@ final class WindowKeeper {
             let stillRunning = apps.apps.contains { $0.processIdentifier == pid }
             guard stillRunning, observers.byProcess[pid] == nil, addObserver(for: pid) else { return }
             // Its windows opened while nobody was listening.
-            scheduleSweep()
+            scheduleSweep(of: [pid])
         }
     }
 
@@ -240,6 +256,7 @@ final class WindowKeeper {
     private func disarm() {
         forget(appsNotIn: [])
         sweep.task = nil
+        sweepScope = []
     }
 
     /// Runs on the main thread: the observer's source lives on the main run loop.
