@@ -7,6 +7,10 @@ struct AppearanceSettingsView: View {
         SettingsPane {
             DockPreview(settings: store.settings)
 
+            SettingsGroup(title: "Accent") {
+                BrandPalettePicker(selection: $store.settings.brandPalette)
+            }
+
             SettingsGroup(title: "Tiles") {
                 SettingsSlider(title: "Icon size", value: $store.settings.iconSize, range: Settings.Limits.iconSize)
                 SettingsDivider()

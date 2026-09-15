@@ -24,9 +24,16 @@ icon there looks wrong on half of all setups.
 
 | Token | Hex | Use |
 | --- | --- | --- |
-| Brand lime | `#8BC53F` | Accent, lenses, highlights |
-| Deep forest | `#1E3A1E` | Icon ground, robot eyes |
+| Brand lime | `#C0DD71` | The accent everywhere: lenses, dock bars on screens, switches, highlights, the icon's ground |
+| Lime deep | `#9CC23E` | The icon ground's far corner |
+| Lime screen | `#74992C` | The screens inside the icon's displays |
+| Glyph | `#FFFFFF` | The displays and bars drawn on the icon |
+| Deep olive | `#1C2416` | Backgrounds behind the mascot where one is wanted |
 | Mug black | `#141414` | Mascot prop, dark chrome |
+
+Nothing fluorescent: the lime sits at the light end and reads as sunny
+rather than neon. In the app the accent can be swapped for one of the sunny
+family (Appearance, Accent) as a personal choice; the icon stays lime.
 
 ## Generation
 
@@ -43,22 +50,31 @@ soft contact shadow, 1:1 square
 Request 1024x1024 transparent PNG for all mascot art. Downscaling works,
 upscaling does not.
 
+### Character
+
+Every mascot prompt ends with this suffix, which keeps the character on-model
+across tools and sessions. Attach `assets/branding/icon-1024.png` as the
+reference for the displays and dock bars.
+
+```
+3D rendered cute quokka, tan-brown fur, black chunky wayfarer glasses with matte lime #C0DD71 lenses showing a small dark robot face, black matte coffee mug, soft studio lighting, Pixar style, muted natural colour grading, no glow, no neon, transparent background, 1:1 square
+```
+
 ### README hero: the halo of displays
 
-The hero shot is the quokka with an arc of displays behind its head, the
-way a chakra or an aureole sits behind a deity: the dock on every one of
-them, the quokka in front of all of them. Three phrasings; keep whichever
-your tool renders best. Add the character suffix above to each.
+The hero shot is the quokka with an arc of displays behind its head, the way
+a chakra or an aureole sits behind a deity: the dock on every one of them,
+the quokka in front of all of them. Add the character suffix to each.
 
 ```
-A. Quokka front and centre, waving, an arc of five glowing monitors fanned behind its head like a halo, each monitor showing a tiny dock bar at its bottom edge, lime rim light
-B. Quokka seated cross-legged, serene, a perfect ring of seven thin displays radiating behind its head, screens glowing lime, dark forest background
-C. Wide banner crop, quokka at left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime on deep forest
+Halo A. Quokka front and centre, waving, an arc of five monitors fanned behind its head like a halo, each showing a small white dock bar at its bottom edge like the attached icon, screens softly lit in lime #C0DD71, no glow
+Halo B. Quokka seated cross-legged, serene, a ring of seven thin displays behind its head, screens in muted lime #C0DD71 with white dock bars, deep olive #1C2416 background, matte finish
+Banner. Wide crop, quokka at the left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime #C0DD71 screens on deep olive #1C2416, flat soft light
 ```
 
-Ask for 2048 by 2048 (A and B) or 2400 by 900 (C), transparent
+Ask for 2048 by 2048 (A and B) or 2400 by 900 (Banner), transparent
 background where the tool allows it. The README references the results as
-`docs/media/quokka-halo.png` (A or B) and `docs/media/banner-quokka.png` (C).
+`docs/media/quokka-halo.png` (A or B) and `docs/media/banner-quokka.png`.
 
 ### Hero and README
 

@@ -68,7 +68,7 @@ struct DockPreview: View {
     /// against. A flat panel colour would make every chrome style look alike.
     private var desktop: some View {
         LinearGradient(
-            colors: [Color(hex: 0x1E3A1E), Theme.accent.opacity(0.55)],
+            colors: [BrandPalette.current.groundTop, Theme.accent.opacity(0.55)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

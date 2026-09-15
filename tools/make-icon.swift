@@ -1,9 +1,10 @@
 // Draws DockNanny's app icon and menu bar mark, and writes the icon ladder.
 //
-// The mark is two displays, each with its own lime dock bar, on deep forest:
-// the proposition drawn literally (docs/BRANDING.md). The geometry is shared
-// with the design canvas the direction was chosen on, in a 1024-point space
-// with y down, so the two renderings stay identical.
+// The mark is two displays, each with its own dock bar, in white on a lime
+// ground: the proposition drawn literally (docs/BRANDING.md). The geometry is
+// shared with the design canvas the direction was chosen on and with
+// BrandIconMark in the app, in a 1024-point space with y down, so every
+// rendering stays identical.
 //
 //   swift tools/make-icon.swift <output-directory>
 
@@ -12,11 +13,12 @@ import CoreGraphics
 import Foundation
 
 let space = CGColorSpaceCreateDeviceRGB()
-let groundTop = CGColor(red: 0.165, green: 0.302, blue: 0.165, alpha: 1)
-let groundBottom = CGColor(red: 0.063, green: 0.118, blue: 0.078, alpha: 1)
-let screen = CGColor(red: 0.059, green: 0.118, blue: 0.075, alpha: 1)
-let limeLight = CGColor(red: 0.651, green: 0.839, blue: 0.361, alpha: 1)
-let limeDeep = CGColor(red: 0.490, green: 0.710, blue: 0.204, alpha: 1)
+// Brand lime #C0DD71: the ground runs from a lighter to a deeper cut of it.
+let groundTop = CGColor(red: 0.753, green: 0.867, blue: 0.443, alpha: 1)      // #C0DD71, the brand lime itself
+let groundBottom = CGColor(red: 0.612, green: 0.761, blue: 0.243, alpha: 1)   // #9CC23E
+let screen = CGColor(red: 0.455, green: 0.600, blue: 0.173, alpha: 1)         // #74992C
+let glyphLight = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+let glyphDeep = CGColor(red: 0.957, green: 0.973, blue: 0.918, alpha: 1)      // #F4F8EA
 
 func gradient(_ from: CGColor, _ to: CGColor) -> CGGradient? {
     CGGradient(colorsSpace: space, colors: [from, to] as CFArray, locations: [0, 1])
@@ -30,26 +32,26 @@ func rounded(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ r: CGFloa
 }
 
 /// Fills a path with the lime gradient, top-left to bottom-right.
-func fillLime(_ path: CGPath, in context: CGContext, size: CGFloat) {
+func fillGlyph(_ path: CGPath, in context: CGContext, size: CGFloat) {
     context.saveGState()
     context.addPath(path)
     context.clip()
-    if let lime = gradient(limeLight, limeDeep) {
-        context.drawLinearGradient(lime, start: .zero, end: CGPoint(x: size, y: size), options: [])
+    if let glyph = gradient(glyphLight, glyphDeep) {
+        context.drawLinearGradient(glyph, start: .zero, end: CGPoint(x: size, y: size), options: [])
     }
     context.restoreGState()
 }
 
 /// Strokes a path with the lime gradient. Strokes never drop below a pixel
 /// and a half: at 16 points the true width would vanish.
-func strokeLime(_ path: CGPath, width: CGFloat, in context: CGContext, size: CGFloat, scale: CGFloat) {
+func strokeGlyph(_ path: CGPath, width: CGFloat, in context: CGContext, size: CGFloat, scale: CGFloat) {
     context.saveGState()
     context.addPath(path)
     context.setLineWidth(max(width * scale, 1.5))
     context.replacePathWithStrokedPath()
     context.clip()
-    if let lime = gradient(limeLight, limeDeep) {
-        context.drawLinearGradient(lime, start: .zero, end: CGPoint(x: size, y: size), options: [])
+    if let glyph = gradient(glyphLight, glyphDeep) {
+        context.drawLinearGradient(glyph, start: .zero, end: CGPoint(x: size, y: size), options: [])
     }
     context.restoreGState()
 }
@@ -76,15 +78,15 @@ func drawIcon(size: CGFloat) -> CGImage? {
     if let ground = gradient(groundTop, groundBottom) {
         context.drawLinearGradient(ground, start: .zero, end: CGPoint(x: size, y: size), options: [])
     }
-    let glossTop = CGColor(red: 1, green: 1, blue: 1, alpha: 0.2)
+    let glossTop = CGColor(red: 1, green: 1, blue: 1, alpha: 0.12)
     let glossEnd = CGColor(red: 1, green: 1, blue: 1, alpha: 0)
     if let gloss = gradient(glossTop, glossEnd) {
-        context.drawLinearGradient(gloss, start: .zero, end: CGPoint(x: 0, y: size * 0.55), options: [])
+        context.drawLinearGradient(gloss, start: .zero, end: CGPoint(x: 0, y: size * 0.6), options: [])
     }
     context.restoreGState()
 
     context.addPath(rounded(6, 6, 1012, 1012, 225, scale))
-    context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.14))
+    context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.22))
     context.setLineWidth(max(10 * scale, 1))
     context.strokePath()
 
@@ -96,15 +98,15 @@ func drawIcon(size: CGFloat) -> CGImage? {
         context.addPath(display)
         context.setFillColor(screen)
         context.fillPath()
-        strokeLime(display, width: 34, in: context, size: size, scale: scale)
-        fillLime(bar, in: context, size: size)
+        strokeGlyph(display, width: 34, in: context, size: size, scale: scale)
+        fillGlyph(bar, in: context, size: size)
     }
 
     // The near display's stand.
-    fillLime(rounded(340, 716, 114, 34, 17, scale), in: context, size: size)
+    fillGlyph(rounded(340, 716, 114, 34, 17, scale), in: context, size: size)
     context.saveGState()
-    context.setAlpha(0.7)
-    fillLime(rounded(256, 756, 282, 34, 17, scale), in: context, size: size)
+    context.setAlpha(0.75)
+    fillGlyph(rounded(256, 756, 282, 34, 17, scale), in: context, size: size)
     context.restoreGState()
 
     return context.makeImage()

@@ -9,6 +9,7 @@ import Foundation
 final class SettingsStore {
     var settings: Settings {
         didSet {
+            BrandPalette.current = settings.brandPalette
             guard settings != oldValue else { return }
             scheduleSave()
         }
@@ -23,6 +24,7 @@ final class SettingsStore {
         self.fileURL = folder.appending(path: "settings.json")
         self.writeDelay = writeDelay
         self.settings = Self.load(from: fileURL)
+        BrandPalette.current = settings.brandPalette
     }
 
     /// Forces a pending write to disk immediately. Called on termination, when

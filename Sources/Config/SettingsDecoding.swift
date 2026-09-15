@@ -30,6 +30,7 @@ extension Settings {
         alignment = value(.alignment, fallback.alignment)
         margin = value(.margin, fallback.margin)
 
+        brandPalette = value(.brandPalette, fallback.brandPalette)
         iconSize = value(.iconSize, fallback.iconSize)
         itemSpacing = value(.itemSpacing, fallback.itemSpacing)
         chromeStyle = value(.chromeStyle, fallback.chromeStyle)

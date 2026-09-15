@@ -15,6 +15,7 @@ struct Settings: Codable, Equatable, Sendable {
     var margin: Double = 8
 
     // Appearance
+    var brandPalette: BrandPalette = .lime
     var iconSize: Double = 48
     var itemSpacing: Double = 6
     var chromeStyle: ChromeStyle = .glass
@@ -64,7 +65,7 @@ struct Settings: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case edge, alignment, margin
-        case iconSize, itemSpacing, chromeStyle, indicatorStyle, tint
+        case brandPalette, iconSize, itemSpacing, chromeStyle, indicatorStyle, tint
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, skipSystemDockDisplay, autoHide, autoHideDelay
         case activeClickBehavior, keepWindowsClear, launchAtLogin, hasSeenWelcome
