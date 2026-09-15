@@ -108,7 +108,7 @@ struct SettingsRootView: View {
                 .resizable()
                 .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 1) {
-                Text("macdock").settingsText(Theme.Text.title, Theme.Ink.primary)
+                Text("DockNanny").settingsText(Theme.Text.title, Theme.Ink.primary)
                 Text(Self.version).settingsText(Theme.Text.caption, Theme.Ink.secondary)
             }
         }

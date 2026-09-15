@@ -24,10 +24,10 @@ enum MainMenu {
             keyEquivalent: ","
         )
         menu.addItem(.separator())
-        // No "Hide macdock": hiding an app hides all of its windows, and for
+        // No "Hide DockNanny": hiding an app hides all of its windows, and for
         // this one that means every dock, which nobody asks for by Command-H.
         menu.addItem(
-            withTitle: "Quit macdock",
+            withTitle: "Quit DockNanny",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

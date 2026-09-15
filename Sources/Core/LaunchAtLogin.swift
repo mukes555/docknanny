@@ -1,6 +1,6 @@
 import ServiceManagement
 
-/// Registers macdock to start with the user's session.
+/// Registers DockNanny to start with the user's session.
 ///
 /// `SMAppService` reflects the real system state, which the user can change in
 /// System Settings behind the app's back, so the stored preference is treated

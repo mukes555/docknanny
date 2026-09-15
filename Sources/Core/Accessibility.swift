@@ -2,7 +2,7 @@ import ApplicationServices
 import AppKit
 import Security
 
-/// macdock's one optional permission, and the only thing it is used for.
+/// DockNanny's one optional permission, and the only thing it is used for.
 ///
 /// Every dock action goes through NSWorkspace and needs nothing. Listing an
 /// app's windows in a tile's menu, and raising one of them, is the one feature

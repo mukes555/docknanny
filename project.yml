@@ -1,7 +1,7 @@
-name: macdock
+name: DockNanny
 
 options:
-  bundleIdPrefix: app.macdock
+  bundleIdPrefix: app.docknanny
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
@@ -18,7 +18,7 @@ settings:
     CLANG_WARN_DOCUMENTATION_COMMENTS: YES
 
 targets:
-  macdock:
+  DockNanny:
     type: application
     platform: macOS
     sources:
@@ -26,12 +26,12 @@ targets:
       - path: Resources/Assets.xcassets
     settings:
       base:
-        PRODUCT_NAME: macdock
+        PRODUCT_NAME: DockNanny
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        PRODUCT_BUNDLE_IDENTIFIER: app.macdock
+        PRODUCT_BUNDLE_IDENTIFIER: app.docknanny
         INFOPLIST_FILE: Resources/Info.plist
         GENERATE_INFOPLIST_FILE: NO
-        CODE_SIGN_ENTITLEMENTS: Resources/macdock.entitlements
+        CODE_SIGN_ENTITLEMENTS: Resources/DockNanny.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         # Ad-hoc signing so the project builds and runs without a paid
         # developer account. Release builds are signed and notarized in CI.
@@ -39,27 +39,27 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""
 
-  macdockTests:
+  DockNannyTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: Tests/macdockTests
+      - path: Tests/DockNannyTests
     dependencies:
-      - target: macdock
+      - target: DockNanny
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: app.macdock.tests
+        PRODUCT_BUNDLE_IDENTIFIER: app.docknanny.tests
 
 schemes:
-  macdock:
+  DockNanny:
     build:
       targets:
-        macdock: all
+        DockNanny: all
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: true
       targets:
-        - macdockTests
+        - DockNannyTests

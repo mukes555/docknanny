@@ -53,7 +53,7 @@ struct BehaviorSettingsView: View {
                     title: "Launch at login",
                     subtitle: loginItemRefused
                         ? "macOS refused the change. An unsigned build cannot register a login item."
-                        : "Start macdock automatically when you sign in.",
+                        : "Start DockNanny automatically when you sign in.",
                     isOn: launchAtLoginBinding
                 )
             }

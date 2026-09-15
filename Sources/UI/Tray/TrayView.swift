@@ -44,7 +44,7 @@ struct TrayView: View {
                 .resizable()
                 .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 1) {
-                Text("macdock").settingsText(Theme.Text.title, Theme.Ink.primary)
+                Text("DockNanny").settingsText(Theme.Text.title, Theme.Ink.primary)
                 Text(status).settingsText(Theme.Text.caption, Theme.Ink.secondary)
             }
             Spacer()
@@ -100,7 +100,7 @@ struct TrayView: View {
         VStack(spacing: 0) {
             TrayAction(symbol: "gearshape", title: "Settings…", keycap: "⌘,") { onOpenSettings(.layout) }
             SettingsDivider()
-            TrayAction(symbol: "checkmark.shield", title: "Set Up macdock…", keycap: nil, action: onOpenSetup)
+            TrayAction(symbol: "checkmark.shield", title: "Set Up DockNanny…", keycap: nil, action: onOpenSetup)
             SettingsDivider()
             TrayAction(symbol: "doc.text.magnifyingglass", title: "Reveal settings file", keycap: nil) {
                 NSWorkspace.shared.activateFileViewerSelecting([store.fileURL])
@@ -108,7 +108,7 @@ struct TrayView: View {
             SettingsDivider()
             TrayAction(symbol: "arrow.clockwise", title: "Relaunch", keycap: nil) { AppRestarter.restart() }
             SettingsDivider()
-            TrayAction(symbol: "power", title: "Quit macdock", keycap: "⌘Q", action: onQuit)
+            TrayAction(symbol: "power", title: "Quit DockNanny", keycap: "⌘Q", action: onQuit)
         }
         .raisedSurface(corner: 10)
         .background(settingsShortcut)

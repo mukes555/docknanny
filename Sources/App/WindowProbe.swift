@@ -1,14 +1,14 @@
 import AppKit
 import ApplicationServices
 
-/// `macdock --probe-windows=<app name>`: records what Accessibility and the
+/// `DockNanny --probe-windows=<app name>`: records what Accessibility and the
 /// window server each say about an app's windows, then exits.
 ///
 /// The keeper's decisions rest on both, and apps are loose with the first: a
 /// support question about a window that will not nudge is answered by this
-/// in seconds, with macdock's own Accessibility grant, where a bug report
+/// in seconds, with DockNanny's own Accessibility grant, where a bug report
 /// would take a week of guessing. Read-only. It has to be launched the way
-/// macOS launches apps (`open -a macdock --args --probe-windows=iTerm2`),
+/// macOS launches apps (`open -a DockNanny --args --probe-windows=iTerm2`),
 /// because a process started from a shell carries the shell's identity for
 /// permission checks; the report is in the log under the "probe" category.
 @MainActor

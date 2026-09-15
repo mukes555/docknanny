@@ -31,7 +31,7 @@ struct PresetsSettingsView: View {
                 SettingRow(
                     title: "Import",
                     subtitle: importFailed
-                        ? "That file could not be read as macdock settings."
+                        ? "That file could not be read as DockNanny settings."
                         : "Replace every setting with the contents of an exported file."
                 ) {
                     Button("Import...") { importSettings() }
@@ -41,7 +41,7 @@ struct PresetsSettingsView: View {
                 SettingsDivider()
                 SettingRow(
                     title: "Reset",
-                    subtitle: "Back to how macdock came, including pins and per-display settings."
+                    subtitle: "Back to how DockNanny came, including pins and per-display settings."
                 ) {
                     Button("Reset to Defaults...") { confirmingReset = true }
                         .controlSize(.small)
@@ -83,7 +83,7 @@ struct PresetsSettingsView: View {
     private func exportSettings() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "macdock settings.json"
+        panel.nameFieldStringValue = "DockNanny settings.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try store.export(to: url)

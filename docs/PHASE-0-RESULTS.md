@@ -4,7 +4,7 @@ Run on macOS 26.5.1 (build 25F80), Apple Silicon, Swift 6.2.3, Xcode 26.2,
 against a two-display setup.
 
 Phase 0 exists to answer one question before any architecture depends on the
-answer: **do the APIs macdock needs actually work on the macOS we target?**
+answer: **do the APIs DockNanny needs actually work on the macOS we target?**
 
 ## Verdict
 

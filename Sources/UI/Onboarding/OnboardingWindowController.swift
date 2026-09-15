@@ -52,7 +52,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         window.delegate = self
         window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
-        window.title = "Set Up macdock"
+        window.title = "Set Up DockNanny"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.appearance = NSAppearance(named: .darkAqua)

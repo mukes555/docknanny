@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 private func display(id: CGDirectDisplayID, primary: Bool = false) -> Display {
     Display(

@@ -12,7 +12,7 @@ extension Color {
     }
 }
 
-/// macdock's settings design language.
+/// DockNanny's settings design language.
 ///
 /// Near-black canvas, elevation carried by hairlines and inset highlights
 /// rather than by shadows, uniform dense rows, and a single accent used

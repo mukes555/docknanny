@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Keeping windows clear of the dock")
 struct WindowNudgeTests {

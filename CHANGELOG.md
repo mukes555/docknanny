@@ -2,6 +2,10 @@
 
 ## 0.4.0
 
+- Renamed from macdock to DockNanny. Apple does not allow "Mac" inside a
+  third-party product name, and the new name joins PortNanny. Settings are
+  carried over from the old folder on first launch; Accessibility has to be
+  granted once more, since macOS keys it to the bundle identifier.
 - Release readiness: the README is rebuilt with screenshots taken from a
   demo profile (nothing personal in them), a banner, and the tracon
   structure; `--settings-dir=<folder>` runs with a separate settings file;
@@ -12,7 +16,7 @@
 
 ## 0.3.2
 
-- "Set Up macdock…" is in the tray as well as the right-click menu.
+- "Set Up DockNanny…" is in the tray as well as the right-click menu.
 - Activation uses the current macOS form of the request instead of the
   deprecated one; no deprecated API remains in the app.
 - The window keeper ignores notifications with no readable process and
@@ -26,7 +30,7 @@
   watched window when it arms or a dock changes, so a window already under
   a dock is moved without waiting for an event. The gap left beside the
   dock now matches the system Dock's.
-- `macdock --probe-windows=<app>` records what Accessibility and the window
+- `DockNanny --probe-windows=<app>` records what Accessibility and the window
   server each say about an app's windows, for support.
 
 ## 0.3.0
@@ -48,14 +52,14 @@
   no longer draws faded; Escape closes it.
 - "Keep windows clear of the dock" now accepts Electron windows (which
   report an unknown subrole), never nudges bubbles, menus or tooltips,
-  watches apps launched after macdock, judges a drag by how it began, and
+  watches apps launched after DockNanny, judges a drag by how it began, and
   reacts within 40 ms of a change settling.
 - "Keep windows clear of the dock" (Behavior, off by default, needs
   Accessibility): a window opened or zoomed into a dock's space is nudged
   to sit beside it, which is the effect the system Dock gets from its
   reserved strip. The window server keeps one such strip for the whole
   system and the Dock rewrites it on every change, so reserving one for
-  macdock was ruled out; the probe tool records the finding.
+  DockNanny was ruled out; the probe tool records the finding.
 - Hot keys re-register only when their own settings change, not on every
   settings edit.
 - Right-clicking a running app lists its windows, main one checked,
@@ -63,7 +67,7 @@
   App Exposé. The window list needs Accessibility, which the setup window
   now offers with Grant and Relaunch buttons; without it the menu says so.
 - `tools/probe-dock-rect.swift`, to find out whether reserving screen space
-  beside a macdock dock is possible on a given machine.
+  beside a DockNanny dock is possible on a given machine.
 
 ## 0.2.0
 
@@ -79,7 +83,7 @@
   configurable in Behavior.
 - Press feedback, drag-to-rearrange with a live gap, drag off the dock to
   remove with the poof, and drops from one display's dock onto another's.
-- macdock stays off whichever display the system Dock is on, and follows if
+- DockNanny stays off whichever display the system Dock is on, and follows if
   the Dock moves. This replaces "Show on the primary display".
 - Presets (Match the Dock, Minimal, Playful, Tucked Away), and export,
   import and reset of the settings file.

@@ -1,6 +1,6 @@
 import AppKit
 
-/// Relaunches macdock.
+/// Relaunches DockNanny.
 ///
 /// Accessibility permission is bound to a running process, so a grant made
 /// while the app is open does not take effect until it starts again. Rather

@@ -1,7 +1,7 @@
 import AppKit
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Dragging tiles")
 struct DockDragTests {

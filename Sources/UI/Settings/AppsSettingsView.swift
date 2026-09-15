@@ -62,7 +62,7 @@ struct AppsSettingsView: View {
                 SettingRow(
                     title: "Match the Dock's icon size",
                     subtitle: "Your Dock uses \(Int(systemTileSize)) pt; "
-                        + "macdock is at \(Int(store.settings.iconSize)) pt."
+                        + "DockNanny is at \(Int(store.settings.iconSize)) pt."
                 ) {
                     Button("Use \(Int(systemTileSize)) pt") {
                         store.settings.iconSize = systemTileSize.clamped(to: Settings.Limits.iconSize)

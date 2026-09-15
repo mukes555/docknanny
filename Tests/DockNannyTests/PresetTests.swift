@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Presets and the settings file")
 struct PresetTests {
@@ -66,7 +66,7 @@ struct PresetTests {
     @Test("Export then import round-trips every setting, except that the welcome stays seen")
     @MainActor
     func exportImportRoundTrip() throws {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "macdock-tests-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "DockNanny-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
@@ -92,7 +92,7 @@ struct PresetTests {
     @Test("Importing something that is not settings throws and changes nothing")
     @MainActor
     func badImportIsRejected() throws {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "macdock-tests-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "DockNanny-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
@@ -108,7 +108,7 @@ struct PresetTests {
     @Test("Reset restores defaults but keeps the welcome seen")
     @MainActor
     func resetKeepsWelcomeSeen() {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "macdock-tests-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appending(path: "DockNanny-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
 
         let store = SettingsStore(directory: folder, writeDelay: .seconds(60))

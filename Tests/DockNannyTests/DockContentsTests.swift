@@ -1,7 +1,7 @@
 import AppKit
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 private func runningApp(_ identifier: String, isActive: Bool = false) -> RunningApp {
     RunningApp(

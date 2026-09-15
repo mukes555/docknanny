@@ -1,4 +1,4 @@
-# macdock lint policy.
+# DockNanny lint policy.
 #
 # File-size thresholds intentionally mirror the project's cognitive-load rule:
 # aim for ~300 lines, split at ~500, and treat 1000 as a hard ceiling for

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Dock alignment")
 struct DockAlignmentTests {

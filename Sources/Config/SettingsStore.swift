@@ -40,7 +40,7 @@ final class SettingsStore {
     }
 
     /// Reads with the same tolerance as launch: unknown keys are ignored and
-    /// missing ones take defaults, so a file from an older or newer macdock
+    /// missing ones take defaults, so a file from an older or newer DockNanny
     /// still imports. What was seen on first run stays seen.
     func importSettings(from url: URL) throws {
         var imported = try JSONDecoder().decode(Settings.self, from: Data(contentsOf: url))
@@ -102,6 +102,25 @@ final class SettingsStore {
     private static var defaultDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
         let root = base.first ?? URL.temporaryDirectory
-        return root.appending(path: "macdock")
+        let directory = root.appending(path: "DockNanny")
+        migrateSettingsFromOldName(into: directory, from: root.appending(path: "macdock"))
+        return directory
+    }
+
+    /// The app shipped its first builds as "macdock". A settings file from
+    /// then is copied across once, so the rename costs nobody their setup.
+    private static func migrateSettingsFromOldName(into directory: URL, from old: URL) {
+        let manager = FileManager.default
+        let target = directory.appending(path: "settings.json")
+        let source = old.appending(path: "settings.json")
+        guard !manager.fileExists(atPath: target.path), manager.fileExists(atPath: source.path) else { return }
+        do {
+            try manager.createDirectory(at: directory, withIntermediateDirectories: true)
+            try manager.copyItem(at: source, to: target)
+            Log.settings.info("Settings carried over from the macdock folder")
+        } catch {
+            let reason = error.localizedDescription
+            Log.settings.error("Could not carry settings over: \(reason, privacy: .public)")
+        }
     }
 }

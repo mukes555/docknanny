@@ -1,6 +1,6 @@
 import CoreGraphics
 
-@testable import macdock
+@testable import DockNanny
 
 /// One factory for the resolved configuration every suite needs, so adding a
 /// setting means updating a default here rather than in each test file.

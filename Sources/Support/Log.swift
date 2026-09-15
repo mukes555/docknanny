@@ -5,7 +5,7 @@ import OSLog
 /// Categories match the module layout so `log stream --predicate` can follow
 /// one subsystem without the others drowning it out.
 enum Log {
-    private static let subsystem = "app.macdock"
+    private static let subsystem = "app.docknanny"
 
     static let app = Logger(subsystem: subsystem, category: "app")
     static let display = Logger(subsystem: subsystem, category: "display")

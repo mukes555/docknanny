@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 /// A generous screen: everything fits at the configured size.
 private let roomy: CGFloat = 2000

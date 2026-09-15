@@ -1,4 +1,4 @@
-# Contributing to macdock
+# Contributing to DockNanny
 
 Thanks for looking. This document is the contract: branch names, commit
 format, naming conventions, and the code-shape rules CI enforces.
@@ -9,7 +9,7 @@ format, naming conventions, and the code-shape rules CI enforces.
 brew install xcodegen swiftlint
 ```
 
-Xcode 26.2 or later and Swift 6.2 or later. macdock targets macOS 26 (Tahoe)
+Xcode 26.2 or later and Swift 6.2 or later. DockNanny targets macOS 26 (Tahoe)
 and Apple Silicon.
 
 ## Branches
@@ -86,7 +86,7 @@ On top of those:
 
 ## Code shape
 
-macdock optimises for the reader, not the compiler. Human working memory
+DockNanny optimises for the reader, not the compiler. Human working memory
 holds about four things at once, so:
 
 - Extract compound conditionals into named intermediate values rather than
@@ -113,7 +113,7 @@ Generated files, fixtures and tests are exempt.
 ```bash
 xcodegen generate
 swiftlint --strict
-xcodebuild test -project macdock.xcodeproj -scheme macdock -destination 'platform=macOS'
+xcodebuild test -project DockNanny.xcodeproj -scheme DockNanny -destination 'platform=macOS'
 ```
 
 There is no root `Package.swift`, so `swift test` does not run this project's
@@ -136,7 +136,7 @@ equivalent. Rules for touching them:
 4. Anything private is gated through `Capability` and is visibly reported in
    Settings, so users can see what is and is not available on their macOS.
 
-This is why macdock cannot ship on the Mac App Store. Distribution is a
+This is why DockNanny cannot ship on the Mac App Store. Distribution is a
 notarized DMG and a Homebrew cask.
 
 ## Signing for development
@@ -145,19 +145,19 @@ macOS keys an Accessibility grant to the app's designated requirement. A
 plain ad hoc signature (`codesign --sign -`) has a requirement that is a
 hash of the binary, so every rebuild is a new app as far as macOS is
 concerned: the grant stops applying while System Settings keeps listing
-macdock as allowed.
+DockNanny as allowed.
 
 `tools/dev.sh` builds, signs and relaunches. Without a certificate it signs
 ad hoc with the bundle identifier as the requirement
-(`designated => identifier "app.macdock"`), which every build satisfies, so
+(`designated => identifier "app.docknanny"`), which every build satisfies, so
 the grant survives rebuilds. With a code-signing certificate in the
-keychain, or one named with `MACDOCK_SIGN_IDENTITY`, it uses that instead;
+keychain, or one named with `DOCKNANNY_SIGN_IDENTITY`, it uses that instead;
 no certificate, Apple ID or trust setting is needed for the default.
 
-After switching how a build is signed, remove any stale macdock entry from
+After switching how a build is signed, remove any stale DockNanny entry from
 System Settings > Privacy & Security > Accessibility and grant once more.
 
 One caveat with the default: any ad hoc build claiming the identifier
-`app.macdock` satisfies that requirement, so on a development machine another
+`app.docknanny` satisfies that requirement, so on a development machine another
 such build would inherit the grant. That is a development convenience only;
 release builds are signed with a certificate.

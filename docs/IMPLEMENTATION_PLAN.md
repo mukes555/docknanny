@@ -14,7 +14,7 @@
 ## Why not Tauri
 
 Evaluated and rejected. `tauri-nspanel` can produce a non-activating panel, so
-it is possible, but every capability macdock depends on (Accessibility,
+it is possible, but every capability DockNanny depends on (Accessibility,
 ScreenCaptureKit, the window server, Liquid Glass) would arrive through
 hand-written objc2 bindings, and the native Tahoe material has no webview
 equivalent at all. Cross-platform reach, Tauri's main benefit, is worth
@@ -118,4 +118,4 @@ feature, never the app.
 ## Non-goals
 
 Replacing Launchpad or Mission Control, iOS or iPadOS support, theming engines,
-and widgets. macdock puts a dock on every display and does it well.
+and widgets. DockNanny puts a dock on every display and does it well.

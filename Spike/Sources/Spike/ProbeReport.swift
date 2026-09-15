@@ -39,7 +39,7 @@ enum ProbeReport {
     static func render(_ results: [ProbeResult]) -> String {
         var lines = [
             "",
-            "macdock Phase 0 capability probe",
+            "DockNanny Phase 0 capability probe",
             "  macOS \(ProcessInfo.processInfo.operatingSystemVersionString)",
             String(repeating: "=", count: 66),
             ""

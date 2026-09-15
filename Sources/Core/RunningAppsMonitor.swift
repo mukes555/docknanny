@@ -67,7 +67,7 @@ final class RunningAppsMonitor {
     }
 
     /// Only apps a user would recognise belong in a dock: agents, daemons and
-    /// macdock itself are all excluded.
+    /// DockNanny itself are all excluded.
     private func isPresentable(_ application: NSRunningApplication) -> Bool {
         guard application.activationPolicy == .regular, !application.isTerminated else {
             return false

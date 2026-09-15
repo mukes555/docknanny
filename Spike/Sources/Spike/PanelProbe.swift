@@ -87,7 +87,7 @@ final class PanelProbe {
         backdrop.layer?.cornerRadius = 22
         backdrop.layer?.masksToBounds = true
 
-        let label = NSTextField(labelWithString: "macdock spike")
+        let label = NSTextField(labelWithString: "DockNanny spike")
         label.font = .systemFont(ofSize: 15, weight: .medium)
         label.textColor = .secondaryLabelColor
         label.frame = CGRect(x: 0, y: size.height / 2 - 11, width: size.width, height: 22)

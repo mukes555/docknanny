@@ -1,7 +1,7 @@
 import Carbon.HIToolbox
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Hot keys")
 struct HotkeyTests {

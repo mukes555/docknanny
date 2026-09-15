@@ -1,6 +1,6 @@
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Pin list edits")
 struct PinListTests {

@@ -48,7 +48,7 @@ struct DockActions {
 }
 
 /// The side-effecting half of ``DockActions``: everything that talks to
-/// NSWorkspace rather than to macdock's own state.
+/// NSWorkspace rather than to DockNanny's own state.
 @MainActor
 enum DockCommands {
     /// What a click means for a tile that is not an app.
@@ -107,7 +107,7 @@ enum DockCommands {
         return AppWindows.list(processIdentifier: application.processIdentifier)
     }
 
-    /// Everything user-facing except the one clicked, and except macdock
+    /// Everything user-facing except the one clicked, and except DockNanny
     /// itself, which has nothing to hide.
     static func hideOthers(_ item: DockItem) {
         let own = Bundle.main.bundleIdentifier

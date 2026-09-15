@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="docs/media/banner.png" width="760" alt="macdock: the app icon, two displays each with its own dock, beside the wordmark and the tagline A dock on every display" />
+<img src="docs/media/banner.png" width="760" alt="DockNanny: the app icon, two displays each with its own dock, beside the wordmark and the tagline A dock on every display" />
 
 <br />
 
 **A dock on every display. The one macOS won't give you.**<br />
 Your Dock, mirrored to every screen you plug in, with the parts macOS keeps to itself: magnification that spreads, a Trash that fills, folders that open as lists, and windows that stay clear of it.
 
-[![CI](https://github.com/mukes555/macdock/actions/workflows/ci.yml/badge.svg)](https://github.com/mukes555/macdock/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/mukes555/macdock?include_prereleases)](https://github.com/mukes555/macdock/releases)
+[![CI](https://github.com/mukes555/docknanny/actions/workflows/ci.yml/badge.svg)](https://github.com/mukes555/docknanny/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mukes555/docknanny?include_prereleases)](https://github.com/mukes555/docknanny/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8BC53F.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-26%20Tahoe-8BC53F)
 ![Swift](https://img.shields.io/badge/Swift-6.2-8BC53F)
 
 <br />
 
-<img src="docs/media/dock.png" width="860" alt="A macdock dock: Finder, Safari, Mail, Notes, Terminal and System Settings on a glass slab, a divider, and the Trash" />
+<img src="docs/media/dock.png" width="860" alt="A DockNanny dock: Finder, Safari, Mail, Notes, Terminal and System Settings on a glass slab, a divider, and the Trash" />
 
 </div>
 
@@ -28,12 +28,12 @@ long-standing workaround, shoving the cursor past the bottom edge of the
 screen you want, is unreliable the moment your displays are not perfectly
 bottom-aligned.
 
-macdock puts a real dock on every display, stays off the one that already has
+DockNanny puts a real dock on every display, stays off the one that already has
 the system Dock, and leaves your Spaces settings alone.
 
 ## What you get
 
-**Your Dock, again.** By default macdock mirrors the system Dock: the same apps
+**Your Dock, again.** By default DockNanny mirrors the system Dock: the same apps
 in the same order, Finder first, folders and spacers where you put them,
 running apps after the pins, the Trash at the end. Rearrange the real Dock and
 every display follows within two seconds. Turn mirroring off and each list is
@@ -104,15 +104,15 @@ imported or reset.
 
 ## Install
 
-Download the DMG from the [latest release](https://github.com/mukes555/macdock/releases),
-drag macdock into Applications, and launch it. It lives in the menu bar as two
+Download the DMG from the [latest release](https://github.com/mukes555/docknanny/releases),
+drag DockNanny into Applications, and launch it. It lives in the menu bar as two
 small displays.
 
 Until releases are signed with a Developer ID, Gatekeeper will say the app
 cannot be checked for malware. Clear that once with:
 
 ```bash
-xattr -d com.apple.quarantine /Applications/macdock.app
+xattr -d com.apple.quarantine /Applications/DockNanny.app
 ```
 
 A Homebrew cask template is in [packaging/homebrew](packaging/homebrew).
@@ -137,15 +137,15 @@ work without it otherwise:
 
 <div align="center"><img src="docs/media/setup.png" width="480" alt="The setup window: nothing to grant for the docks, and the optional Accessibility row with Grant and Relaunch buttons" /></div>
 
-One thing the system Dock's menu has that macdock's cannot: an app's own menu
+One thing the system Dock's menu has that DockNanny's cannot: an app's own menu
 section (a browser's profiles, an editor's recent windows). Apps hand that to
 the Dock over a private channel on which the Dock is the server, so no other
 process can ask for it.
 
 ## Privacy
 
-macdock has no network access and no analytics. Settings live in one JSON file
-at `~/Library/Application Support/macdock/settings.json`, which you can export,
+DockNanny has no network access and no analytics. Settings live in one JSON file
+at `~/Library/Application Support/DockNanny/settings.json`, which you can export,
 import or reset from Settings. The unified log carries no window titles or
 bundle identifiers in the clear.
 
@@ -156,7 +156,7 @@ brew install xcodegen swiftlint
 ```
 
 ```bash
-git clone https://github.com/mukes555/macdock.git && cd macdock && xcodegen generate && open macdock.xcodeproj
+git clone https://github.com/mukes555/docknanny.git && cd DockNanny && xcodegen generate && open DockNanny.xcodeproj
 ```
 
 `tools/dev.sh` builds, signs and relaunches a development build so its
@@ -167,10 +167,10 @@ one). Launch flags: `--settings [--section=layout|appearance|behavior|displays|a
 `--probe-windows=<app>` to record what Accessibility and the window server
 say about an app's windows when one will not stay clear of a dock.
 
-The app logs under the `app.macdock` subsystem:
+The app logs under the `app.docknanny` subsystem:
 
 ```bash
-/usr/bin/log stream --level info --predicate 'subsystem == "app.macdock"'
+/usr/bin/log stream --level info --predicate 'subsystem == "app.docknanny"'
 ```
 
 ## What is next
@@ -185,7 +185,7 @@ format, Swift conventions, and the file-size limits CI enforces.
 
 ## Credits
 
-macdock is an independent, clean-room implementation. Two existing projects
+DockNanny is an independent, clean-room implementation. Two existing projects
 were read for background on macOS window-management behaviour and are
 gratefully acknowledged, though no code was taken from either:
 [MultiDock](https://github.com/DmitryChichikalyuk/MultiDock) and

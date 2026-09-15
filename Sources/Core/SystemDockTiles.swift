@@ -27,7 +27,7 @@ enum SystemDockTiles {
 
     /// Entries for the section after the apps: file URLs as strings, with the
     /// spacer sentinel for gaps. Recent-items stacks and web links have no
-    /// macdock equivalent yet and are left out.
+    /// DockNanny equivalent yet and are left out.
     static func others(fromPersistentOthers entries: [[String: Any]]) -> [String] {
         var seen = Set<String>()
         return entries.compactMap { entry -> String? in

@@ -39,7 +39,7 @@ struct OnboardingView: View {
                 .resizable()
                 .frame(width: 68, height: 68)
 
-            Text("macdock is running")
+            Text("DockNanny is running")
                 .settingsText(.system(size: 19, weight: .semibold), Theme.Ink.primary)
 
             Text("There is now a dock on every display you have connected.")
@@ -68,7 +68,7 @@ struct OnboardingView: View {
             Point(
                 symbol: "menubar.arrow.up.rectangle",
                 title: "Everything is in the menu bar",
-                detail: "Settings, and the way out, live under the macdock icon up top."
+                detail: "Settings, and the way out, live under the DockNanny icon up top."
             )
         }
         .padding(20)
@@ -120,7 +120,7 @@ struct OnboardingView: View {
     private var adHocNote: String? {
         guard Accessibility.grantIsTiedToThisExactBinary else { return nil }
         return "This build's signature ties the grant to this exact binary, so macOS forgets it after every "
-            + "rebuild even though System Settings still lists macdock as allowed. Remove macdock from that "
+            + "rebuild even though System Settings still lists DockNanny as allowed. Remove DockNanny from that "
             + "list and grant again, and build with tools/dev.sh so it sticks."
     }
 

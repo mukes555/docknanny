@@ -1,10 +1,10 @@
 #!/bin/zsh
-# Builds a Release macdock.app, signs it, wraps it in a DMG, and optionally
+# Builds a Release DockNanny.app, signs it, wraps it in a DMG, and optionally
 # notarizes it.
 #
 #   tools/release.sh                 ad-hoc signed DMG in build/release/
 #   CODESIGN_IDENTITY="Developer ID Application: Name (TEAMID)" \
-#   NOTARY_PROFILE=macdock tools/release.sh
+#   NOTARY_PROFILE=DockNanny tools/release.sh
 #                                    Developer ID signed, notarized, stapled
 #
 # NOTARY_PROFILE is a keychain profile made once with
@@ -20,8 +20,8 @@ version="$(sed -n 's/.*MARKETING_VERSION: "\(.*\)".*/\1/p' project.yml)"
 identity="${CODESIGN_IDENTITY:--}"
 out="build/release"
 staging="$out/staging"
-app="$out/macdock.app"
-dmg="$out/macdock-$version.dmg"
+app="$out/DockNanny.app"
+dmg="$out/DockNanny-$version.dmg"
 
 rm -rf "$out"
 mkdir -p "$staging"
@@ -31,14 +31,14 @@ xcodegen generate -q
 
 echo "==> Building Release"
 xcodebuild build \
-    -project macdock.xcodeproj \
-    -scheme macdock \
+    -project DockNanny.xcodeproj \
+    -scheme DockNanny \
     -configuration Release \
     -destination 'platform=macOS,arch=arm64' \
     -derivedDataPath build/DerivedData \
     -quiet \
     CODE_SIGNING_ALLOWED=NO
-cp -R build/DerivedData/Build/Products/Release/macdock.app "$app"
+cp -R build/DerivedData/Build/Products/Release/DockNanny.app "$app"
 
 echo "==> Signing with: $identity"
 # Hardened runtime is what notarization checks for; it costs nothing when
@@ -50,7 +50,7 @@ codesign --verify --strict "$app"
 echo "==> Building DMG"
 cp -R "$app" "$staging/"
 ln -s /Applications "$staging/Applications"
-hdiutil create -quiet -volname "macdock" -srcfolder "$staging" -ov -format UDZO "$dmg"
+hdiutil create -quiet -volname "DockNanny" -srcfolder "$staging" -ov -format UDZO "$dmg"
 rm -rf "$staging"
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then

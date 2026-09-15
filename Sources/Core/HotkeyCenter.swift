@@ -24,8 +24,8 @@ final class HotkeyCenter {
     private var handler: EventHandlerRef?
     private var nextIdentifier: UInt32 = 1
 
-    /// "mdck", so hot key events can be told apart from anyone else's.
-    private static let signature: OSType = 0x6D64_636B
+    /// "dnny", so hot key events can be told apart from anyone else's.
+    private static let signature: OSType = 0x646E_6E79
 
     init() {
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))

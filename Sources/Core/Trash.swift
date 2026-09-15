@@ -2,7 +2,7 @@ import AppKit
 
 /// The user's Trash, as far as a dock needs to know about it.
 ///
-/// Its contents sit behind Full Disk Access, which macdock does not want and
+/// Its contents sit behind Full Disk Access, which DockNanny does not want and
 /// which macOS would not even prompt for. The entry count is directory
 /// metadata rather than a listing, so it is readable without that access,
 /// and it is all the tile needs: full or empty.

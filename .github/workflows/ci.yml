@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    # macdock targets macOS 26 and Swift 6.2, so the runner image has to be at
+    # DockNanny targets macOS 26 and Swift 6.2, so the runner image has to be at
     # least that. Pin rather than track latest: a runner image bump silently
     # changing the Swift version is a confusing way to find out.
     runs-on: macos-26
@@ -43,8 +43,8 @@ jobs:
       - name: Test
         run: |
           xcodebuild test \
-            -project macdock.xcodeproj \
-            -scheme macdock \
+            -project DockNanny.xcodeproj \
+            -scheme DockNanny \
             -configuration Debug \
             -destination 'platform=macOS' \
             -quiet \

@@ -2,7 +2,7 @@ import AppKit
 
 /// Owns the app's activation policy and, with it, whether the app is active.
 ///
-/// macdock runs as an accessory app, which cannot take keyboard focus, and
+/// DockNanny runs as an accessory app, which cannot take keyboard focus, and
 /// raises itself to `.regular` only while it has a window worth focusing.
 /// The open windows are tracked as a set, not a count: showing a window that
 /// is already open must not count it twice, or closing it would leave the app

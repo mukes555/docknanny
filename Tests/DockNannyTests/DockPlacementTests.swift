@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 /// The geometry of the development machine, captured by the Phase 0 probe.
 /// The external display sits at a negative y origin, which is the exact case

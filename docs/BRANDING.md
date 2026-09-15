@@ -1,6 +1,6 @@
 # Branding
 
-macdock's mascot is a quokka: an approachable expert, which is the right tone
+DockNanny's mascot is a quokka: an approachable expert, which is the right tone
 for a utility that has to ask for intimidating permissions.
 
 ## App icon, menu bar mark, mascot
@@ -136,11 +136,11 @@ results into the asset catalogue afterwards:
 
 ```
 swift tools/make-icon.swift assets/branding
-cp assets/branding/macdock.iconset/*.png Resources/Assets.xcassets/AppIcon.appiconset/
+cp assets/branding/DockNanny.iconset/*.png Resources/Assets.xcassets/AppIcon.appiconset/
 cp assets/branding/menubar*.png Resources/Assets.xcassets/MenuBarIcon.imageset/
 ```
 
-It emits `macdock.iconset/` (the ten rungs macOS expects), a 1024 composite, and
+It emits `DockNanny.iconset/` (the ten rungs macOS expects), a 1024 composite, and
 `mark-foreground-1024.png`: the glasses on transparency, kept separate so the
 foreground can be layered over a new ground when the mascot arrives, which is
 what macOS 26's layered icons want.

@@ -31,7 +31,7 @@ struct DockItem: Identifiable, Equatable {
 
     /// The pin-list entry that stands for a spacer. Not a bundle identifier,
     /// so it can never collide with an app.
-    static let spacerIdentifier = "macdock.spacer"
+    static let spacerIdentifier = "DockNanny.spacer"
 
     var bundleIdentifier: String? {
         if case .app(let identifier) = kind { return identifier }

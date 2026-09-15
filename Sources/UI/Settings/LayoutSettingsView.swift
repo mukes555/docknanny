@@ -31,7 +31,8 @@ struct LayoutSettingsView: View {
             SettingsGroup(title: "Displays") {
                 SettingsToggle(
                     title: "Stay off the display with the system Dock",
-                    subtitle: "That screen has a dock already. If the Dock moves to another display, macdock follows.",
+                    subtitle: "That screen has a dock already. "
+                        + "If the Dock moves to another display, DockNanny follows.",
                     isOn: $store.settings.skipSystemDockDisplay
                 )
             }

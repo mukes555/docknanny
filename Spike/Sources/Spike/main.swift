@@ -3,7 +3,7 @@ import AppKit
 /// Phase 0 entry point.
 ///
 /// Runs as an accessory app (no Dock tile of its own) because that is the
-/// activation policy macdock itself will use, and it is the only way the
+/// activation policy DockNanny itself will use, and it is the only way the
 /// non-activating panel check means anything.
 @MainActor
 final class SpikeDelegate: NSObject, NSApplicationDelegate {

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 /// The spread layout is what makes magnification behave like the system
 /// Dock's, and what guarantees a click can only mean one tile.

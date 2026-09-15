@@ -3,7 +3,7 @@ import Foundation
 
 /// What the system Dock is showing, read from its preferences.
 ///
-/// macdock's premise is a dock on every display: the same dock, not a second
+/// DockNanny's premise is a dock on every display: the same dock, not a second
 /// one with its own idea of what is pinned. The Dock writes its layout to the
 /// com.apple.dock domain through cfprefsd whenever it changes, so reading that
 /// domain is enough to follow rearrangements, with no private API and no

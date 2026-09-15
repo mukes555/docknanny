@@ -1,6 +1,6 @@
 import CoreGraphics
 
-/// Translation between the two coordinate spaces macdock straddles.
+/// Translation between the two coordinate spaces DockNanny straddles.
 ///
 /// Accessibility reports window geometry in a flipped space whose origin is
 /// the **top-left of the primary display**. AppKit uses the bottom-left of

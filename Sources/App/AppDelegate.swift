@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // would undo the very change the probe is there to observe.
         guard !runProbeIfRequested() else { return }
 
-        // Accessory policy keeps macdock out of the system Dock and the
+        // Accessory policy keeps DockNanny out of the system Dock and the
         // command-tab switcher, which is the right shape for something that
         // lives permanently on screen.
         NSApp.setActivationPolicy(.accessory)
@@ -70,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onQuit: { NSApp.terminate(nil) }
         )
 
-        Log.app.info("macdock launched on \(displays.displays.count, privacy: .public) display(s)")
+        Log.app.info("DockNanny launched on \(displays.displays.count, privacy: .public) display(s)")
 
         guard !openWindowRequestedOnCommandLine() else { return }
 
@@ -80,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showOnboarding()
     }
 
-    /// `macdock --settings` and `macdock --setup` open a window directly.
+    /// `DockNanny --settings` and `DockNanny --setup` open a window directly.
     /// Handy when walking someone through a problem, and the only way to reach
     /// these windows without the menu bar.
     private func openWindowRequestedOnCommandLine() -> Bool {
@@ -147,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showSettings()
     }
 
-    /// `macdock --settings --section=apps` opens straight to one pane, which
+    /// `DockNanny --settings --section=apps` opens straight to one pane, which
     /// beats talking someone through a sidebar over a bug report.
     private static func requestedSection(in arguments: [String]) -> SettingsSection {
         let prefix = "--section="

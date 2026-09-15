@@ -2,7 +2,7 @@ import AppKit
 
 /// The menu bar presence.
 ///
-/// macdock runs as an accessory app with no tile in the system Dock, so this
+/// DockNanny runs as an accessory app with no tile in the system Dock, so this
 /// is the only way to reach it. The icon is a template image, which is what
 /// lets macOS tint it correctly in light, dark and tinted menu bars.
 @MainActor
@@ -48,13 +48,13 @@ final class StatusItemController {
         button.image = NSImage(named: "MenuBarIcon")
             ?? NSImage(systemSymbolName: "menubar.dock.rectangle", accessibilityDescription: nil)
         button.image?.isTemplate = true
-        button.image?.accessibilityDescription = "macdock"
+        button.image?.accessibilityDescription = "DockNanny"
     }
 
     private func makeMenu() -> NSMenu {
         let menu = NSMenu()
 
-        let about = NSMenuItem(title: "macdock", action: nil, keyEquivalent: "")
+        let about = NSMenuItem(title: "DockNanny", action: nil, keyEquivalent: "")
         about.isEnabled = false
         menu.addItem(about)
         menu.addItem(.separator())
@@ -63,13 +63,13 @@ final class StatusItemController {
         settings.target = self
         menu.addItem(settings)
 
-        let setup = NSMenuItem(title: "Set Up macdock...", action: #selector(openSetup), keyEquivalent: "")
+        let setup = NSMenuItem(title: "Set Up DockNanny...", action: #selector(openSetup), keyEquivalent: "")
         setup.target = self
         menu.addItem(setup)
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
-            title: "Quit macdock",
+            title: "Quit DockNanny",
             action: #selector(quit),
             keyEquivalent: "q"
         )

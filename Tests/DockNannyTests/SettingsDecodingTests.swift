@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 @Suite("Settings decoding")
 struct SettingsDecodingTests {

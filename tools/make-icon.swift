@@ -1,4 +1,4 @@
-// Draws macdock's app icon and menu bar mark, and writes the icon ladder.
+// Draws DockNanny's app icon and menu bar mark, and writes the icon ladder.
 //
 // The mark is two displays, each with its own lime dock bar, on deep forest:
 // the proposition drawn literally (docs/BRANDING.md). The geometry is shared
@@ -168,7 +168,7 @@ let outputDirectory = CommandLine.arguments.count > 1
     ? URL(filePath: CommandLine.arguments[1])
     : URL(filePath: FileManager.default.currentDirectoryPath)
 
-let iconset = outputDirectory.appending(path: "macdock.iconset")
+let iconset = outputDirectory.appending(path: "DockNanny.iconset")
 try? FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
 
 // The ladder macOS expects inside an .iconset.

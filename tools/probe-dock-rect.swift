@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
-// Answers one question: will the window server let macdock reserve screen
-// space the way the Dock does, so zoomed windows stop beside a macdock dock?
+// Answers one question: will the window server let DockNanny reserve screen
+// space the way the Dock does, so zoomed windows stop beside a DockNanny dock?
 //
 //   swift tools/probe-dock-rect.swift           read: the Dock's rect and each display's visible frame
 //   swift tools/probe-dock-rect.swift try       set a test rect on a display without the Dock, report, restore

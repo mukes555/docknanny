@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import macdock
+@testable import DockNanny
 
 /// The routing bug: a magnified tile swelled over its neighbours, and view
 /// hit-testing sent the click to whichever sibling was drawn last. Clicks now

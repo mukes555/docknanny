@@ -30,9 +30,9 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2026 Mukesh Kumar. MIT licensed.</string>
 	<!-- Accessory app: no tile in the system Dock, no command-tab entry.
-	     macdock is reached through its menu bar item. -->
+	     DockNanny is reached through its menu bar item. -->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>macdock asks Finder to empty the Trash when you choose Empty Trash from a dock.</string>
+	<string>DockNanny asks Finder to empty the Trash when you choose Empty Trash from a dock.</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSSupportsAutomaticTermination</key>

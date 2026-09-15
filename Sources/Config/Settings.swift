@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The global list is deliberately held flat. Depth lives on the per-display
 /// axis instead, in ``DisplayOverride``, because "this screen is for comms and
-/// that one is for tools" is the thing macdock can do that a single-dock
+/// that one is for tools" is the thing DockNanny can do that a single-dock
 /// product cannot, while a longer global list is the thing every dock already
 /// has too much of.
 struct Settings: Codable, Equatable, Sendable {

@@ -28,7 +28,7 @@ enum HotkeyModifiers: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// The keys macdock binds, by what they do rather than by key code.
+/// The keys DockNanny binds, by what they do rather than by key code.
 enum HotkeyRole: Hashable, Sendable {
     /// Opens the tile at this position (1 to 9) on the dock under the pointer.
     case tile(number: Int)

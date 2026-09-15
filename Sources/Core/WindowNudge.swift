@@ -5,7 +5,7 @@ import CoreGraphics
 /// The system Dock gets this from the window server: its strip is left out
 /// of every display's visible frame, so a zoomed window stops beside it. The
 /// window server keeps exactly one such strip and the Dock rewrites it
-/// whenever its contents change, so macdock cannot have one of its own.
+/// whenever its contents change, so DockNanny cannot have one of its own.
 /// Instead a window that lands in a dock's strip is moved out of it, and
 /// shrunk only when moving is not enough, which is the frame a zoom would
 /// have produced had the strip been reserved.

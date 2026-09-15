@@ -14,7 +14,7 @@ NSColor(red: 0.059, green: 0.071, blue: 0.063, alpha: 1).setFill()
 NSRect(origin: .zero, size: size).fill()
 
 let iconPath = media.deletingLastPathComponent().deletingLastPathComponent()
-    .appending(path: "assets/branding/macdock.iconset/icon_256x256@2x.png").path
+    .appending(path: "assets/branding/DockNanny.iconset/icon_256x256@2x.png").path
 if let icon = NSImage(contentsOfFile: iconPath) {
     icon.draw(in: NSRect(x: 90, y: 70, width: 300, height: 300))
 }
@@ -31,7 +31,7 @@ func draw(_ text: String, x: CGFloat, baseline: CGFloat, size: CGFloat, weight: 
 let ink = NSColor(red: 0.929, green: 0.937, blue: 0.918, alpha: 1)
 let lime = NSColor(red: 0.545, green: 0.773, blue: 0.247, alpha: 1)
 let muted = NSColor(red: 0.604, green: 0.627, blue: 0.604, alpha: 1)
-draw("macdock", x: 450, baseline: 218, size: 128, weight: .bold, color: ink, tracking: -3)
+draw("DockNanny", x: 450, baseline: 218, size: 128, weight: .bold, color: ink, tracking: -3)
 draw("A dock on every display.", x: 456, baseline: 150, size: 46, weight: .medium, color: lime)
 draw("The one macOS won't give you.", x: 456, baseline: 92, size: 30, weight: .regular, color: muted)
 
