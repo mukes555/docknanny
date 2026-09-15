@@ -20,16 +20,19 @@ on:
 env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
-permissions:
-  contents: write
+# Actions are pinned to commits, not tags: a tag can be moved to code that
+# runs with this repository's token and, in the tap job, with the tap's.
+permissions: {}
 
 jobs:
   release:
     runs-on: macos-26
     timeout-minutes: 30
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
@@ -54,13 +57,13 @@ jobs:
           cat build/release/RELEASE-NOTES.md
 
       - name: Keep the checksums for the tap job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: checksums
           path: build/release/SHA256SUMS
 
       - name: Publish
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           # An -rc, -beta or -alpha tag is a pre-release, so "latest" and the
@@ -82,18 +85,21 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The tap is pushed with its own token; this repository's stays read-only here.
+    permissions:
+      contents: read
     env:
       HAS_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
     steps:
       - name: Checkout DockNanny (for the cask template)
         if: env.HAS_TAP_TOKEN == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Checkout the tap
         if: env.HAS_TAP_TOKEN == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: mukes555/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -101,7 +107,7 @@ jobs:
 
       - name: Fetch the checksums
         if: env.HAS_TAP_TOKEN == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: checksums
           path: checksums
