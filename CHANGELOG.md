@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
 
 - An app that starts after the keeper is armed has its own windows judged
   once, rather than every window on the machine; a sweep of everything
