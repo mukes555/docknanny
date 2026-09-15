@@ -50,31 +50,44 @@ soft contact shadow, 1:1 square
 Request 1024x1024 transparent PNG for all mascot art. Downscaling works,
 upscaling does not.
 
-### Character
+### How prompts are built
 
-Every mascot prompt ends with this suffix, which keeps the character on-model
-across tools and sessions. Attach `assets/branding/icon-1024.png` as the
-reference for the displays and dock bars.
+Image tools follow a reference picture loosely and a precise description
+consistently, so the logo and the character are each one fixed block that
+goes into every prompt verbatim, and only a scene line changes. Attach
+`assets/branding/icon-1024.png` to every generation; reuse the seed of the
+first image that lands, and attach that image too once it exists, so the
+character stays on-model across the set.
 
-```
-3D rendered cute quokka, tan-brown fur, black chunky wayfarer glasses with matte lime #C0DD71 lenses showing a small dark robot face, black matte coffee mug, soft studio lighting, Pixar style, muted natural colour grading, no glow, no neon, transparent background, 1:1 square
-```
-
-### README hero: the halo of displays
-
-The hero shot is the quokka with an arc of displays behind its head, the way
-a chakra or an aureole sits behind a deity: the dock on every one of them,
-the quokka in front of all of them. Add the character suffix to each.
+Logo block:
 
 ```
-Halo A. Quokka front and centre, waving, an arc of five monitors fanned behind its head like a halo, each showing a small white dock bar at its bottom edge like the attached icon, screens softly lit in lime #C0DD71, no glow
-Halo B. Quokka seated cross-legged, serene, a ring of seven thin displays behind its head, screens in muted lime #C0DD71 with white dock bars, deep olive #1F2A16 background, matte finish
-Banner. Wide crop, quokka at the left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime #C0DD71 screens on deep olive #1F2A16, flat soft light
+The DockNanny logo, reproduced exactly as in the attached reference image and used as the ONLY logo anywhere in the picture: a dark green-black rounded square; inside it two overlapping monitor outlines drawn in thick lime #C0DD71 lines, the near monitor at lower-left with a small stand beneath it, the far monitor at upper-right behind it; each monitor has one short lime bar along the bottom of its screen; the screens are near-black. Do not redesign it, do not add text, icons, apps or any other logo.
 ```
 
-Ask for 2048 by 2048 (A and B) or 2400 by 900 (Banner), transparent
-background where the tool allows it. The README references the results as
-`docs/media/quokka-halo.png` (A or B) and `docs/media/banner-quokka.png`.
+Character block:
+
+```
+3D rendered cute quokka, tan-brown fur, black chunky wayfarer glasses, both lenses matte lime #C0DD71 with the DockNanny logo small and centred on each lens, black matte coffee mug, soft studio lighting, Pixar style, muted natural colour grading, no glow, no neon, transparent background. Same character, same logo, same style in every image; only the scene changes.
+```
+
+### Scenes
+
+The README hero is the quokka with an arc of displays behind its head, the
+way a chakra or an aureole sits behind a deity: the logo on every one of
+them, the quokka in front of all of them.
+
+```
+Wave: Quokka standing front and centre, waving with one paw, mug in the other, 1:1 square.
+Halo A: Quokka front and centre, waving, an arc of five monitors fanned behind its head like a halo; every monitor shows the DockNanny logo large and centred on a near-black screen; 1:1 square.
+Halo B: Quokka seated cross-legged, serene, a ring of seven thin displays behind its head, every display showing the DockNanny logo centred on a near-black screen; deep olive #1F2A16 background, matte finish; 1:1 square.
+Banner: Wide 2400 by 900 crop, quokka at the left third, a halo of monitors behind its head trailing off to the right, every monitor showing the DockNanny logo, empty space on the right for a wordmark, deep olive #1F2A16 background, flat soft light.
+```
+
+Ask for 2048 by 2048 for the squares, 2400 by 900 for the banner,
+transparent background where the tool allows it. The README references the
+results as `docs/media/quokka-wave.png`, `docs/media/quokka-halo.png` (A or
+B) and `docs/media/banner-quokka.png`.
 
 ### Hero and README
 
