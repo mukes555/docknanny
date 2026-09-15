@@ -62,12 +62,12 @@ enum BrandPalette: String, Codable, CaseIterable, Identifiable, Sendable {
     /// UI accent, on the dark settings surfaces.
     var accent: Color { Color(hex: accentHex) }
     var accentMuted: Color { Color(hex: accentMutedHex) }
-    /// The icon's ground, top-left to bottom-right.
-    var groundTop: Color { Color(hex: groundTopHex) }
-    var groundBottom: Color { Color(hex: groundBottomHex) }
-    /// The glyph on that ground, and the fill inside the drawn screens.
-    var glyph: Color { .white }
-    var screen: Color { Color(hex: screenHex) }
+
+    /// The icon's ground, shared by every accent: deep olive to near black,
+    /// with near-black screens. Only the glyph takes the accent.
+    static let groundTop = Color(hex: 0x1F2A16)
+    static let groundBottom = Color(hex: 0x0C100A)
+    static let screen = Color(hex: 0x0E1408)
 
     var accentHex: UInt32 {
         switch self {
@@ -101,54 +101,6 @@ enum BrandPalette: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var groundTopHex: UInt32 {
-        switch self {
-        case .lime: 0xC0DD71
-        case .tangerine: 0xF9A24C
-        case .coral: 0xF77E6C
-        case .sunflower: 0xF7CF4E
-        case .kiwi: 0xB6DB61
-        case .mint: 0x6BD6A8
-        case .sky: 0x6FBCF2
-        case .lavender: 0xB69AF2
-        case .watermelon: 0xF57A9C
-        case .peach: 0xF9BE95
-        case .candy: 0xF5A3C8
-        }
-    }
-
-    var groundBottomHex: UInt32 {
-        switch self {
-        case .lime: 0x9CC23E
-        case .tangerine: 0xE8702A
-        case .coral: 0xDF5347
-        case .sunflower: 0xEBAA25
-        case .kiwi: 0x84B93A
-        case .mint: 0x3BB283
-        case .sky: 0x3A8BD6
-        case .lavender: 0x8B68DE
-        case .watermelon: 0xDB4A72
-        case .peach: 0xEE8F62
-        case .candy: 0xE0709F
-        }
-    }
-
-    /// A deeper cut of the same hue, so the screens read as screens.
-    var screenHex: UInt32 {
-        switch self {
-        case .lime: 0x74992C
-        case .tangerine: 0xB4521A
-        case .coral: 0xAE3A31
-        case .sunflower: 0xB77E14
-        case .kiwi: 0x5F8C25
-        case .mint: 0x25855F
-        case .sky: 0x2A66A5
-        case .lavender: 0x654AAE
-        case .watermelon: 0xAB3556
-        case .peach: 0xC0673F
-        case .candy: 0xB04F7A
-        }
-    }
 }
 
 /// The app icon's glyph drawn in a palette, at any size: the same geometry
@@ -162,19 +114,19 @@ struct BrandIconMark: View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 229 * scale, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [palette.groundTop, palette.groundBottom],
+                    colors: [BrandPalette.groundTop, BrandPalette.groundBottom],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ))
             RoundedRectangle(cornerRadius: 229 * scale, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [.white.opacity(0.26), .white.opacity(0)],
+                    colors: [.white.opacity(0.16), .white.opacity(0)],
                     startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.6)
                 ))
             display(x: 392, y: 236, barY: 474, barX: 446, scale: scale)
             display(x: 162, y: 372, barY: 610, barX: 216, scale: scale)
-            RoundedRectangle(cornerRadius: 17 * scale).fill(palette.glyph)
+            RoundedRectangle(cornerRadius: 17 * scale).fill(palette.accent)
                 .frame(width: 114 * scale, height: 34 * scale).offset(x: 340 * scale, y: 716 * scale)
-            RoundedRectangle(cornerRadius: 17 * scale).fill(palette.glyph.opacity(0.75))
+            RoundedRectangle(cornerRadius: 17 * scale).fill(palette.accent.opacity(0.75))
                 .frame(width: 282 * scale, height: 34 * scale).offset(x: 256 * scale, y: 756 * scale)
         }
         .frame(width: size, height: size)
@@ -183,12 +135,12 @@ struct BrandIconMark: View {
     private func display(x: CGFloat, y: CGFloat, barY: CGFloat, barX: CGFloat, scale: CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 54 * scale, style: .continuous)
-                .fill(palette.screen)
+                .fill(BrandPalette.screen)
                 .overlay(RoundedRectangle(cornerRadius: 54 * scale, style: .continuous)
-                    .strokeBorder(palette.glyph, lineWidth: max(34 * scale, 1.5)))
+                    .strokeBorder(palette.accent, lineWidth: max(34 * scale, 1.5)))
                 .frame(width: 470 * scale, height: 330 * scale)
                 .offset(x: x * scale, y: y * scale)
-            RoundedRectangle(cornerRadius: 26 * scale).fill(palette.glyph)
+            RoundedRectangle(cornerRadius: 26 * scale).fill(palette.accent)
                 .frame(width: 362 * scale, height: 52 * scale).offset(x: barX * scale, y: barY * scale)
         }
     }

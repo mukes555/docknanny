@@ -24,15 +24,15 @@ icon there looks wrong on half of all setups.
 
 | Token | Hex | Use |
 | --- | --- | --- |
-| Brand lime | `#C0DD71` | The accent everywhere: lenses, dock bars on screens, switches, highlights, the icon's ground |
-| Lime deep | `#9CC23E` | The icon ground's far corner |
-| Lime screen | `#74992C` | The screens inside the icon's displays |
-| Glyph | `#FFFFFF` | The displays and bars drawn on the icon |
-| Deep olive | `#1C2416` | Backgrounds behind the mascot where one is wanted |
+| Brand lime | `#C0DD71` | The accent everywhere: lenses, dock bars on screens, switches, highlights, the icon's glyph |
+| Deep olive | `#1F2A16` | The icon ground's near corner, and backgrounds behind the mascot |
+| Near black | `#0C100A` | The icon ground's far corner |
+| Screen black | `#0E1408` | The screens inside the icon's displays |
 | Mug black | `#141414` | Mascot prop, dark chrome |
 
-Nothing fluorescent: the lime sits at the light end and reads as sunny
-rather than neon. In the app the accent can be swapped for one of the sunny
+Black and green: the icon is the lime glyph on a near-black ground, which
+is what makes it read at 16 points and what keeps the lime from going
+fluorescent. In the app the accent can be swapped for one of the sunny
 family (Appearance, Accent) as a personal choice; the icon stays lime.
 
 ## Generation
@@ -68,8 +68,8 @@ the quokka in front of all of them. Add the character suffix to each.
 
 ```
 Halo A. Quokka front and centre, waving, an arc of five monitors fanned behind its head like a halo, each showing a small white dock bar at its bottom edge like the attached icon, screens softly lit in lime #C0DD71, no glow
-Halo B. Quokka seated cross-legged, serene, a ring of seven thin displays behind its head, screens in muted lime #C0DD71 with white dock bars, deep olive #1C2416 background, matte finish
-Banner. Wide crop, quokka at the left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime #C0DD71 screens on deep olive #1C2416, flat soft light
+Halo B. Quokka seated cross-legged, serene, a ring of seven thin displays behind its head, screens in muted lime #C0DD71 with white dock bars, deep olive #1F2A16 background, matte finish
+Banner. Wide crop, quokka at the left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime #C0DD71 screens on deep olive #1F2A16, flat soft light
 ```
 
 Ask for 2048 by 2048 (A and B) or 2400 by 900 (Banner), transparent

@@ -1,9 +1,9 @@
 // Draws DockNanny's app icon and menu bar mark, and writes the icon ladder.
 //
-// The mark is two displays, each with its own dock bar, in white on a lime
-// ground: the proposition drawn literally (docs/BRANDING.md). The geometry is
-// shared with the design canvas the direction was chosen on and with
-// BrandIconMark in the app, in a 1024-point space with y down, so every
+// The mark is two displays, each with its own dock bar, in lime on a near
+// black ground: the proposition drawn literally (docs/BRANDING.md). The
+// geometry is shared with the design canvas the direction was chosen on and
+// with BrandIconMark in the app, in a 1024-point space with y down, so every
 // rendering stays identical.
 //
 //   swift tools/make-icon.swift <output-directory>
@@ -13,12 +13,14 @@ import CoreGraphics
 import Foundation
 
 let space = CGColorSpaceCreateDeviceRGB()
-// Brand lime #C0DD71: the ground runs from a lighter to a deeper cut of it.
-let groundTop = CGColor(red: 0.753, green: 0.867, blue: 0.443, alpha: 1)      // #C0DD71, the brand lime itself
-let groundBottom = CGColor(red: 0.612, green: 0.761, blue: 0.243, alpha: 1)   // #9CC23E
-let screen = CGColor(red: 0.455, green: 0.600, blue: 0.173, alpha: 1)         // #74992C
-let glyphLight = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
-let glyphDeep = CGColor(red: 0.957, green: 0.973, blue: 0.918, alpha: 1)      // #F4F8EA
+// Black and green: a deep olive to near-black ground, the glyph in brand
+// lime #C0DD71 (a touch lighter at the top-left, a touch deeper at the
+// bottom-right, so it reads as lit), and near-black screens.
+let groundTop = CGColor(red: 0.122, green: 0.165, blue: 0.086, alpha: 1)      // #1F2A16
+let groundBottom = CGColor(red: 0.047, green: 0.063, blue: 0.039, alpha: 1)   // #0C100A
+let screen = CGColor(red: 0.055, green: 0.078, blue: 0.031, alpha: 1)         // #0E1408
+let glyphLight = CGColor(red: 0.812, green: 0.910, blue: 0.545, alpha: 1)     // #CFE88B
+let glyphDeep = CGColor(red: 0.702, green: 0.827, blue: 0.376, alpha: 1)      // #B3D360
 
 func gradient(_ from: CGColor, _ to: CGColor) -> CGGradient? {
     CGGradient(colorsSpace: space, colors: [from, to] as CFArray, locations: [0, 1])
@@ -78,7 +80,7 @@ func drawIcon(size: CGFloat) -> CGImage? {
     if let ground = gradient(groundTop, groundBottom) {
         context.drawLinearGradient(ground, start: .zero, end: CGPoint(x: size, y: size), options: [])
     }
-    let glossTop = CGColor(red: 1, green: 1, blue: 1, alpha: 0.12)
+    let glossTop = CGColor(red: 1, green: 1, blue: 1, alpha: 0.16)
     let glossEnd = CGColor(red: 1, green: 1, blue: 1, alpha: 0)
     if let gloss = gradient(glossTop, glossEnd) {
         context.drawLinearGradient(gloss, start: .zero, end: CGPoint(x: 0, y: size * 0.6), options: [])
@@ -86,7 +88,7 @@ func drawIcon(size: CGFloat) -> CGImage? {
     context.restoreGState()
 
     context.addPath(rounded(6, 6, 1012, 1012, 225, scale))
-    context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.22))
+    context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.14))
     context.setLineWidth(max(10 * scale, 1))
     context.strokePath()
 

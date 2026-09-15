@@ -2,10 +2,11 @@
 
 ## 0.4.0
 
-- The brand colour is lime #C0DD71 on a sunny ground with a white glyph,
-  chosen in the app from a family of ten candidates; the icon, the banner
-  and every accent follow it, and the accent of DockNanny's own windows
-  can be swapped for one of the others in Appearance.
+- The brand colour is lime #C0DD71, chosen in the app from a family of
+  ten candidates: the icon draws its two displays in lime on a near-black
+  ground, the banner and every accent follow it, and the accent of
+  DockNanny's own windows can be swapped for one of the others in
+  Appearance.
 - Renamed from macdock to DockNanny. Apple does not allow "Mac" inside a
   third-party product name, and the new name joins PortNanny. Settings are
   carried over from the old folder on first launch; Accessibility has to be
