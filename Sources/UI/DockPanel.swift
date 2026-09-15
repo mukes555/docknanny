@@ -12,6 +12,9 @@ final class DockPanel: NSPanel {
     /// never depends on which magnified tile happens to be on top in the view
     /// hierarchy.
     var menuForRightClick: ((NSPoint) -> NSMenu?)?
+    /// Told when a right-click menu starts and stops tracking; the menu runs
+    /// a nested loop, so both land before the click is done with.
+    var menuTrackingChanged: ((Bool) -> Void)?
 
     init(contentRect: CGRect) {
         super.init(
@@ -47,7 +50,9 @@ final class DockPanel: NSPanel {
             super.rightMouseDown(with: event)
             return
         }
+        menuTrackingChanged?(true)
         NSMenu.popUpContextMenu(menu, with: event, for: view)
+        menuTrackingChanged?(false)
     }
 
     /// Becoming key or main is exactly the focus theft this window exists to

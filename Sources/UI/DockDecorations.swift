@@ -39,7 +39,9 @@ struct HoverLabel: View {
     let geometry: DockGeometry
 
     var body: some View {
-        let iconReach = geometry.slabThickness - geometry.spacing + geometry.iconSize * scale
+        // The tile's far edge as the layout places it: one spacing in from
+        // the screen edge, then the icon at its current size.
+        let iconReach = geometry.spacing + geometry.iconSize * scale
         let depth = iconReach + (geometry.isVertical ? 8 + DockMetrics.labelMaximumWidth / 2 : 14)
 
         TileLabel(text: text)
