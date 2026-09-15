@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: project.yml and CHANGELOG must agree on the version
+        run: tools/check-version.sh
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
 

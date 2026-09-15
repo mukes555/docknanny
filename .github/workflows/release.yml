@@ -34,6 +34,9 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
 
+      - name: Tag, project.yml, and CHANGELOG must agree on the version
+        run: tools/check-version.sh "$RELEASE_TAG"
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
 
@@ -42,6 +45,13 @@ jobs:
 
       - name: Build DMG
         run: tools/release.sh
+
+      - name: Release notes from the CHANGELOG section
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          VERSION="${VERSION%%-*}"
+          tools/release-notes.sh "$VERSION" > build/release/RELEASE-NOTES.md
+          cat build/release/RELEASE-NOTES.md
 
       - name: Keep the checksums for the tap job
         uses: actions/upload-artifact@v4
@@ -53,9 +63,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          # An -rc, -beta or -alpha tag is a pre-release, so "latest" and the
+          # cask's livecheck skip it.
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+          body_path: build/release/RELEASE-NOTES.md
           files: |
             build/release/*.dmg
             build/release/SHA256SUMS
+          # GitHub appends its compare link and contributors below the notes.
           generate_release_notes: true
 
   # Pins the tap's cask to this release with its checksum, so `brew upgrade`
