@@ -16,6 +16,10 @@ final class SettingsStore {
     }
 
     let fileURL: URL
+    /// Why the last save failed, in words, or nil once a save has worked.
+    /// The settings window shows it: a change that seems to take and is
+    /// gone at the next launch is the worst kind of failure to keep quiet.
+    private(set) var saveFailure: String?
     private let writeDelay: Duration
     private var saveTask: Task<Void, Never>?
 
@@ -85,7 +89,9 @@ final class SettingsStore {
                 withIntermediateDirectories: true
             )
             try Self.encode(settings).write(to: fileURL, options: .atomic)
+            saveFailure = nil
         } catch {
+            saveFailure = error.localizedDescription
             Log.settings.error("Could not save settings: \(error.localizedDescription, privacy: .public)")
         }
     }

@@ -43,20 +43,34 @@ enum Trash {
     /// Asks Finder to do it. Finder shows its own "permanently erase?"
     /// confirmation and owns the deletion, so nothing here is irreversible on
     /// its own. The first use raises the Automation prompt for controlling
-    /// Finder; declining it leaves the Trash alone.
+    /// Finder; declining it leaves the Trash alone, and Finder answers every
+    /// later request the same way without asking again. So a request that
+    /// fails opens the Trash instead: the person can empty it there, and
+    /// sees why the menu item did nothing.
     @MainActor
     static func emptyViaFinder() {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", "tell application \"Finder\" to empty trash"]
+        process.standardError = Pipe()
         // The handler holds the process until it exits, so the child is
         // reaped rather than left a zombie when this scope ends.
-        process.terminationHandler = { finished in finished.terminationHandler = nil }
+        process.terminationHandler = { finished in
+            finished.terminationHandler = nil
+            guard finished.terminationStatus != 0 else { return }
+            let output = (finished.standardError as? Pipe)?.fileHandleForReading.readDataToEndOfFile() ?? Data()
+            let reason = (String(bytes: output, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            Task { @MainActor in
+                Log.workspace.error("Finder did not empty the Trash: \(reason, privacy: .public)")
+                open()
+            }
+        }
         do {
             try process.run()
         } catch {
             let reason = error.localizedDescription
             Log.workspace.error("Could not ask Finder to empty the Trash: \(reason, privacy: .public)")
+            open()
         }
     }
 

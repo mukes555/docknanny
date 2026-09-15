@@ -139,6 +139,9 @@ struct SettingsRootView: View {
                 .padding(.horizontal, 30)
                 .padding(.top, 58)
                 .padding(.bottom, 6)
+            if let failure = store.saveFailure {
+                SaveFailureBanner(reason: failure)
+            }
             detail
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -164,6 +167,23 @@ struct SettingsRootView: View {
         case .apps: AppsSettingsView(store: store)
         case .presets: PresetsSettingsView(store: store)
         }
+    }
+}
+
+/// Shown on every pane while settings cannot be written.
+private struct SaveFailureBanner: View {
+    let reason: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Theme.Status.warning)
+            Text("Settings cannot be saved, so changes are lost when DockNanny quits. \(reason)")
+                .settingsText(Theme.Text.caption, Theme.Ink.primary)
+        }
+        .padding(.horizontal, 30)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
     }
 }
 

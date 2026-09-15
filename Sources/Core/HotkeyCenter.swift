@@ -20,12 +20,12 @@ final class HotkeyCenter {
     /// only ever holds genuine failures.
     private(set) var conflicts: Set<HotkeyRole> = []
 
-    private var registered: [UInt32: (reference: EventHotKeyRef, binding: Binding)] = [:]
+    private var registered: [UInt32: Binding] = [:]
+    private let registrations = HotkeyRegistrations()
     /// Hot keys currently held down. Carbon repeats the pressed event at the
     /// keyboard's repeat rate for as long as the keys are held, and one press
     /// is one action: a held toggle must not flicker.
     private var held: Set<UInt32> = []
-    private var handler: EventHandlerRef?
     private var nextIdentifier: UInt32 = 1
 
     /// "dnny", so hot key events can be told apart from anyone else's.
@@ -42,7 +42,7 @@ final class HotkeyCenter {
             eventTypes.count,
             &eventTypes,
             Unmanaged.passUnretained(self).toOpaque(),
-            &handler
+            &registrations.handler
         )
         if status != noErr {
             Log.app.error("Hot key handler refused: \(status, privacy: .public)")
@@ -52,9 +52,10 @@ final class HotkeyCenter {
     /// Replaces every binding. Re-registering from scratch is simpler than
     /// diffing and costs nothing at the rate settings change.
     func replaceAll(with bindings: [Binding]) {
-        for (_, entry) in registered {
-            UnregisterEventHotKey(entry.reference)
+        for reference in registrations.hotKeys.values {
+            UnregisterEventHotKey(reference)
         }
+        registrations.hotKeys.removeAll()
         registered.removeAll()
         held.removeAll()
         conflicts.removeAll()
@@ -84,7 +85,8 @@ final class HotkeyCenter {
             Log.app.notice("Hot key \(binding.role.keyLabel, privacy: .public) is taken: \(status, privacy: .public)")
             return
         }
-        registered[identifier] = (reference, binding)
+        registrations.hotKeys[identifier] = reference
+        registered[identifier] = binding
     }
 
     /// Carbon calls this on the main thread, from the run loop that also
@@ -110,9 +112,29 @@ final class HotkeyCenter {
             if isRelease {
                 center.held.remove(hotKey.id)
             } else if center.held.insert(hotKey.id).inserted {
-                center.registered[hotKey.id]?.binding.action()
+                center.registered[hotKey.id]?.action()
             }
         }
         return noErr
+    }
+}
+
+/// What Carbon hands back, given back when the centre goes away: the event
+/// handler, whose callback carries an unretained pointer to the centre, and
+/// every hot key, which would otherwise stay swallowed system-wide with no
+/// one listening. A main-actor class cannot do this from its own deinit
+/// under strict concurrency; this small box can, and it is released with
+/// its owner.
+final class HotkeyRegistrations {
+    var handler: EventHandlerRef?
+    var hotKeys: [UInt32: EventHotKeyRef] = [:]
+
+    deinit {
+        for reference in hotKeys.values {
+            UnregisterEventHotKey(reference)
+        }
+        if let handler {
+            RemoveEventHandler(handler)
+        }
     }
 }
