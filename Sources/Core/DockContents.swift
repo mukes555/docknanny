@@ -27,10 +27,15 @@ enum DockContents {
         source: DockSource,
         configuration: ResolvedDockConfiguration,
         iconProvider: @escaping (DockItem.Kind) -> NSImage?,
-        nameProvider: @escaping (String) -> String = DockContents.displayName(forBundleIdentifier:)
+        nameProvider: @escaping (String) -> String = DockContents.displayName(forBundleIdentifier:),
+        fileNameProvider: @escaping (URL) -> String = DockContents.displayName(forFile:)
     ) -> [DockItem] {
         var builder = Builder(
-            source: source, configuration: configuration, iconProvider: iconProvider, nameProvider: nameProvider
+            source: source,
+            configuration: configuration,
+            iconProvider: iconProvider,
+            nameProvider: nameProvider,
+            fileNameProvider: fileNameProvider
         )
         builder.addPinnedApps()
         if configuration.showRunningApps {
@@ -53,6 +58,7 @@ enum DockContents {
         let configuration: ResolvedDockConfiguration
         let iconProvider: (DockItem.Kind) -> NSImage?
         let nameProvider: (String) -> String
+        let fileNameProvider: (URL) -> String
 
         private(set) var items: [DockItem] = []
         private var emitted = Set<String>()
@@ -62,12 +68,14 @@ enum DockContents {
             source: DockSource,
             configuration: ResolvedDockConfiguration,
             iconProvider: @escaping (DockItem.Kind) -> NSImage?,
-            nameProvider: @escaping (String) -> String
+            nameProvider: @escaping (String) -> String,
+            fileNameProvider: @escaping (URL) -> String
         ) {
             self.source = source
             self.configuration = configuration
             self.iconProvider = iconProvider
             self.nameProvider = nameProvider
+            self.fileNameProvider = fileNameProvider
             runningByIdentifier = Dictionary(
                 source.running.map { ($0.id, $0) },
                 uniquingKeysWith: { first, _ in first }
@@ -153,7 +161,7 @@ enum DockContents {
         private func name(for kind: DockItem.Kind) -> String {
             switch kind {
             case .app(let identifier): nameProvider(identifier)
-            case .file(let url): FileManager.default.displayName(atPath: url.path)
+            case .file(let url): fileNameProvider(url)
             case .trash: "Trash"
             case .spacer: ""
             }
@@ -173,9 +181,21 @@ enum DockContents {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
             return bundleIdentifier.components(separatedBy: ".").last ?? bundleIdentifier
         }
-        let info = Bundle(url: url)?.localizedInfoDictionary ?? Bundle(url: url)?.infoDictionary
-        let declared = (info?["CFBundleDisplayName"] ?? info?["CFBundleName"]) as? String
+        // Key by key: an app with an InfoPlist.strings that names neither
+        // key still has a name in its Info.plist proper.
+        let bundle = Bundle(url: url)
+        let localized = bundle?.localizedInfoDictionary
+        let base = bundle?.infoDictionary
+        let declared = (
+            localized?["CFBundleDisplayName"] ?? base?["CFBundleDisplayName"]
+                ?? localized?["CFBundleName"] ?? base?["CFBundleName"]
+        ) as? String
         return declared ?? url.deletingPathExtension().lastPathComponent
+    }
+
+    /// The name Finder shows for a folder or document.
+    static func displayName(forFile url: URL) -> String {
+        FileManager.default.displayName(atPath: url.path)
     }
 
     static func icon(for kind: DockItem.Kind) -> NSImage? {

@@ -59,12 +59,25 @@ struct AppWindow: Identifiable {
     let element: AXUIElement
 }
 
+/// A window the keeper may move, with what it needs read in one round trip.
+struct KeptWindow {
+    let element: AXUIElement
+    /// Where the app says the window is, in Accessibility's space; nil when
+    /// the app would not say. The window server's word is preferred anyway.
+    let reportedFrame: CGRect?
+}
+
 /// Reads and raises an app's windows through Accessibility.
 @MainActor
 enum AppWindows {
     /// A hung app would otherwise hold the caller, on the main thread, for
     /// the default six seconds per attribute. Set on the system-wide element
-    /// it applies to every element this process talks to.
+    /// it applies to every element this process talks to, so it has to be in
+    /// place before the first message to any app, observers included.
+    static func installMessagingTimeout() {
+        _ = messagingTimeoutInstalled
+    }
+
     private static let messagingTimeoutInstalled: Bool = {
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.25)
         return true
@@ -72,30 +85,72 @@ enum AppWindows {
 
     /// More windows than this and a menu would scroll off the screen anyway;
     /// it also bounds the time spent talking to a slow app.
-    private static let windowLimit = 40
+    private static let menuWindowLimit = 40
+    /// The keeper has no menu to fit; an app with very many windows is bounded
+    /// all the same, since each one is a round trip.
+    private static let keeperWindowLimit = 200
+
+    /// Palettes and system dialogs are windows to Accessibility but not to a
+    /// person. Judged by exclusion because apps are loose with subroles:
+    /// Electron has reported "unknown" for its windows, and some apps report
+    /// none at all.
+    private static let excludedSubroles: Set<String> = [
+        kAXFloatingWindowSubrole, kAXSystemFloatingWindowSubrole, kAXSystemDialogSubrole
+    ]
 
     /// nil when Accessibility has not been granted; empty when the app has no
     /// standard windows.
     static func list(processIdentifier pid: pid_t) -> [AppWindow]? {
         guard Accessibility.isTrusted else { return nil }
-        _ = messagingTimeoutInstalled
+        installMessagingTimeout()
 
         let application = AXUIElementCreateApplication(pid)
         guard let elements = attribute(kAXWindowsAttribute, of: application) as? [AXUIElement] else { return [] }
 
-        return elements.prefix(windowLimit).enumerated().compactMap { index, element -> AppWindow? in
-            // Palettes, sheets and popovers are windows to Accessibility but
-            // not to a person; the Dock lists standard windows only.
-            let subrole = attribute(kAXSubroleAttribute, of: element) as? String
+        return elements.prefix(menuWindowLimit).enumerated().compactMap { index, element -> AppWindow? in
+            let values = attributes(
+                [kAXSubroleAttribute, kAXTitleAttribute, kAXMinimizedAttribute, kAXMainAttribute], of: element
+            )
+            // The Dock lists standard windows only; sheets and popovers are
+            // not something a person picks from a menu.
+            let subrole = values[0] as? String
             guard subrole == nil || subrole == kAXStandardWindowSubrole else { return nil }
-            let title = attribute(kAXTitleAttribute, of: element) as? String ?? ""
+            let title = values[1] as? String ?? ""
             return AppWindow(
                 id: index,
                 title: title.isEmpty ? "Untitled" : title,
-                isMinimized: attribute(kAXMinimizedAttribute, of: element) as? Bool ?? false,
-                isMain: attribute(kAXMainAttribute, of: element) as? Bool ?? false,
+                isMinimized: values[2] as? Bool ?? false,
+                isMain: values[3] as? Bool ?? false,
                 element: element
             )
+        }
+    }
+
+    /// Every window the keeper should judge: a window by role, not a palette
+    /// or a system dialog by subrole, not minimized, and not full screen (a
+    /// full-screen window has its own Space and nothing to be clear of).
+    static func windowsToKeepClear(processIdentifier pid: pid_t) -> [KeptWindow] {
+        guard Accessibility.isTrusted else { return [] }
+        installMessagingTimeout()
+
+        let application = AXUIElementCreateApplication(pid)
+        guard let elements = attribute(kAXWindowsAttribute, of: application) as? [AXUIElement] else { return [] }
+
+        return elements.prefix(keeperWindowLimit).compactMap { element -> KeptWindow? in
+            let values = attributes([
+                kAXRoleAttribute, kAXSubroleAttribute, kAXMinimizedAttribute,
+                "AXFullScreen", kAXPositionAttribute, kAXSizeAttribute
+            ], of: element)
+            let isWindow = values[0] as? String == kAXWindowRole
+            let isExcluded = excludedSubroles.contains(values[1] as? String ?? "")
+            let isHidden = values[2] as? Bool == true || values[3] as? Bool == true
+            guard isWindow, !isExcluded, !isHidden else { return nil }
+
+            var reported: CGRect?
+            if let position = point(from: values[4]), let size = size(from: values[5]) {
+                reported = CGRect(origin: position, size: size)
+            }
+            return KeptWindow(element: element, reportedFrame: reported)
         }
     }
 
@@ -109,23 +164,13 @@ enum AppWindows {
         application.activate()
     }
 
-    // MARK: Frames, for the window keeper
+    // MARK: Frames, for the window keeper and the probe
 
     /// In Accessibility's space: origin at the top-left of the primary display.
     static func frame(of window: AXUIElement) -> CGRect? {
-        var position = CGPoint.zero
-        var size = CGSize.zero
-        guard read(attribute(kAXPositionAttribute, of: window), as: .cgPoint, into: &position),
-              read(attribute(kAXSizeAttribute, of: window), as: .cgSize, into: &size) else { return nil }
+        guard let position = point(from: attribute(kAXPositionAttribute, of: window)),
+              let size = size(from: attribute(kAXSizeAttribute, of: window)) else { return nil }
         return CGRect(origin: position, size: size)
-    }
-
-    /// An app with a broken Accessibility implementation can answer a
-    /// position request with anything; only a real AXValue is unpacked.
-    private static func read<Value>(_ object: AnyObject?, as type: AXValueType, into result: inout Value) -> Bool {
-        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else { return false }
-        // swiftlint:disable:next force_cast
-        return AXValueGetValue(object as! AXValue, type, &result)
     }
 
     /// Position first, then size: an app clamps a size to its screen, so the
@@ -145,38 +190,54 @@ enum AppWindows {
         return errors.first { $0 != .success }
     }
 
-    /// A window a person works in: a window by role, not a palette or a
-    /// system dialog by subrole, and not minimized. The subrole is judged by
-    /// exclusion because apps are loose with it: Electron reports "unknown"
-    /// for every window it has, and some apps report none at all.
+    /// The keeper's rule, for the probe's report: a window a person works in.
     static func isStandardWindow(_ window: AXUIElement) -> Bool {
         guard attribute(kAXRoleAttribute, of: window) as? String == kAXWindowRole else { return false }
         let subrole = attribute(kAXSubroleAttribute, of: window) as? String ?? ""
-        let floating = [kAXFloatingWindowSubrole, kAXSystemFloatingWindowSubrole, kAXSystemDialogSubrole]
         let minimized = attribute(kAXMinimizedAttribute, of: window) as? Bool ?? false
-        return !floating.contains(subrole) && !minimized
+        return !excludedSubroles.contains(subrole) && !minimized
     }
 
-    /// For the log, when a window is rejected: what it said it was. Logged
-    /// as private: a window title is the person's business.
-    static func describe(_ element: AXUIElement) -> String {
-        let role = attribute(kAXRoleAttribute, of: element) as? String ?? "no role"
-        let subrole = attribute(kAXSubroleAttribute, of: element) as? String ?? "no subrole"
-        let title = attribute(kAXTitleAttribute, of: element) as? String ?? ""
-        let minimized = attribute(kAXMinimizedAttribute, of: element) as? Bool ?? false
-        var position: AnyObject?
-        let positionStatus = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position)
-        return "\(role)/\(subrole) title=\(title.prefix(30)) minimized=\(minimized) position=\(positionStatus.rawValue)"
+    // MARK: Reading
+
+    /// An app with a broken Accessibility implementation can answer a
+    /// position request with anything; only a real AXValue is unpacked.
+    private static func point(from object: AnyObject?) -> CGPoint? {
+        var point = CGPoint.zero
+        guard let value = axValue(object), AXValueGetValue(value, .cgPoint, &point) else { return nil }
+        return point
     }
 
-    /// A full-screen window has its own Space and nothing to be clear of.
-    static func isFullScreen(_ window: AXUIElement) -> Bool {
-        attribute("AXFullScreen", of: window) as? Bool ?? false
+    private static func size(from object: AnyObject?) -> CGSize? {
+        var size = CGSize.zero
+        guard let value = axValue(object), AXValueGetValue(value, .cgSize, &size) else { return nil }
+        return size
+    }
+
+    private static func axValue(_ object: AnyObject?) -> AXValue? {
+        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else { return nil }
+        // swiftlint:disable:next force_cast
+        return (object as! AXValue)
     }
 
     private static func attribute(_ name: String, of element: AXUIElement) -> AnyObject? {
         var value: AnyObject?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }
         return value
+    }
+
+    /// Several attributes in one round trip, in the order asked for. An
+    /// attribute the app lacks comes back as an AXValue carrying an error,
+    /// which reads as nil here, the same as a single read that failed.
+    private static func attributes(_ names: [String], of element: AXUIElement) -> [AnyObject?] {
+        var array: CFArray?
+        let status = AXUIElementCopyMultipleAttributeValues(element, names as CFArray, [], &array)
+        guard status == .success, let values = array as? [AnyObject], values.count == names.count else {
+            return Array(repeating: nil, count: names.count)
+        }
+        return values.map { value in
+            guard let axValue = axValue(value), AXValueGetType(axValue) == .axError else { return value }
+            return nil
+        }
     }
 }

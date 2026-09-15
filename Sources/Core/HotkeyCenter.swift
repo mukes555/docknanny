@@ -21,6 +21,10 @@ final class HotkeyCenter {
     private(set) var conflicts: Set<HotkeyRole> = []
 
     private var registered: [UInt32: (reference: EventHotKeyRef, binding: Binding)] = [:]
+    /// Hot keys currently held down. Carbon repeats the pressed event at the
+    /// keyboard's repeat rate for as long as the keys are held, and one press
+    /// is one action: a held toggle must not flicker.
+    private var held: Set<UInt32> = []
     private var handler: EventHandlerRef?
     private var nextIdentifier: UInt32 = 1
 
@@ -28,12 +32,15 @@ final class HotkeyCenter {
     private static let signature: OSType = 0x646E_6E79
 
     init() {
-        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        var eventTypes = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased))
+        ]
         let status = InstallEventHandler(
             GetApplicationEventTarget(),
             Self.dispatch,
-            1,
-            &eventType,
+            eventTypes.count,
+            &eventTypes,
             Unmanaged.passUnretained(self).toOpaque(),
             &handler
         )
@@ -49,6 +56,7 @@ final class HotkeyCenter {
             UnregisterEventHotKey(entry.reference)
         }
         registered.removeAll()
+        held.removeAll()
         conflicts.removeAll()
 
         for binding in bindings {
@@ -96,9 +104,14 @@ final class HotkeyCenter {
         )
         guard status == noErr, hotKey.signature == signature else { return OSStatus(eventNotHandledErr) }
 
+        let isRelease = GetEventKind(event) == UInt32(kEventHotKeyReleased)
         let center = Unmanaged<HotkeyCenter>.fromOpaque(userData).takeUnretainedValue()
         MainActor.assumeIsolated {
-            center.registered[hotKey.id]?.binding.action()
+            if isRelease {
+                center.held.remove(hotKey.id)
+            } else if center.held.insert(hotKey.id).inserted {
+                center.registered[hotKey.id]?.binding.action()
+            }
         }
         return noErr
     }

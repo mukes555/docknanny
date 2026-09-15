@@ -181,4 +181,17 @@ struct DockContentsTests {
 
         #expect(items.map(\.id) == ["a"])
     }
+
+    @Test("A tile whose icon arrives is a changed tile")
+    func iconArrivalChangesTheTile() {
+        func tile(icon: NSImage?) -> DockItem {
+            DockItem(
+                id: "a", kind: .app(bundleIdentifier: "a"), section: .apps, name: "A",
+                icon: icon, isRunning: false, isPinned: true, isActive: false
+            )
+        }
+
+        #expect(tile(icon: nil) != tile(icon: NSImage()))
+        #expect(tile(icon: NSImage()) == tile(icon: NSImage()))
+    }
 }
