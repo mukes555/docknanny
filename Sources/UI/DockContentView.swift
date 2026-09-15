@@ -50,6 +50,13 @@ struct DockContentView: View {
         .dropDestination(for: URL.self) { urls, location in
             handleDrop(of: urls, at: location)
         } isTargeted: { isDropTarget = $0 }
+        // A dock hidden mid-press never sees the release; the next press
+        // would otherwise inherit the old tile.
+        .onChange(of: isRevealed) { _, revealed in
+            guard !revealed else { return }
+            session = nil
+            pointerSlotPosition = nil
+        }
     }
 
     /// The slab hugs the screen edge; the headroom sits on the other side.
@@ -67,7 +74,12 @@ struct DockContentView: View {
         Color.white.opacity(0.001)
             .contentShape(.rect)
             .onContinuousHover { phase in
-                if case .active = phase { onPointerInside(true) }
+                switch phase {
+                case .active: onPointerInside(true)
+                // A brush against the edge that leaves again cancels the
+                // reveal it started, rather than revealing to nobody.
+                case .ended: onPointerInside(false)
+                }
             }
     }
 

@@ -44,7 +44,9 @@ extension DockPanelController {
         case .right: CGPoint(x: anchor.x - size.width - gap, y: anchor.y - size.height / 2)
         }
         let point = hosting.isFlipped ? topLeft : CGPoint(x: topLeft.x, y: hosting.bounds.height - topLeft.y)
+        menuTracking(true)
         menu.popUp(positioning: nil, at: point, in: hosting)
+        menuTracking(false)
     }
 
     // MARK: Drags between docks

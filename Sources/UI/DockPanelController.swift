@@ -42,6 +42,13 @@ final class DockPanelController {
     private(set) var isRevealed: Bool
     /// Pointer is on the dock, so the window is at full size.
     private var isExpanded = false
+    /// Menus track in a nested run loop with the pointer off the dock, and
+    /// the leave event that fires as it goes must not collapse or hide the
+    /// dock under the open menu.
+    private var isTrackingMenu = false
+    /// The frame the last render asked for. During the reveal animation the
+    /// panel's own frame is still on its way there.
+    private var targetFrame: CGRect = .zero
 
     private var revealTask: Task<Void, Never>?
     private var concealTask: Task<Void, Never>?
@@ -82,6 +89,7 @@ final class DockPanelController {
         container.addSubview(hosting)
         panel.contentView = container
         panel.menuForRightClick = { [weak self] point in self?.menu(forRightClickInWindow: point) }
+        panel.menuTrackingChanged = { [weak self] tracking in self?.menuTracking(tracking) }
         panel.orderFrontRegardless()
         render(animated: false)
 
@@ -108,8 +116,14 @@ final class DockPanelController {
         self.configuration = configuration
         self.items = items
 
-        // Turning auto-hide off must not leave the dock stuck as a sliver.
+        // Turning auto-hide off must not leave the dock stuck as a sliver:
+        // neither now, nor when a conceal already on its way lands on a dock
+        // that no longer auto-hides and so can never be revealed again.
         if autoHideChanged {
+            revealTask?.cancel()
+            revealTask = nil
+            concealTask?.cancel()
+            concealTask = nil
             isRevealed = !configuration.autoHide
         }
         render(animated: false)
@@ -125,7 +139,28 @@ final class DockPanelController {
 
     // MARK: Pointer
 
+    /// The pointer counts as on the dock anywhere between the screen edge
+    /// and the slab as well: with a margin wider than the hidden sliver, a
+    /// pointer pushed against the edge would otherwise be outside a dock it
+    /// just revealed, and the dock would hide and show in a loop.
+    private var hoverZone: CGRect {
+        let frame = targetFrame
+        let margin = configuration.margin
+        return switch configuration.edge {
+        case .bottom: CGRect(x: frame.minX, y: frame.minY - margin, width: frame.width, height: frame.height + margin)
+        case .left: CGRect(x: frame.minX - margin, y: frame.minY, width: frame.width + margin, height: frame.height)
+        case .right: CGRect(x: frame.minX, y: frame.minY, width: frame.width + margin, height: frame.height)
+        }
+    }
+
+    func menuTracking(_ tracking: Bool) {
+        isTrackingMenu = tracking
+        guard !tracking else { return }
+        pointerMovedInside(hoverZone.contains(NSEvent.mouseLocation))
+    }
+
     private func pointerMovedInside(_ isInside: Bool) {
+        guard isInside || !isTrackingMenu else { return }
         if isRevealed, isInside != isExpanded {
             isExpanded = isInside
             render(animated: false)
@@ -159,6 +194,12 @@ final class DockPanelController {
 
         concealTask = Task { [weak self] in
             try? await Task.sleep(for: Self.concealDelay)
+            // The pointer may still be beside the dock with no window under
+            // it to say so (between the screen edge and the slab, or in the
+            // headroom); the dock stays until the pointer has really gone.
+            while !Task.isCancelled, let self, hoverZone.contains(NSEvent.mouseLocation) {
+                try? await Task.sleep(for: Self.concealDelay)
+            }
             guard !Task.isCancelled else { return }
             self?.setRevealed(false)
         }
@@ -171,6 +212,12 @@ final class DockPanelController {
         isRevealed = revealed
         isExpanded = false
         render(animated: true)
+        // A reveal from a brush against the screen edge, with the pointer
+        // gone or still short of the slab when it lands, gets no leave event
+        // to start the conceal.
+        if revealed, !targetFrame.contains(NSEvent.mouseLocation) {
+            scheduleConceal()
+        }
     }
 
     // MARK: Rendering
@@ -191,6 +238,7 @@ final class DockPanelController {
         let full = Self.fullFrame(for: display, configuration: configuration, fit: fit, revealed: isRevealed)
         let showsSlabOnly = isRevealed && !isExpanded
         let frame = showsSlabOnly ? Self.restFrame(within: full, fit: fit, edge: configuration.edge) : full
+        targetFrame = frame
 
         // The content is always laid out at full size; at rest the window is
         // the slab's size and the content is shifted so the slab is what shows.

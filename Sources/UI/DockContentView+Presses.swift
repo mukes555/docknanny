@@ -64,7 +64,13 @@ extension DockContentView {
     }
 
     private func showPoof(at point: CGPoint) {
-        poof = point
+        // The release point is off the slab by definition and usually beyond
+        // the window; the poof shows at the nearest point inside it.
+        let inside = CGRect(origin: .zero, size: fit.panelSize).insetBy(dx: 14, dy: 14)
+        poof = inside.isNull ? point : CGPoint(
+            x: min(max(point.x, inside.minX), inside.maxX),
+            y: min(max(point.y, inside.minY), inside.maxY)
+        )
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
             poof = nil
@@ -88,6 +94,12 @@ extension DockContentView {
         }
         if item.bundleIdentifier != nil, !item.isRunning {
             launching.insert(item.id)
+            // An app that never comes up (not installed, or a launch the
+            // person cancelled at a prompt) would otherwise bounce for ever.
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(8))
+                launching.remove(item.id)
+            }
         }
         actions.activate(item)
         if flags.contains(.option) {
@@ -95,8 +107,11 @@ extension DockContentView {
         }
     }
 
-    /// A drop on the Trash tile deletes; anywhere else on the dock pins.
+    /// A drop on the Trash tile deletes; anywhere else on the dock pins. A
+    /// hidden dock is an invisible sliver, and a file let go on it would be
+    /// pinned, or trashed, with nothing on screen to say so.
     func handleDrop(of urls: [URL], at location: CGPoint) -> Bool {
+        guard isRevealed else { return false }
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return false }
 

@@ -16,6 +16,10 @@ import AppKit
 enum TileMenu {
     static func make(for item: DockItem, actions: DockActions, windows: [AppWindow]? = nil) -> NSMenu {
         let menu = NSMenu()
+        // With auto-enabling on, an item whose target answers its action is
+        // enabled whatever isEnabled says, which made the headers clickable
+        // and "Empty Trash..." live with an empty Trash.
+        menu.autoenablesItems = false
         switch item.kind {
         case .app:
             addAppItems(to: menu, for: item, actions: actions, windows: windows)

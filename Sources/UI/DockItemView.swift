@@ -34,7 +34,6 @@ struct DockItemView: View {
             .onChange(of: isLaunching, initial: true) { _, launching in
                 launching ? startBouncing() : settle()
             }
-            .help(item.name)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
     }
