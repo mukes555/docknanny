@@ -63,9 +63,23 @@ final class HotkeyController {
             bindings.append(HotkeyCenter.Binding(
                 role: .toggleHiding,
                 modifiers: current.hotkeyModifiers,
-                action: { [weak self] in self?.settings.settings.autoHide.toggle() }
+                action: { [weak self] in self?.toggleHiding() }
             ))
         }
         center.replaceAll(with: bindings)
+    }
+
+    /// Every dock flips together: the ones following the global setting and
+    /// the ones with a value of their own. A display whose auto-hide was
+    /// ever set by hand keeps that value over the global one, so flipping
+    /// only the global would leave the shortcut dead there.
+    private func toggleHiding() {
+        var current = settings.settings
+        let hidden = !current.autoHide
+        current.autoHide = hidden
+        for key in current.perDisplay.keys where current.perDisplay[key]?.autoHide != nil {
+            current.perDisplay[key]?.autoHide = hidden
+        }
+        settings.settings = current
     }
 }
