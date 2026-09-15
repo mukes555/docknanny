@@ -14,12 +14,19 @@ enum Trash {
         request.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
         request.dirattr = attrgroup_t(ATTR_DIR_ENTRYCOUNT)
 
+        let path = NSHomeDirectory() + "/.Trash"
         var reply = EntryCountReply()
-        let status = getattrlist(
-            NSHomeDirectory() + "/.Trash", &request, &reply,
-            MemoryLayout<EntryCountReply>.size, UInt32(FSOPT_NOFOLLOW)
-        )
-        return status == 0 && reply.entries > 0
+        let status = getattrlist(path, &request, &reply, MemoryLayout<EntryCountReply>.size, UInt32(FSOPT_NOFOLLOW))
+        guard status == 0 else { return false }
+        return Int(reply.entries) > housekeepingEntries(in: path)
+    }
+
+    /// Finder keeps its own files in the Trash folder (a .DS_Store once the
+    /// Trash has been looked at, a .localized marker) and they survive
+    /// emptying, so they must not count as contents. Listing the folder is
+    /// not allowed without Full Disk Access; asking after a known name is.
+    nonisolated private static func housekeepingEntries(in path: String) -> Int {
+        [".DS_Store", ".localized"].filter { access(path + "/" + $0, F_OK) == 0 }.count
     }
 
     /// The reply buffer: its own length, then the requested attribute.

@@ -92,4 +92,13 @@ struct SystemDockTests {
         let decoded = try JSONDecoder().decode(Settings.self, from: Data("{}".utf8))
         #expect(decoded.mirrorSystemDock)
     }
+
+    @Test("One malformed tile entry costs that entry, not the list")
+    func malformedTileEntryIsSkipped() {
+        let mixed: [Any] = [tile(["bundle-identifier": "com.apple.Safari"]), "junk", 5, ["tile-type": "spacer-tile"]]
+
+        #expect(SystemDockMonitor.tiles(from: mixed).count == 2)
+        #expect(SystemDockMonitor.tiles(from: "junk").isEmpty)
+        #expect(SystemDockMonitor.tiles(from: nil).isEmpty)
+    }
 }

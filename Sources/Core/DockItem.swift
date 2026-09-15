@@ -44,12 +44,15 @@ struct DockItem: Identifiable, Equatable {
     }
 
     /// Pixels are not compared: an NSImage has no useful equality, and
-    /// reloading the same icon is not a change worth a re-render.
+    /// reloading the same icon is not a change worth a re-render. Whether
+    /// there is an icon at all is: an app pinned before it was installed
+    /// gets its icon the moment the placeholder can be replaced.
     static func == (lhs: DockItem, rhs: DockItem) -> Bool {
         lhs.id == rhs.id
             && lhs.kind == rhs.kind
             && lhs.section == rhs.section
             && lhs.name == rhs.name
+            && (lhs.icon == nil) == (rhs.icon == nil)
             && lhs.isRunning == rhs.isRunning
             && lhs.isPinned == rhs.isPinned
             && lhs.isActive == rhs.isActive

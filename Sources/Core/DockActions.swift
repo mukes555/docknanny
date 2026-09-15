@@ -66,7 +66,11 @@ enum DockCommands {
     static func reveal(_ item: DockItem) {
         switch item.kind {
         case .app(let identifier):
-            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
+            // The running copy, if there is one: a build under development
+            // is not the copy LaunchServices would name as the default.
+            let url = runningApplication(for: item)?.bundleURL
+                ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
+            guard let url else {
                 Log.workspace.notice("Cannot reveal an application that is not installed")
                 return
             }
@@ -125,8 +129,13 @@ enum DockCommands {
         runningApplication(for: item)?.terminate()
     }
 
+    /// The process behind a tile, chosen the way the running-apps monitor
+    /// chooses what to show: a helper sharing the bundle identifier, or an
+    /// instance on its way out, must not be the one hidden, quit or listed.
     private static func runningApplication(for item: DockItem) -> NSRunningApplication? {
         guard let identifier = item.bundleIdentifier else { return nil }
-        return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == identifier }
+        return NSWorkspace.shared.runningApplications.first {
+            $0.bundleIdentifier == identifier && $0.activationPolicy == .regular && !$0.isTerminated
+        }
     }
 }

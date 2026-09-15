@@ -78,7 +78,13 @@ final class SystemDockMonitor {
     }
 
     nonisolated private static func tiles(_ key: String) -> [[String: Any]] {
-        value(key) as? [[String: Any]] ?? []
+        tiles(from: value(key))
+    }
+
+    /// Entry by entry: a hand-edited plist with one stray value in the list
+    /// keeps every other tile, as the tile reader promises.
+    nonisolated static func tiles(from value: Any?) -> [[String: Any]] {
+        (value as? [Any])?.compactMap { $0 as? [String: Any] } ?? []
     }
 
     nonisolated private static func value(_ key: String) -> Any? {
