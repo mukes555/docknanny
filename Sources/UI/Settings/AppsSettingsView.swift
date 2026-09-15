@@ -61,10 +61,10 @@ struct AppsSettingsView: View {
                 SettingsDivider()
                 SettingRow(
                     title: "Match the Dock's icon size",
-                    subtitle: "Your Dock uses \(Int(systemTileSize)) pt; "
-                        + "DockNanny is at \(Int(store.settings.iconSize)) pt."
+                    subtitle: "Your Dock uses \(systemTileSize.wholeNumberLabel) pt; "
+                        + "DockNanny is at \(store.settings.iconSize.wholeNumberLabel) pt."
                 ) {
-                    Button("Use \(Int(systemTileSize)) pt") {
+                    Button("Use \(systemTileSize.wholeNumberLabel) pt") {
                         store.settings.iconSize = systemTileSize.clamped(to: Settings.Limits.iconSize)
                     }
                     .controlSize(.small)

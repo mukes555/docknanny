@@ -74,14 +74,15 @@ struct SettingsDecodingTests {
         #expect(decoded == original)
     }
 
-    @Test("One corrupt display override does not discard the others")
-    func oneBadOverrideDoesNotTakeTheRestWithIt() throws {
+    @Test("A malformed field costs that field, not the display's whole override")
+    func oneBadFieldKeepsTheRestOfTheOverride() throws {
         let json = """
         {
           "perDisplay": {
             "1": { "edge": "left" },
-            "2": { "edge": 12345 },
-            "3": { "iconSize": 72 }
+            "2": { "edge": 12345, "iconSize": 72 },
+            "3": { "tint": "no-such-tint" },
+            "4": "not an object"
           }
         }
         """
@@ -89,9 +90,37 @@ struct SettingsDecodingTests {
         let settings = try decode(json)
 
         #expect(settings.perDisplay["1"]?.edge == .left)
-        #expect(settings.perDisplay["3"]?.iconSize == 72)
-        #expect(settings.perDisplay["2"] == nil)
+        #expect(settings.perDisplay["2"]?.iconSize == 72)
+        #expect(settings.perDisplay["2"]?.edge == nil)
+        // Nothing readable was left of displays 3 and 4, so they have no override.
         #expect(settings.perDisplay.count == 2)
+    }
+
+    @Test("A wrong-typed entry costs that entry, not the list")
+    func oneBadListEntryKeepsTheOthers() throws {
+        let settings = try decode("""
+        {"pinnedBundleIdentifiers": ["com.apple.Safari", 5, "com.apple.Mail"], "hiddenBundleIdentifiers": "not a list"}
+        """)
+
+        #expect(settings.pinnedBundleIdentifiers == ["com.apple.Safari", "com.apple.Mail"])
+        #expect(settings.hiddenBundleIdentifiers == Settings().hiddenBundleIdentifiers)
+    }
+
+    @Test("Absurd numbers are clamped as they are read, and their readouts cannot trap")
+    func numbersAreClampedOnDecode() throws {
+        let settings = try decode("""
+        {"margin": 1e300, "iconSize": -5, "itemSpacing": 1e19, "magnificationScale": 99, "autoHideDelay": 1e300,
+         "perDisplay": {"1": {"iconSize": 1e300}}}
+        """)
+
+        #expect(settings.margin == Settings.Limits.margin.upperBound)
+        #expect(settings.iconSize == Settings.Limits.iconSize.lowerBound)
+        #expect(settings.itemSpacing == Settings.Limits.itemSpacing.upperBound)
+        #expect(settings.magnificationScale == Settings.Limits.scale.upperBound)
+        #expect(settings.autoHideDelay == Settings.Limits.revealDelay.upperBound)
+        #expect(settings.perDisplay["1"]?.iconSize == Settings.Limits.iconSize.upperBound)
+        #expect((1e300).wholeNumberLabel == "1000000")
+        #expect(Double.nan.wholeNumberLabel == "0")
     }
 
     @Test("A wholly unreadable perDisplay value falls back without losing the rest of the file")

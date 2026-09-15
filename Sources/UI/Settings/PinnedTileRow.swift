@@ -12,6 +12,16 @@ struct PinnedTileRow: View {
     let onRemove: (() -> Void)?
 
     @State private var isHovered = false
+    /// Looked up once per entry rather than in every body pass: a
+    /// LaunchServices query, a bundle read and an icon per row would
+    /// otherwise run again on every edit made in the pane.
+    @State private var lookup = Lookup()
+
+    private struct Lookup {
+        var title = ""
+        var isMissing = false
+        var icon: NSImage?
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -44,6 +54,7 @@ struct PinnedTileRow: View {
         .frame(height: Self.height)
         .contentShape(.rect)
         .onHover { isHovered = $0 }
+        .task(id: entry) { lookup = Self.lookUp(entry) }
     }
 
     private var isSpacer: Bool { entry == DockItem.spacerIdentifier }
@@ -53,11 +64,8 @@ struct PinnedTileRow: View {
         return url
     }
 
-    private var title: String {
-        if isSpacer { return "Spacer" }
-        if let fileURL { return FileManager.default.displayName(atPath: fileURL.path) }
-        return DockContents.displayName(forBundleIdentifier: entry)
-    }
+    private var title: String { lookup.title }
+    private var isMissing: Bool { lookup.isMissing }
 
     private var subtitle: String {
         if isSpacer { return "An empty tile" }
@@ -65,19 +73,29 @@ struct PinnedTileRow: View {
         return entry
     }
 
-    private var isMissing: Bool {
-        if isSpacer { return false }
-        if let fileURL { return !FileManager.default.fileExists(atPath: fileURL.path) }
-        return NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry) == nil
+    private static func lookUp(_ entry: String) -> Lookup {
+        if entry == DockItem.spacerIdentifier {
+            return Lookup(title: "Spacer")
+        }
+        if let url = URL(string: entry), url.isFileURL {
+            return Lookup(
+                title: FileManager.default.displayName(atPath: url.path),
+                isMissing: !FileManager.default.fileExists(atPath: url.path),
+                icon: NSWorkspace.shared.icon(forFile: url.path)
+            )
+        }
+        return Lookup(
+            title: DockContents.displayName(forBundleIdentifier: entry),
+            isMissing: NSWorkspace.shared.urlForApplication(withBundleIdentifier: entry) == nil,
+            icon: DockContents.icon(forBundleIdentifier: entry)
+        )
     }
 
     @ViewBuilder
     private var icon: some View {
         if isSpacer {
             Image(systemName: "rectangle.dashed").foregroundStyle(Theme.Ink.secondary)
-        } else if let fileURL {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: fileURL.path)).resizable().scaledToFit()
-        } else if let image = DockContents.icon(forBundleIdentifier: entry) {
+        } else if let image = lookup.icon {
             Image(nsImage: image).resizable().scaledToFit()
         } else {
             Image(systemName: "questionmark.app.dashed").foregroundStyle(Theme.Ink.secondary)

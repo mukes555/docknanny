@@ -103,7 +103,8 @@ struct PresetsSettingsView: View {
             applied = nil
         } catch {
             importFailed = true
-            Log.settings.error("Import failed: \(error.localizedDescription, privacy: .public)")
+            // The description names the file the person chose.
+            Log.settings.error("Import failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 }

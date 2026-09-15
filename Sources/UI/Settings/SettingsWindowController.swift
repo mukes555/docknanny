@@ -8,9 +8,11 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
+    private let navigation: SettingsNavigation
 
     init(store: SettingsStore, displays: DisplayRegistry, section: SettingsSection = .layout) {
-        let root = SettingsRootView(store: store, displays: displays, initialSection: section)
+        navigation = SettingsNavigation(section: section)
+        let root = SettingsRootView(store: store, displays: displays, navigation: navigation)
         self.window = NSWindow(contentViewController: NSHostingController(rootView: root))
 
         super.init()
@@ -34,8 +36,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     /// A window that is already open is brought forward where it is; only a
-    /// fresh one is centred.
-    func show() {
+    /// fresh one is centred. A section named by the caller is shown; nil
+    /// keeps the pane the person was on.
+    func show(section: SettingsSection? = nil) {
+        if let section {
+            navigation.section = section
+        }
         guard !window.isVisible else {
             ActivationPolicy.activate(bringingFront: window)
             return
