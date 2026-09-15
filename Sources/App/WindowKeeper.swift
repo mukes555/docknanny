@@ -17,7 +17,7 @@ final class WindowKeeper {
     let displays: DisplayRegistry
     let coordinator: DockCoordinator
 
-    private var observers: [pid_t: AXObserver] = [:]
+    private let observers = ObserverSources()
     /// Apps that refused an observer, with how often they have been asked.
     private var refusals: [pid_t: Int] = [:]
     /// One pending retry per refusing app, so retries never multiply.
@@ -100,12 +100,12 @@ final class WindowKeeper {
         let wanted = Set(apps.apps.map(\.processIdentifier))
         forget(appsNotIn: wanted)
         var joined = false
-        for pid in wanted where observers[pid] == nil && retries[pid] == nil && !gaveUp.contains(pid) {
+        for pid in wanted where observers.byProcess[pid] == nil && retries[pid] == nil && !gaveUp.contains(pid) {
             joined = addObserver(for: pid) || joined
         }
-        if observers.count != lastReportedCount {
-            lastReportedCount = observers.count
-            Log.workspace.info("Window keeper watching \(self.observers.count, privacy: .public) app(s)")
+        if observers.byProcess.count != lastReportedCount {
+            lastReportedCount = observers.byProcess.count
+            Log.workspace.info("Window keeper watching \(self.observers.byProcess.count, privacy: .public) app(s)")
         }
 
         // A window already under a dock when the keeper arms, or when a dock
@@ -128,7 +128,7 @@ final class WindowKeeper {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled, let self else { return }
             let onScreen = WindowServer.windowBoundsByProcess()
-            for pid in observers.keys {
+            for pid in observers.byProcess.keys {
                 judgeWindows(of: pid, onScreen: onScreen[pid] ?? [:])
             }
         }
@@ -183,7 +183,7 @@ final class WindowKeeper {
         // Common modes, so a window changing while a menu is tracking is
         // heard then rather than in a burst once the menu closes.
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
-        observers[pid] = observer
+        observers.byProcess[pid] = observer
         refusals[pid] = nil
         return true
     }
@@ -203,21 +203,21 @@ final class WindowKeeper {
             guard !Task.isCancelled, let self else { return }
             retries[pid] = nil
             let stillRunning = apps.apps.contains { $0.processIdentifier == pid }
-            guard stillRunning, observers[pid] == nil, addObserver(for: pid) else { return }
+            guard stillRunning, observers.byProcess[pid] == nil, addObserver(for: pid) else { return }
             // Its windows opened while nobody was listening.
             scheduleSweep()
         }
     }
 
     private func removeObserver(for pid: pid_t) {
-        guard let observer = observers.removeValue(forKey: pid) else { return }
+        guard let observer = observers.byProcess.removeValue(forKey: pid) else { return }
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
     }
 
     /// Everything known about apps that are gone, so nothing stays keyed by
     /// a pid the system may hand to the next process.
     private func forget(appsNotIn wanted: Set<pid_t>) {
-        for pid in observers.keys where !wanted.contains(pid) {
+        for pid in observers.byProcess.keys where !wanted.contains(pid) {
             removeObserver(for: pid)
         }
         for pid in retries.keys where !wanted.contains(pid) {

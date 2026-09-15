@@ -22,6 +22,11 @@
   trip, retries an app that is still starting up with backoff and then
   gives up rather than piling up retries, and cancels a second look when
   the person takes hold of the window.
+- Failures are told, not only logged. A Finder that declines to empty the
+  Trash (the Automation prompt, answered no) opens the Trash instead; a
+  settings file that cannot be written is announced on every pane of the
+  settings window; an export that fails says so beside the button. The hot
+  key and window observer registrations are taken down with their owners.
 - Settings files: an absurd number no longer crashes the settings window; a
   list with one bad entry keeps the rest, and a per-display override keeps
   its readable fields; a symlinked settings.json is written through; a file

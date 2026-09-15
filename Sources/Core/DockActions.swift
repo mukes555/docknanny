@@ -55,7 +55,11 @@ enum DockCommands {
     static func open(_ item: DockItem) {
         switch item.kind {
         case .file(let url):
-            NSWorkspace.shared.open(url)
+            // A folder or document that has moved: the Dock shows an alert
+            // for this; here it is at least on record.
+            if !NSWorkspace.shared.open(url) {
+                Log.workspace.notice("Could not open a pinned item: \(url.lastPathComponent, privacy: .private)")
+            }
         case .trash:
             Trash.open()
         case .app, .spacer:

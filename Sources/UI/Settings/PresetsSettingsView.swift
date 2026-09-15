@@ -8,6 +8,7 @@ struct PresetsSettingsView: View {
     @State private var applied: SettingsPreset?
     @State private var confirmingReset = false
     @State private var importFailed = false
+    @State private var exportFailed = false
 
     var body: some View {
         SettingsPane {
@@ -21,7 +22,9 @@ struct PresetsSettingsView: View {
             SettingsGroup(title: "Settings file") {
                 SettingRow(
                     title: "Export",
-                    subtitle: "Save every setting to a file you can keep or move to another Mac."
+                    subtitle: exportFailed
+                        ? "The file could not be written there."
+                        : "Save every setting to a file you can keep or move to another Mac."
                 ) {
                     Button("Export...") { exportSettings() }
                         .controlSize(.small)
@@ -87,8 +90,11 @@ struct PresetsSettingsView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try store.export(to: url)
+            exportFailed = false
         } catch {
-            Log.settings.error("Export failed: \(error.localizedDescription, privacy: .public)")
+            exportFailed = true
+            // The description names the file the person chose.
+            Log.settings.error("Export failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
