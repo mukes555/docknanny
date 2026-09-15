@@ -3,14 +3,20 @@
 macdock's mascot is a quokka: an approachable expert, which is the right tone
 for a utility that has to ask for intimidating permissions.
 
-## Mark versus mascot
+## App icon, menu bar mark, mascot
 
-The **glasses are the logo**, not the quokka. At 16pt in the menu bar a quokka
-renders as brown mush, while the black frames with lime lenses and robot eyes
-stay legible. Use the quokka for README art, onboarding and empty states; use
-the glasses alone for the menu bar, favicon and small chrome.
+The **app icon** is two displays, each with its own lime dock bar, on deep
+forest: the proposition drawn literally, a dock on every display. The **menu
+bar mark** is the same two displays reduced to outlines, 20 by 14 points.
+Both are drawn by `tools/make-icon.swift` from one geometry, chosen from four
+directions on the design canvas (the glasses, the dock as a symbol, a
+monogram of tiles, and this one).
 
-The menu bar icon must be a **template image**: pure black with alpha, no
+The quokka is the mascot, not the mark: at 16pt an animal is mush. Use the
+quokka for README art, onboarding and empty states; the glasses remain its
+signature and appear on nothing else.
+
+The menu bar mark must be a **template image**: pure black with alpha, no
 colour. macOS recolours it for light, dark and tinted menu bars. A coloured
 icon there looks wrong on half of all setups.
 

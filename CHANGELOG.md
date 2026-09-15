@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- A new app icon and menu bar mark: two displays, each with its own lime
+  dock bar, on deep forest. Chosen from four directions on the design
+  canvas; the generator draws the same geometry at every size.
+
 ## 0.3.2
 
 - "Set Up macdock…" is in the tray as well as the right-click menu.
