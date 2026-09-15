@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- An app that starts after the keeper is armed has its own windows judged
+  once, rather than every window on the machine; a sweep of everything
+  is kept for the docks changing. The release workflow's actions moved to
+  their current major versions.
+
 ## 0.4.1
 
 - Release notes come from the changelog section of the version being
