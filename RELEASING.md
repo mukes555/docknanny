@@ -36,3 +36,12 @@ designated requirement, so an upgrade keeps the Accessibility grant a user
 made. A Developer ID would remove the Gatekeeper dialog and the quarantine
 step in the cask; set `CODESIGN_IDENTITY` and `NOTARY_PROFILE` for
 `tools/release.sh` once one exists.
+
+The identifier requirement is a trade-off, and worth knowing about. macOS
+keys the grant to the requirement, so any binary signed ad hoc with the
+identifier `app.docknanny` is trusted the same way, without a prompt. That
+takes code already running on the Mac, which could ask for the grant itself
+and would be little worse off; the alternative, granting again after every
+upgrade, is what the requirement exists to avoid. A Developer ID (whose
+default requirement is anchored to the certificate) removes the trade-off
+along with the dialog.

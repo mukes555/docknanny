@@ -5,6 +5,28 @@
 - Release notes come from the changelog section of the version being
   released, and a release refuses a tag whose version disagrees with
   project.yml or the newest changelog section.
+- An audit round. The hovered tile's name on a bottom dock was drawn above
+  the window and never showed. Auto-hide could leave a dock revealed with
+  the pointer gone, stuck hidden after the shortcut, or collapsing under its
+  own menu; a hidden dock took file drops on its invisible sliver; a launch
+  that never came up bounced for ever; tile menus had clickable headers and
+  a live "Empty Trash..." with an empty Trash, and the Trash counted
+  Finder's own housekeeping files as contents. Clicking a running app with
+  no windows now opens one, as the system Dock does; the settings window
+  opens on the pane asked for even when already open; the hiding shortcut
+  works on a display with its own auto-hide setting; held shortcuts no
+  longer repeat; a tray closed by a click elsewhere no longer takes focus
+  back half a second later.
+- The window keeper judges windows only when the docks change or an app
+  joins, reads the window list once per pass and each window in one round
+  trip, retries an app that is still starting up with backoff and then
+  gives up rather than piling up retries, and cancels a second look when
+  the person takes hold of the window.
+- Settings files: an absurd number no longer crashes the settings window; a
+  list with one bad entry keeps the rest, and a per-display override keeps
+  its readable fields; a symlinked settings.json is written through; a file
+  that cannot be opened is set aside instead of overwritten; imports are
+  refused above a megabyte.
 
 ## 0.4.0
 

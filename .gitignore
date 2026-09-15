@@ -16,6 +16,7 @@ xcuserdata/
 
 # Local scratch, including cloned reference repos
 .tmp/
+*.profraw
 
 # Signing and secrets
 *.p12
