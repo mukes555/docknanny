@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Release notes come from the changelog section of the version being
+  released, and a release refuses a tag whose version disagrees with
+  project.yml or the newest changelog section.
+
 ## 0.4.0
 
 - The brand colour is lime #C0DD71, chosen in the app from a family of

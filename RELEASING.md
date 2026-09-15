@@ -1,9 +1,15 @@
 # Releasing
 
-1. Update `CHANGELOG.md` and `MARKETING_VERSION` in `project.yml`, commit.
+1. Rename the `Unreleased` section of `CHANGELOG.md` to the version and set
+   `MARKETING_VERSION` in `project.yml` to match, commit.
 2. Tag: `git tag -a vX.Y.Z -m "DockNanny X.Y.Z"` and push the tag.
-3. The release workflow builds `DockNanny-X.Y.Z.dmg`, writes `SHA256SUMS`,
-   and publishes a GitHub release with both attached.
+3. The release workflow checks that the tag, `MARKETING_VERSION`, and the
+   newest `CHANGELOG.md` section agree (`tools/check-version.sh`, which CI
+   also runs on every push), builds `DockNanny-X.Y.Z.dmg`, writes
+   `SHA256SUMS`, and publishes a GitHub release with both attached. The
+   release notes are that changelog section (`tools/release-notes.sh`), so
+   keep entries user facing. An `-rc`, `-beta`, or `-alpha` tag is marked
+   pre-release and leaves the tap alone.
    If the tag went up in a batch of more than three (GitHub then emits no
    push event) or a release needs rebuilding, run the workflow by hand:
    `gh workflow run release.yml -f tag=vX.Y.Z`.
