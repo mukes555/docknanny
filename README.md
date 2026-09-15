@@ -1,20 +1,25 @@
 <div align="center">
 
-<img src="assets/branding/icon-1024.png" width="128" alt="macdock" />
+<img src="docs/media/banner.png" width="760" alt="macdock: the app icon, two displays each with its own dock, beside the wordmark and the tagline A dock on every display" />
 
-# macdock
+<br />
 
-**A dock on every display. The one macOS won't give you.**
+**A dock on every display. The one macOS won't give you.**<br />
+Your Dock, mirrored to every screen you plug in, with the parts macOS keeps to itself: magnification that spreads, a Trash that fills, folders that open as lists, and windows that stay clear of it.
 
+[![CI](https://github.com/mukes555/macdock/actions/workflows/ci.yml/badge.svg)](https://github.com/mukes555/macdock/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mukes555/macdock?include_prereleases)](https://github.com/mukes555/macdock/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8BC53F.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-26%20Tahoe-8BC53F)
 ![Swift](https://img.shields.io/badge/Swift-6.2-8BC53F)
 
+<br />
+
+<img src="docs/media/dock.png" width="860" alt="A macdock dock: Finder, Safari, Mail, Notes, Terminal and System Settings on a glass slab, a divider, and the Trash" />
+
 </div>
 
----
-
-## The problem
+## Why
 
 macOS gives you exactly one Dock. On a multi-monitor setup it either hops
 between screens on a hair trigger, or you turn on *Displays have separate
@@ -23,82 +28,85 @@ long-standing workaround, shoving the cursor past the bottom edge of the
 screen you want, is unreliable the moment your displays are not perfectly
 bottom-aligned.
 
-macdock puts a real dock on every display, stays off the display that
-already has the system Dock, and leaves your Spaces settings alone.
+macdock puts a real dock on every display, stays off the one that already has
+the system Dock, and leaves your Spaces settings alone.
 
-<p align="center">
-  <img src="assets/screenshots/dock-left-edge.png" height="430" alt="A macdock dock on the left edge of a second display: Finder, pinned apps, running apps, a divider, and the Trash" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="assets/screenshots/tray.png" width="370" alt="The menu bar tray: one card per display with a live preview, edge switcher, tint and on/off switch, plus quick settings" />
-</p>
+## What you get
 
-## What it does
+**Your Dock, again.** By default macdock mirrors the system Dock: the same apps
+in the same order, Finder first, folders and spacers where you put them,
+running apps after the pins, the Trash at the end. Rearrange the real Dock and
+every display follows within two seconds. Turn mirroring off and each list is
+yours.
 
-**It is your Dock, again.** By default macdock mirrors the system Dock: the
-same apps in the same order, Finder first, folders and spacers where you put
-them, running apps after the pins, the Trash at the end (full or empty, with
-Empty Trash on right-click and files droppable onto it). Rearrange the real
-Dock and every display follows within two seconds. Turn mirroring off and
-each list is yours to edit.
+**Dock behaviour, not a lookalike.** Magnification spreads neighbours apart
+rather than covering them, so a click can only ever mean one tile. Press
+feedback, launch bounce, hover labels, Command-click to reveal, Option-click to
+hide the others, drag to rearrange with a live gap, drag a tile off to remove
+it with the poof, and drag one from one display's dock to another's. Right-click
+a running app for its windows, like the Dock. Folder tiles open as a list.
 
-**It behaves like the Dock.** Magnification spreads neighbours apart rather
-than covering them, so a click can only ever mean one tile. Press feedback,
-launch bounce, hover labels, Command-click to reveal, Option-click to hide the
-others, drag to rearrange with a live gap, drag off the dock to remove it
-with the poof, and drag a tile from one display's dock to another's.
+**Windows stay clear of it.** With one optional grant, a window opened or
+zoomed into a dock's space is nudged to sit beside it, the effect the system
+Dock gets from its reserved strip.
 
-**It knows about displays.** Edge (bottom, left, right), size, tint, hiding
-and which apps are shown can all differ per display, and a display keeps its
-settings across unplugging. The display that has the system Dock is skipped,
-and if the Dock moves to another display macdock follows.
-
-**It stays out of the way.** No focus stealing: clicking a dock icon does not
-deactivate the app you are working in. Auto-hide retreats to a sliver at the
-screen edge. Idle cost is a rounding error: one two-second read of the Dock's
-preferences, measured at 0.0 to 0.1 percent CPU and 17 MB.
+**Every display its own.** Edge, size, tint, hiding and which apps are shown
+can all differ per display, and a display keeps its settings across unplugging.
 
 **Keyboard.** Control-Option-1 to 9 open the first to ninth app on the dock
-under the pointer; Control-Option-D toggles hiding, the way
-Option-Command-D does for the system Dock. The modifiers are configurable.
+under the pointer; Control-Option-D toggles hiding. Modifiers are configurable.
 
-**Settings worth opening.** A sidebar settings window in the spirit of
-Raycast, a tray from the menu bar with a live preview of each display, four
-presets (including one that copies the system Dock's edge, size,
-magnification and hiding), and a settings file you can export, import or
-reset.
+**Never in the way.** Clicking a dock icon does not deactivate the app you are
+working in. Idle cost is a rounding error: 0.0 to 0.1 percent CPU and 17 MB.
 
-<p align="center">
-  <img src="assets/screenshots/settings-layout.png" width="720" alt="Settings, Layout pane" />
-</p>
+## The screens
 
-## Permissions
+**The tray** drops from the menu bar mark: one card per display with a live
+preview of its dock, an edge switcher, a tint and an on/off switch, plus the
+quick settings.
 
-None to start. Every action goes through `NSRunningApplication`,
-`NSWorkspace`, the Dock's own preferences and Carbon hot keys, none of which
-needs a grant. Three things ask for something, only when you use them, and
-work without it otherwise:
+<div align="center"><img src="docs/media/tray.png" width="370" alt="The tray: a display card with a live dock preview, edge buttons, tint dot and switch, quick settings, and the actions" /></div>
 
-- **Window lists in tile menus** (right-click a running app to see and
-  switch between its windows, as in the Dock) and **Keep windows clear of
-  the dock** (Behavior) read other apps' windows, which is Accessibility
-  access. Grant it from the setup window under the menu bar icon; the docks
-  never need it.
-- **Folder tiles** read the folder they show, so macOS may ask about that
-  folder (Downloads, Desktop and the like).
-- **Empty Trash** asks Finder to do the emptying, which is an Automation
-  prompt for controlling Finder. Finder keeps its own "permanently erase?"
-  confirmation.
+**Layout** is where the dock goes and how big it is, with the preview updating
+as you drag.
 
-One thing the system Dock's menu has that macdock's cannot: an app's own
-menu section (a browser's profiles, an editor's recent windows). Apps hand
-that to the Dock over a private channel on which the Dock is the server, so
-no other process can ask for it.
+<img src="docs/media/settings-layout.png" width="860" alt="Settings, Layout: edge cards, alignment, icon size, spacing and margin sliders, and the live preview" />
+
+**Appearance** covers the glass, the indicators, magnification and tint.
+
+<img src="docs/media/settings-appearance.png" width="860" alt="Settings, Appearance: chrome style, indicator style, magnification and the tint swatches" />
+
+**Behavior** holds hiding, clicking, the keyboard shortcuts, and keeping
+windows clear of the dock.
+
+<img src="docs/media/settings-behavior.png" width="860" alt="Settings, Behavior: contents, hiding, clicking, keyboard shortcuts and windows" />
+
+**Apps** is the pin list: mirrored from the system Dock, or your own with
+drag-to-reorder, spacers and a folders section.
+
+<img src="docs/media/settings-apps.png" width="860" alt="Settings, Apps: the source switch, the pinned list with icons, and the footer actions" />
+
+**Presets** are starting points, one of which copies the system Dock's edge,
+size, magnification and hiding, and the settings file can be exported,
+imported or reset.
+
+<img src="docs/media/settings-presets.png" width="860" alt="Settings, Presets: four starting points with Apply buttons, and export, import and reset" />
+
+### Keyboard
+
+| Keys | Action |
+| --- | --- |
+| `Ctrl+Opt+1` to `9` | Open the first to ninth app on the dock under the pointer |
+| `Ctrl+Opt+D` | Toggle "Hide automatically" |
+| `Cmd+,` | Settings, from the tray or any window |
+| `Cmd+1` to `6` | Switch Settings sections |
+| `Esc` | Close the tray |
 
 ## Install
 
-Download the DMG from the latest release, drag macdock into Applications,
-and launch it. It lives in the menu bar; the quokka with the glasses is the
-mark.
+Download the DMG from the [latest release](https://github.com/mukes555/macdock/releases),
+drag macdock into Applications, and launch it. It lives in the menu bar as two
+small displays.
 
 Until releases are signed with a Developer ID, Gatekeeper will say the app
 cannot be checked for malware. Clear that once with:
@@ -109,9 +117,37 @@ xattr -d com.apple.quarantine /Applications/macdock.app
 
 A Homebrew cask template is in [packaging/homebrew](packaging/homebrew).
 
-## Requirements
+**Requirements.** macOS 26 (Tahoe) or later, Apple Silicon.
 
-macOS 26 (Tahoe) or later, Apple Silicon.
+## Permissions
+
+None to start. Every action goes through `NSRunningApplication`,
+`NSWorkspace`, the Dock's own preferences and Carbon hot keys, none of which
+needs a grant. Three things ask for something, only when you use them, and
+work without it otherwise:
+
+- **Window lists in tile menus** and **Keep windows clear of the dock** read
+  other apps' windows, which is Accessibility access. Grant it from the setup
+  window under the menu bar icon; the docks never need it.
+- **Folder tiles** read the folder they show, so macOS may ask about that
+  folder (Downloads, Desktop and the like).
+- **Empty Trash** asks Finder to do the emptying, which is an Automation
+  prompt for controlling Finder. Finder keeps its own "permanently erase?"
+  confirmation.
+
+<div align="center"><img src="docs/media/setup.png" width="480" alt="The setup window: nothing to grant for the docks, and the optional Accessibility row with Grant and Relaunch buttons" /></div>
+
+One thing the system Dock's menu has that macdock's cannot: an app's own menu
+section (a browser's profiles, an editor's recent windows). Apps hand that to
+the Dock over a private channel on which the Dock is the server, so no other
+process can ask for it.
+
+## Privacy
+
+macdock has no network access and no analytics. Settings live in one JSON file
+at `~/Library/Application Support/macdock/settings.json`, which you can export,
+import or reset from Settings. The unified log carries no window titles or
+bundle identifiers in the clear.
 
 ## Building
 
@@ -120,19 +156,18 @@ brew install xcodegen swiftlint
 ```
 
 ```bash
-git clone https://github.com/USERNAME/macdock.git && cd macdock && xcodegen generate && open macdock.xcodeproj
+git clone https://github.com/mukes555/macdock.git && cd macdock && xcodegen generate && open macdock.xcodeproj
 ```
 
-`tools/release.sh` builds a signed DMG (ad-hoc by default; set
-`CODESIGN_IDENTITY` and `NOTARY_PROFILE` for a notarized one). Launch flags:
-`--settings [--section=layout|appearance|behavior|displays|apps|presets]`,
-`--setup`, `--tray`.
+`tools/dev.sh` builds, signs and relaunches a development build so its
+Accessibility grant survives rebuilds. `tools/release.sh` builds a DMG (ad hoc
+by default; set `CODESIGN_IDENTITY` and `NOTARY_PROFILE` for a notarized
+one). Launch flags: `--settings [--section=layout|appearance|behavior|displays|apps|presets]`,
+`--setup`, `--tray`, `--settings-dir=<folder>` for a separate profile, and
+`--probe-windows=<app>` to record what Accessibility and the window server
+say about an app's windows when one will not stay clear of a dock.
 
-Settings live in `~/Library/Application Support/macdock/settings.json`, and
-the app logs under the `app.macdock` subsystem. If a window will not stay
-clear of a dock, `open -a macdock --args --probe-windows=<app name>` records
-what Accessibility and the window server each say about that app's windows
-(read it back with `log show --predicate 'category == "probe"'`):
+The app logs under the `app.macdock` subsystem:
 
 ```bash
 /usr/bin/log stream --level info --predicate 'subsystem == "app.macdock"'
@@ -142,15 +177,6 @@ what Accessibility and the window server each say about that app's windows
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Window
 previews on hover are the next piece.
-
-A note on the gap beside the dock. The system Dock gets it from the window
-server, which leaves the Dock's strip out of every display's visible frame
-so a zoomed window stops beside it. The window server keeps exactly one such
-strip and the Dock rewrites it whenever its contents change
-(`tools/probe-dock-rect.swift` shows this), so macdock cannot reserve one of
-its own without taking the Dock's away. "Keep windows clear of the dock" in
-Behavior gets the same effect the other way round: a window opened or zoomed
-into a dock's space is nudged to sit beside it.
 
 ## Contributing
 

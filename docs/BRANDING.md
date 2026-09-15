@@ -43,6 +43,23 @@ soft contact shadow, 1:1 square
 Request 1024x1024 transparent PNG for all mascot art. Downscaling works,
 upscaling does not.
 
+### README hero: the halo of displays
+
+The hero shot is the quokka with an arc of displays behind its head, the
+way a chakra or an aureole sits behind a deity: the dock on every one of
+them, the quokka in front of all of them. Three phrasings; keep whichever
+your tool renders best. Add the character suffix above to each.
+
+```
+A. Quokka front and centre, waving, an arc of five glowing monitors fanned behind its head like a halo, each monitor showing a tiny dock bar at its bottom edge, lime rim light
+B. Quokka seated cross-legged, serene, a perfect ring of seven thin displays radiating behind its head, screens glowing lime, dark forest background
+C. Wide banner crop, quokka at left third, a halo of monitors behind its head trailing off to the right, room for a wordmark on the right, lime on deep forest
+```
+
+Ask for 2048 by 2048 (A and B) or 2400 by 900 (C), transparent
+background where the tool allows it. The README references the results as
+`docs/media/quokka-halo.png` (A or B) and `docs/media/banner-quokka.png` (C).
+
 ### Hero and README
 
 ```

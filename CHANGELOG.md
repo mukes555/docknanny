@@ -2,6 +2,10 @@
 
 ## 0.4.0
 
+- Release readiness: the README is rebuilt with screenshots taken from a
+  demo profile (nothing personal in them), a banner, and the tracon
+  structure; `--settings-dir=<folder>` runs with a separate settings file;
+  the pin-list edits live in a pure, tested module.
 - A new app icon and menu bar mark: two displays, each with its own lime
   dock bar, on deep forest. Chosen from four directions on the design
   canvas; the generator draws the same geometry at every size.

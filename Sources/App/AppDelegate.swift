@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenu.install()
         Brand.installAppIcon()
 
-        let settings = SettingsStore()
+        let settings = SettingsStore(directory: Self.settingsDirectoryOverride)
         let displays = DisplayRegistry()
         let apps = RunningAppsMonitor()
 
@@ -127,6 +127,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
         return true
+    }
+
+    /// `--settings-dir=<folder>` runs with a settings file kept there instead
+    /// of the real one: a clean profile for a screenshot, a demo, or for
+    /// reproducing a report without touching the person's own setup.
+    private static var settingsDirectoryOverride: URL? {
+        let prefix = "--settings-dir="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return nil }
+        return URL(filePath: String(argument.dropFirst(prefix.count)))
     }
 
     private static var isRunningUnitTests: Bool {

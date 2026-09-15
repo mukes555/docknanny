@@ -204,32 +204,21 @@ final class DockCoordinator {
         forkFromMirrorIfNeeded()
         switch item.kind {
         case .app(let identifier):
-            var pinned = settings.settings.pinnedBundleIdentifiers
-            if let index = pinned.firstIndex(of: identifier) {
-                pinned.remove(at: index)
-            } else {
-                pinned.append(identifier)
-            }
-            settings.settings.pinnedBundleIdentifiers = pinned
+            settings.settings.pinnedBundleIdentifiers = PinList.toggling(
+                identifier, in: settings.settings.pinnedBundleIdentifiers
+            )
         case .file(let url):
             settings.settings.pinnedOthers.removeAll { $0 == url.absoluteString }
         case .trash:
             settings.settings.showTrash = false
+        case .spacer(let ordinal) where item.section == .others:
+            settings.settings.pinnedOthers = PinList.removingSpacer(
+                ordinal: ordinal, from: settings.settings.pinnedOthers
+            )
         case .spacer(let ordinal):
-            removeSpacer(ordinal: ordinal, from: item.section)
-        }
-    }
-
-    private func removeSpacer(ordinal: Int, from section: DockItem.Section) {
-        var list = section == .others ? settings.settings.pinnedOthers : settings.settings.pinnedBundleIdentifiers
-        let spacers = list.indices.filter { list[$0] == DockItem.spacerIdentifier }
-        guard ordinal < spacers.count else { return }
-        list.remove(at: spacers[ordinal])
-
-        if section == .others {
-            settings.settings.pinnedOthers = list
-        } else {
-            settings.settings.pinnedBundleIdentifiers = list
+            settings.settings.pinnedBundleIdentifiers = PinList.removingSpacer(
+                ordinal: ordinal, from: settings.settings.pinnedBundleIdentifiers
+            )
         }
     }
 
@@ -241,12 +230,8 @@ final class DockCoordinator {
         guard !apps.isEmpty || !others.isEmpty else { return }
 
         forkFromMirrorIfNeeded()
-        for identifier in apps where !settings.settings.pinnedBundleIdentifiers.contains(identifier) {
-            settings.settings.pinnedBundleIdentifiers.append(identifier)
-        }
-        for entry in others where !settings.settings.pinnedOthers.contains(entry) {
-            settings.settings.pinnedOthers.append(entry)
-        }
+        settings.settings.pinnedBundleIdentifiers = PinList.adding(apps, to: settings.settings.pinnedBundleIdentifiers)
+        settings.settings.pinnedOthers = PinList.adding(others, to: settings.settings.pinnedOthers)
     }
 
     /// A dragged app lands in front of the tile that was under the pointer,
@@ -254,25 +239,9 @@ final class DockCoordinator {
     /// pinned by the act of being arranged, which is what the gesture implies.
     private func move(_ identifier: String, before target: DockItem?) {
         forkFromMirrorIfNeeded()
-        var pinned = settings.settings.pinnedBundleIdentifiers
-        pinned.removeAll { $0 == identifier }
-        pinned.insert(identifier, at: target.flatMap { pinIndex(of: $0, in: pinned) } ?? pinned.endIndex)
-
-        guard pinned != settings.settings.pinnedBundleIdentifiers else { return }
-        settings.settings.pinnedBundleIdentifiers = pinned
-    }
-
-    /// Spacers share one sentinel, so one is found by counting.
-    private func pinIndex(of item: DockItem, in pins: [String]) -> Int? {
-        switch item.kind {
-        case .app(let identifier):
-            return pins.firstIndex(of: identifier)
-        case .spacer(let ordinal):
-            let spacers = pins.indices.filter { pins[$0] == DockItem.spacerIdentifier }
-            return ordinal < spacers.count ? spacers[ordinal] : nil
-        case .file, .trash:
-            return nil
-        }
+        let moved = PinList.moving(identifier, before: target, in: settings.settings.pinnedBundleIdentifiers)
+        guard moved != settings.settings.pinnedBundleIdentifiers else { return }
+        settings.settings.pinnedBundleIdentifiers = moved
     }
 
     /// A tile let go off its own dock: another display's dock under the
