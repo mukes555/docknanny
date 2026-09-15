@@ -4,6 +4,9 @@
 2. Tag: `git tag -a vX.Y.Z -m "DockNanny X.Y.Z"` and push the tag.
 3. The release workflow builds `DockNanny-X.Y.Z.dmg`, writes `SHA256SUMS`,
    and publishes a GitHub release with both attached.
+   If the tag went up in a batch of more than three (GitHub then emits no
+   push event) or a release needs rebuilding, run the workflow by hand:
+   `gh workflow run release.yml -f tag=vX.Y.Z`.
 4. The tap: with a `HOMEBREW_TAP_TOKEN` secret (a fine-grained personal
    access token with contents: write on `mukes555/homebrew-tap`) the
    workflow renders `packaging/homebrew/docknanny.rb.tmpl` with the version

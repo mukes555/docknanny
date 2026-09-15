@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Homebrew cask for DockNanny, pinned to one release. Rendered with the
 # version and the DMG's sha256 on every release: by the release workflow
 # when a HOMEBREW_TAP_TOKEN secret is configured, by hand otherwise (see
@@ -8,7 +10,7 @@ cask "docknanny" do
 
   url "https://github.com/mukes555/docknanny/releases/download/v#{version}/DockNanny-#{version}.dmg"
   name "DockNanny"
-  desc "A dock on every display"
+  desc "Dock on every display"
   homepage "https://github.com/mukes555/docknanny"
 
   livecheck do
@@ -16,8 +18,8 @@ cask "docknanny" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :tahoe"
   depends_on arch: :arm64
+  depends_on macos: ">= :tahoe"
 
   app "DockNanny.app"
 

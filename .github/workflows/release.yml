@@ -6,6 +6,19 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Releases a tag that is already pushed. GitHub emits no push event when
+  # more than three tags arrive in one push, so a tag can land without its
+  # release; this also rebuilds a release whose assets went wrong.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release, e.g. v0.4.0 (must exist)"
+        required: true
+        type: string
+
+# The tag being released: the one pushed, or the one named when run by hand.
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 permissions:
   contents: write
@@ -18,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
 
       - name: Select Xcode
@@ -38,6 +52,7 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             build/release/*.dmg
             build/release/SHA256SUMS
@@ -58,6 +73,8 @@ jobs:
       - name: Checkout DockNanny (for the cask template)
         if: env.HAS_TAP_TOKEN == 'true'
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Checkout the tap
         if: env.HAS_TAP_TOKEN == 'true'
@@ -77,8 +94,8 @@ jobs:
       - name: Render and push the pinned cask
         if: env.HAS_TAP_TOKEN == 'true'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          case "$GITHUB_REF_NAME" in *-rc*|*-beta*|*-alpha*) echo "pre-release: tap not updated"; exit 0;; esac
+          VERSION="${RELEASE_TAG#v}"
+          case "$RELEASE_TAG" in *-rc*|*-beta*|*-alpha*) echo "pre-release: tap not updated"; exit 0;; esac
           SHA="$(awk '/\.dmg$/ {print $1}' checksums/SHA256SUMS)"
           [ -n "$SHA" ] || { echo "no dmg checksum in SHA256SUMS" >&2; exit 1; }
           sed -e "s/__VERSION__/$VERSION/" -e "s/__SHA256__/$SHA/" packaging/homebrew/docknanny.rb.tmpl > tap/Casks/docknanny.rb
