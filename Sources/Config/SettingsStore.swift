@@ -19,9 +19,20 @@ final class SettingsStore {
     private let writeDelay: Duration
     private var saveTask: Task<Void, Never>?
 
+    /// A settings file is a few kilobytes; anything much larger is not one,
+    /// and is refused before it is read into memory.
+    static let importSizeLimit = 1_000_000
+
+    enum ImportError: Error {
+        case tooLarge
+    }
+
     init(directory: URL? = nil, writeDelay: Duration = .seconds(1)) {
         let folder = directory ?? Self.defaultDirectory
-        self.fileURL = folder.appending(path: "settings.json")
+        // Resolved, so a settings.json kept as a symlink (into a dotfiles
+        // folder, say) is written through rather than replaced by the atomic
+        // save with a plain file.
+        self.fileURL = folder.appending(path: "settings.json").resolvingSymlinksInPath()
         self.writeDelay = writeDelay
         self.settings = Self.load(from: fileURL)
         BrandPalette.current = settings.brandPalette
@@ -45,6 +56,8 @@ final class SettingsStore {
     /// missing ones take defaults, so a file from an older or newer DockNanny
     /// still imports. What was seen on first run stays seen.
     func importSettings(from url: URL) throws {
+        let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size <= Self.importSizeLimit else { throw ImportError.tooLarge }
         var imported = try JSONDecoder().decode(Settings.self, from: Data(contentsOf: url))
         imported.hasSeenWelcome = settings.hasSeenWelcome
         settings = imported
@@ -87,8 +100,22 @@ final class SettingsStore {
     /// blocking launch. Losing preferences is recoverable; a dock that will not
     /// start is not. The unreadable file is kept beside the new one, since a
     /// hand edit with one stray comma is the usual cause and easily repaired.
+    /// A file that exists but will not even open (permissions, a directory in
+    /// its place) is moved aside for the same reason: left where it is, the
+    /// first save would write defaults over it.
     private static func load(from url: URL) -> Settings {
-        guard let data = try? Data(contentsOf: url) else { return Settings() }
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            guard FileManager.default.fileExists(atPath: url.path) else { return Settings() }
+            let reason = error.localizedDescription
+            Log.settings.error("Settings file cannot be opened, set aside: \(reason, privacy: .private)")
+            let keepsake = url.appendingPathExtension("unreadable")
+            try? FileManager.default.removeItem(at: keepsake)
+            try? FileManager.default.moveItem(at: url, to: keepsake)
+            return Settings()
+        }
         do {
             return try JSONDecoder().decode(Settings.self, from: data)
         } catch {
@@ -118,7 +145,13 @@ final class SettingsStore {
         guard !manager.fileExists(atPath: target.path), manager.fileExists(atPath: source.path) else { return }
         do {
             try manager.createDirectory(at: directory, withIntermediateDirectories: true)
-            try manager.copyItem(at: source, to: target)
+            // Copied under another name and renamed into place, so a crash
+            // mid-copy cannot leave a half file that reads as corrupt and is
+            // never retried.
+            let staging = directory.appending(path: "settings.json.migrating")
+            try? manager.removeItem(at: staging)
+            try manager.copyItem(at: source, to: staging)
+            try manager.moveItem(at: staging, to: target)
             Log.settings.info("Settings carried over from the macdock folder")
         } catch {
             let reason = error.localizedDescription

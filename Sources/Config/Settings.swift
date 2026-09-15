@@ -151,6 +151,11 @@ struct DisplayOverride: Codable, Equatable, Sendable {
     /// nil shows every app. A non-nil list shows only those.
     var allowedBundleIdentifiers: [String]?
 
+    enum CodingKeys: String, CodingKey {
+        case isEnabled, edge, alignment, iconSize, showRunningApps, autoHide, tint
+        case pinnedBundleIdentifiers, allowedBundleIdentifiers
+    }
+
     var isDefault: Bool {
         self == DisplayOverride()
     }

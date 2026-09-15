@@ -125,7 +125,7 @@ struct SettingsSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     var step: Double = 1
-    var format: (Double) -> String = { "\(Int($0))" }
+    var format: (Double) -> String = { $0.wholeNumberLabel }
 
     var body: some View {
         SettingRow(title: title, subtitle: subtitle) {

@@ -131,11 +131,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// `--settings-dir=<folder>` runs with a settings file kept there instead
     /// of the real one: a clean profile for a screenshot, a demo, or for
-    /// reproducing a report without touching the person's own setup.
+    /// reproducing a report without touching the person's own setup. An app
+    /// launched by LaunchServices has `/` as its working directory, so a
+    /// relative path would land there and every save would fail; the folder
+    /// is logged so a misplaced one can be found.
     private static var settingsDirectoryOverride: URL? {
         let prefix = "--settings-dir="
         guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return nil }
-        return URL(filePath: String(argument.dropFirst(prefix.count)))
+        let path = (String(argument.dropFirst(prefix.count)) as NSString).expandingTildeInPath
+        guard !path.isEmpty else { return nil }
+        let folder = URL(filePath: path, directoryHint: .isDirectory).standardizedFileURL
+        Log.settings.info("Settings folder from the command line: \(folder.path, privacy: .public)")
+        return folder
     }
 
     private static var isRunningUnitTests: Bool {
@@ -158,12 +165,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return section
     }
 
-    private func showSettings(section: SettingsSection = .layout) {
+    /// A section named by the caller (the tray's display rows, the command
+    /// line) is opened; plain "Settings" keeps whatever pane was showing.
+    private func showSettings(section: SettingsSection? = nil) {
         guard let settings, let displays else { return }
         let controller = settingsWindow
-            ?? SettingsWindowController(store: settings, displays: displays, section: section)
+            ?? SettingsWindowController(store: settings, displays: displays, section: section ?? .layout)
         settingsWindow = controller
-        controller.show()
+        controller.show(section: section)
     }
 
     private func showOnboarding() {
@@ -193,5 +202,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Nothing here restores state; saying so keeps AppKit from warning about
+    /// secure coding at every launch.
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        true
     }
 }

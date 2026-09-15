@@ -46,6 +46,19 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// Which pane the settings window shows. Lives outside the view so the
+/// window can be pointed at a pane after it exists: the tray's display rows
+/// ask for Displays, the command line for whatever it names.
+@MainActor
+@Observable
+final class SettingsNavigation {
+    var section: SettingsSection
+
+    init(section: SettingsSection = .layout) {
+        self.section = section
+    }
+}
+
 /// Sidebar plus content, on a pane of dark glass.
 ///
 /// A sidebar rather than a tab band, because that is what a settings window
@@ -55,9 +68,9 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 struct SettingsRootView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
-    var initialSection: SettingsSection = .layout
+    let navigation: SettingsNavigation
 
-    @State private var selection: SettingsSection = .layout
+    private var selection: SettingsSection { navigation.section }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -78,7 +91,6 @@ struct SettingsRootView: View {
         .ignoresSafeArea()
         .frame(minWidth: 860, minHeight: 660)
         .preferredColorScheme(.dark)
-        .onAppear { selection = initialSection }
         .background(tabShortcuts)
     }
 
@@ -92,7 +104,7 @@ struct SettingsRootView: View {
                 SidebarItem(
                     section: section,
                     isSelected: selection == section,
-                    action: { selection = section }
+                    action: { navigation.section = section }
                 )
             }
             Spacer(minLength: 0)
@@ -136,7 +148,7 @@ struct SettingsRootView: View {
     /// no way to attach a shortcut to a view that is not a control.
     private var tabShortcuts: some View {
         ForEach(Array(SettingsSection.allCases.enumerated()), id: \.element.id) { index, section in
-            Button("") { selection = section }
+            Button("") { navigation.section = section }
                 .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
                 .hidden()
         }
