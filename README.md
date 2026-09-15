@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/media/banner.png" width="760" alt="DockNanny: the app icon, two displays each with its own dock, beside the wordmark and the tagline A dock on every display" />
+<img src="docs/media/banner.png" width="760" alt="DockNanny: the quokka in lime glasses, waving, with a halo of displays behind its head each showing the DockNanny logo, beside the wordmark and the tagline A dock on every display" />
 
 <br />
 
@@ -30,6 +30,8 @@ bottom-aligned.
 
 DockNanny puts a real dock on every display, stays off the one that already has
 the system Dock, and leaves your Spaces settings alone.
+
+<div align="center"><img src="docs/media/quokka-halo.jpg" width="480" alt="The DockNanny quokka seated with a coffee mug, a ring of displays behind its head, every one showing the DockNanny logo" /></div>
 
 ## What you get
 
@@ -177,6 +179,19 @@ The app logs under the `app.docknanny` subsystem:
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Window
 previews on hover are the next piece.
+
+## Built by AI agents
+
+<img src="docs/media/quokka-wave.png" width="240" align="right" alt="The DockNanny quokka waving, coffee mug in the other paw" />
+
+DockNanny was designed and written with Claude Code, one decision at a time,
+with every behaviour measured against the real system Dock before it
+shipped: window frames read from the window server, pixel measurements of
+the Dock's own reserved gap, and a probe for every private API it leans on.
+The quokka is the mascot of that way of working: an approachable expert with
+a coffee, unbothered by how many displays you plug in.
+
+<br clear="right" />
 
 ## Contributing
 

@@ -6,18 +6,10 @@
 import AppKit
 
 let media = URL(filePath: CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "docs/media")
-let size = NSSize(width: 1520, height: 440)
-let canvas = NSImage(size: size)
-canvas.lockFocus()
 
-NSColor(red: 0.059, green: 0.071, blue: 0.063, alpha: 1).setFill()
-NSRect(origin: .zero, size: size).fill()
-
-let iconPath = media.deletingLastPathComponent().deletingLastPathComponent()
-    .appending(path: "assets/branding/DockNanny.iconset/icon_256x256@2x.png").path
-if let icon = NSImage(contentsOfFile: iconPath) {
-    icon.draw(in: NSRect(x: 90, y: 70, width: 300, height: 300))
-}
+let ink = NSColor(red: 0.929, green: 0.937, blue: 0.918, alpha: 1)
+let lime = NSColor(red: 0.753, green: 0.867, blue: 0.443, alpha: 1)  // #C0DD71
+let muted = NSColor(red: 0.604, green: 0.627, blue: 0.604, alpha: 1)
 
 func draw(_ text: String, x: CGFloat, baseline: CGFloat, size: CGFloat, weight: NSFont.Weight, color: NSColor, tracking: CGFloat = 0) {
     let attributes: [NSAttributedString.Key: Any] = [
@@ -28,18 +20,32 @@ func draw(_ text: String, x: CGFloat, baseline: CGFloat, size: CGFloat, weight: 
     NSAttributedString(string: text, attributes: attributes).draw(at: NSPoint(x: x, y: baseline))
 }
 
-let ink = NSColor(red: 0.929, green: 0.937, blue: 0.918, alpha: 1)
-let lime = NSColor(red: 0.753, green: 0.867, blue: 0.443, alpha: 1)  // #C0DD71
-let muted = NSColor(red: 0.604, green: 0.627, blue: 0.604, alpha: 1)
-draw("DockNanny", x: 450, baseline: 218, size: 128, weight: .bold, color: ink, tracking: -3)
-draw("A dock on every display.", x: 456, baseline: 150, size: 46, weight: .medium, color: lime)
-draw("The one macOS won't give you.", x: 456, baseline: 92, size: 30, weight: .regular, color: muted)
+/// With the mascot banner present, the wordmark goes into the room it
+/// leaves on the right; without it, the icon stands in for the mascot.
+let mascotBanner = NSImage(contentsOfFile: media.appending(path: "banner-quokka.jpg").path)
+let size = mascotBanner.map { NSSize(width: 1520, height: 1520 * $0.size.height / $0.size.width) }
+    ?? NSSize(width: 1520, height: 440)
+let canvas = NSImage(size: size)
+canvas.lockFocus()
 
-// The mascot, once its render exists: waving in from the right edge.
-if let quokka = NSImage(contentsOfFile: media.appending(path: "quokka-wave.png").path) {
-    let height: CGFloat = 400
-    let width = height * quokka.size.width / quokka.size.height
-    quokka.draw(in: NSRect(x: size.width - width - 40, y: 20, width: width, height: height))
+if let mascotBanner {
+    mascotBanner.draw(in: NSRect(origin: .zero, size: size))
+    let x: CGFloat = 905
+    let middle = size.height / 2
+    draw("DockNanny", x: x, baseline: middle + 6, size: 100, weight: .bold, color: ink, tracking: -3)
+    draw("A dock on every display.", x: x + 5, baseline: middle - 46, size: 38, weight: .medium, color: lime)
+    draw("The one macOS won't give you.", x: x + 5, baseline: middle - 92, size: 26, weight: .regular, color: muted)
+} else {
+    NSColor(red: 0.059, green: 0.071, blue: 0.063, alpha: 1).setFill()
+    NSRect(origin: .zero, size: size).fill()
+    let iconPath = media.deletingLastPathComponent().deletingLastPathComponent()
+        .appending(path: "assets/branding/DockNanny.iconset/icon_256x256@2x.png").path
+    if let icon = NSImage(contentsOfFile: iconPath) {
+        icon.draw(in: NSRect(x: 90, y: 70, width: 300, height: 300))
+    }
+    draw("DockNanny", x: 450, baseline: 218, size: 128, weight: .bold, color: ink, tracking: -3)
+    draw("A dock on every display.", x: 456, baseline: 150, size: 46, weight: .medium, color: lime)
+    draw("The one macOS won't give you.", x: 456, baseline: 92, size: 30, weight: .regular, color: muted)
 }
 
 canvas.unlockFocus()
