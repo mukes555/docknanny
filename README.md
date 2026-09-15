@@ -106,18 +106,21 @@ imported or reset.
 
 ## Install
 
-Download the DMG from the [latest release](https://github.com/mukes555/docknanny/releases),
-drag DockNanny into Applications, and launch it. It lives in the menu bar as two
-small displays.
+```bash
+brew tap mukes555/tap
+brew install --cask docknanny        # later: brew upgrade --cask docknanny
+```
 
-Until releases are signed with a Developer ID, Gatekeeper will say the app
-cannot be checked for malware. Clear that once with:
+The cask clears the Gatekeeper quarantine for you. There is a DMG in
+[Releases](https://github.com/mukes555/docknanny/releases/latest) too; the app
+is ad hoc signed rather than notarized, so if you install from the DMG, clear
+the quarantine once:
 
 ```bash
 xattr -d com.apple.quarantine /Applications/DockNanny.app
 ```
 
-A Homebrew cask template is in [packaging/homebrew](packaging/homebrew).
+DockNanny lives in the menu bar as two small displays.
 
 **Requirements.** macOS 26 (Tahoe) or later, Apple Silicon.
 

@@ -1,10 +1,8 @@
 name: Release
 
-# Pushing a version tag builds the DMG and attaches it to a GitHub release.
-# Without a Developer ID certificate the build is ad-hoc signed, which Gatekeeper
-# flags on first launch; the release notes say how to clear that. Add
-# CODESIGN_IDENTITY, a certificate and a notary profile as secrets to ship a
-# notarized build from here instead.
+# Pushing a version tag builds the DMG and attaches it to a GitHub release,
+# then pins the Homebrew tap to it. Without a Developer ID certificate the
+# build is ad hoc signed; the cask strips the quarantine so it launches.
 on:
   push:
     tags: ["v*"]
@@ -31,10 +29,66 @@ jobs:
       - name: Build DMG
         run: tools/release.sh
 
+      - name: Keep the checksums for the tap job
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: build/release/SHA256SUMS
+
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
           files: |
             build/release/*.dmg
-            build/release/*.sha256
+            build/release/SHA256SUMS
           generate_release_notes: true
+
+  # Pins the tap's cask to this release with its checksum, so `brew upgrade`
+  # sees new versions and Homebrew verifies the download. Runs only when a
+  # HOMEBREW_TAP_TOKEN secret (a fine-grained PAT with contents: write on
+  # mukes555/homebrew-tap) exists; otherwise the cask is rendered by hand,
+  # per RELEASING.md.
+  update-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAS_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+    steps:
+      - name: Checkout DockNanny (for the cask template)
+        if: env.HAS_TAP_TOKEN == 'true'
+        uses: actions/checkout@v4
+
+      - name: Checkout the tap
+        if: env.HAS_TAP_TOKEN == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: mukes555/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Fetch the checksums
+        if: env.HAS_TAP_TOKEN == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: checksums
+          path: checksums
+
+      - name: Render and push the pinned cask
+        if: env.HAS_TAP_TOKEN == 'true'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          case "$GITHUB_REF_NAME" in *-rc*|*-beta*|*-alpha*) echo "pre-release: tap not updated"; exit 0;; esac
+          SHA="$(awk '/\.dmg$/ {print $1}' checksums/SHA256SUMS)"
+          [ -n "$SHA" ] || { echo "no dmg checksum in SHA256SUMS" >&2; exit 1; }
+          sed -e "s/__VERSION__/$VERSION/" -e "s/__SHA256__/$SHA/" packaging/homebrew/docknanny.rb.tmpl > tap/Casks/docknanny.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/docknanny.rb
+          git commit -m "docknanny $VERSION" || echo "cask unchanged"
+          git push
+
+      - name: Explain the skipped tap update
+        if: env.HAS_TAP_TOKEN != 'true'
+        run: echo "HOMEBREW_TAP_TOKEN is not set; render packaging/homebrew/docknanny.rb.tmpl by hand (RELEASING.md)."

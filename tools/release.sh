@@ -41,10 +41,15 @@ xcodebuild build \
 cp -R build/DerivedData/Build/Products/Release/DockNanny.app "$app"
 
 echo "==> Signing with: $identity"
-# Hardened runtime is what notarization checks for; it costs nothing when
-# the signature is ad-hoc.
-codesign --force --deep --options runtime --timestamp --sign "$identity" "$app" 2>/dev/null \
-    || codesign --force --deep --sign "$identity" "$app"
+if [[ "$identity" == "-" ]]; then
+    # Ad hoc, with the bundle identifier as the designated requirement so
+    # macOS keeps a user's Accessibility grant across upgrades (a plain ad
+    # hoc signature is keyed to the binary's hash and loses it every time).
+    codesign --force --sign - --requirements '=designated => identifier "app.docknanny"' "$app"
+else
+    # Hardened runtime is what notarization checks for.
+    codesign --force --deep --options runtime --timestamp --sign "$identity" "$app"
+fi
 codesign --verify --strict "$app"
 
 echo "==> Building DMG"
@@ -59,5 +64,5 @@ if [[ -n "${NOTARY_PROFILE:-}" ]]; then
     xcrun stapler staple "$dmg"
 fi
 
-shasum -a 256 "$dmg" | tee "$dmg.sha256"
+(cd "$out" && shasum -a 256 "$(basename "$dmg")" | tee SHA256SUMS)
 echo "==> Done: $dmg"

@@ -1,0 +1,42 @@
+# Homebrew cask for DockNanny, pinned to one release. Rendered with the
+# version and the DMG's sha256 on every release: by the release workflow
+# when a HOMEBREW_TAP_TOKEN secret is configured, by hand otherwise (see
+# RELEASING.md), then pushed to mukes555/homebrew-tap as Casks/docknanny.rb.
+cask "docknanny" do
+  version "__VERSION__"
+  sha256 "__SHA256__"
+
+  url "https://github.com/mukes555/docknanny/releases/download/v#{version}/DockNanny-#{version}.dmg"
+  name "DockNanny"
+  desc "A dock on every display"
+  homepage "https://github.com/mukes555/docknanny"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on macos: ">= :tahoe"
+  depends_on arch: :arm64
+
+  app "DockNanny.app"
+
+  # The app is ad-hoc signed (no Apple Developer account), so Gatekeeper
+  # quarantine must be stripped for it to launch without a scary dialog.
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/DockNanny.app"]
+  end
+
+  # `brew upgrade` replaces the bundle; quit the running copy first so the
+  # docks are not left running from a deleted bundle, and drop the login
+  # item that pointed at it.
+  uninstall quit:       "app.docknanny",
+            login_item: "DockNanny"
+
+  zap trash: [
+    "~/Library/Application Support/DockNanny",
+    "~/Library/Caches/app.docknanny",
+    "~/Library/Preferences/app.docknanny.plist",
+    "~/Library/Saved Application State/app.docknanny.savedState",
+  ]
+end
