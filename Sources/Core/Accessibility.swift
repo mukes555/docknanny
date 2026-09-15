@@ -2,13 +2,14 @@ import ApplicationServices
 import AppKit
 import Security
 
-/// DockNanny's one optional permission, and the only thing it is used for.
+/// DockNanny's one optional permission, and what it is used for.
 ///
-/// Every dock action goes through NSWorkspace and needs nothing. Listing an
-/// app's windows in a tile's menu, and raising one of them, is the one feature
-/// that reads another app's state, and that is Accessibility's job. It is
-/// asked for from the setup window, never at launch, and the docks work the
-/// same without it.
+/// Every dock action goes through NSWorkspace and needs nothing. Three things
+/// read another app's state, which is Accessibility's job: listing and
+/// raising an app's windows from a tile's menu, keeping windows clear of the
+/// docks, and the --probe-windows diagnostic. It is asked for from the setup
+/// window or the Behavior pane, never at launch, and the docks work the same
+/// without it.
 enum Accessibility {
     static var isTrusted: Bool { AXIsProcessTrusted() }
 

@@ -7,7 +7,7 @@
 | Language | Swift 6.2, AppKit shell with SwiftUI content | A dock is roughly 80% OS integration; a webview buys nothing and blocks the APIs that matter |
 | Project file | XcodeGen (`project.yml`) | `.pbxproj` merge conflicts deter outside contributors |
 | License | MIT | Permissive, so others can build on it |
-| Distribution | Notarized DMG plus Homebrew cask | Private SkyLight symbols rule out the App Store |
+| Distribution | Ad hoc signed DMG (notarized once a Developer ID exists) plus Homebrew cask | Accessibility and two private symbols rule out the App Store |
 | System Dock | Coexist by default; hiding is opt-in and later | Hiding it means `killall Dock`, backup files and signal handlers, all of which are fragile |
 | Concurrency | Swift 6 strict, `@MainActor` by default | AppKit, AX and window-server calls are main-thread bound anyway |
 
@@ -22,14 +22,20 @@ nothing for a macOS Dock replacement.
 
 ## Module layout
 
+As shipped (the original plan had a `Private/` module and a `WindowIndex`;
+two `dlsym` lookups in `Core/PrivateSymbols.swift` turned out to be all that
+was needed):
+
 ```
 Sources/
-  App/        AppMain, AppDelegate, StatusItemController
-  Private/    SkyLightBridge, Capability          <- every private symbol, nowhere else
-  Core/       DisplayRegistry, RunningAppsMonitor, WindowIndex, SpaceFilter
-  Config/     Settings, SettingsStore
+  App/        AppDelegate, DockCoordinator, WindowKeeper, HotkeyController,
+              StatusItemController, WindowProbe
+  Core/       DisplayRegistry, RunningAppsMonitor, SystemDockMonitor,
+              Accessibility, WindowServer, PrivateSymbols, DockMetrics, ...
+  Config/     Settings, SettingsStore, SettingsDecoding, SettingsPreset
+  Support/    Log, TaskBox, ObserverTokens, Brand, AppRestarter
   UI/         DockPanel, DockPanelController, DockContentView, DockItemView,
-              WindowPreviewPopover, Settings/
+              Settings/, Tray/, Onboarding/
 ```
 
 Four core services, each deep: a simple interface over real work. No layer
@@ -109,7 +115,8 @@ feature, never the app.
    inline. The development machine has a display at negative Y, which makes
    this a live concern rather than a theoretical one.
 2. **AXObserver is lossy.** It does not reliably deliver every window event.
-   A low-frequency poll backs it up.
+   A sweep of every watched window whenever the docks change or an app
+   joins backs it up; there is no periodic poll.
 3. **Debounce display changes.** Hot-plug fires
    `didChangeScreenParametersNotification` repeatedly; rebuilding per event
    thrashes panels.

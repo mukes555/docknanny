@@ -25,13 +25,15 @@ enum AppActivator {
         open(at: running.bundleURL ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier))
     }
 
+    /// The Dock's plain click on the front app is a reopen: a window when
+    /// the app has none, nothing otherwise. Hiding is the one alternative.
     private static func applyActiveBehavior(
         _ behavior: ActiveClickBehavior,
         to application: NSRunningApplication
     ) {
         switch behavior {
         case .doNothing:
-            return
+            open(at: application.bundleURL)
         case .hide:
             application.hide()
         }

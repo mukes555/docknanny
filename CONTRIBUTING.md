@@ -37,8 +37,9 @@ Keep branches short-lived. If one outlives a week, it is too big.
 
 ## Commits
 
-[Conventional Commits](https://www.conventionalcommits.org/), because the
-changelog is generated from them.
+[Conventional Commits](https://www.conventionalcommits.org/), for a readable
+history. `CHANGELOG.md` is written by hand and is where the release notes come
+from (`tools/release-notes.sh`).
 
 ```
 <type>(<scope>): <imperative summary, lowercase, no trailing period>
@@ -64,19 +65,20 @@ Follow the [Swift API Design Guidelines](https://www.swift.org/documentation/api
 On top of those:
 
 - Types are `UpperCamelCase`, members are `lowerCamelCase`.
-- One primary type per file, and the filename matches it exactly. The single
-  exception is a small set of closely related option enums, which may share a
-  file named for the group (`DockStyle.swift`); splitting four eight-line enums
-  into four files would trade one rule for the deep-modules rule.
+- One primary type per file, named for it. A small type that exists only for
+  that file (a value it builds, a private row view, a box that cleans up in
+  its deinit) may share it, and closely related option enums may share a file
+  named for the group (`DockStyle.swift`); splitting four eight-line enums into
+  four files would trade one rule for the deep-modules rule.
 - Protocols are nouns (`SpaceFilter`) or capability adjectives
   (`PanelPositioning`). Never prefix with `I` or suffix with `Protocol`.
 - Spell things out. `displayIdentifier`, not `dispId`. The only accepted
   acronyms are `ID`, `URL`, `AX`, `CG`, `CGS`, `SLS`, `UI`, `API`, and they
   keep their casing: `displayID`, `windowID`, `axElement`.
 - Booleans read as assertions: `isVisible`, `hasResolvedID`, `canJoinAllSpaces`.
-- Every symbol wrapping a private Apple API lives in `Sources/Private` and
-  carries a comment naming the framework it came from and what breaks if
-  Apple removes it.
+- Every private Apple symbol is resolved in `Sources/Core/PrivateSymbols.swift`
+  and carries a comment naming the framework it lives in and what the app
+  falls back to if Apple removes it.
 - Tests use swift-testing. The behaviour under test goes in the `@Test`
   display string as a sentence a reviewer can read in the failure output
   ("A dock on a display at negative y stays on that display"), and the function
@@ -106,7 +108,7 @@ File size is linted, not merely suggested:
 | ~500   | Split into focused sibling modules by responsibility.      |
 | 1000   | Hard ceiling. SwiftLint fails the build.                   |
 
-Generated files, fixtures and tests are exempt.
+Generated files and fixtures are exempt; tests are linted at the same thresholds.
 
 ## Before opening a pull request
 
@@ -125,19 +127,20 @@ tested), and attach a screenshot or recording for anything visual.
 
 ## Private Apple APIs
 
-Some features (per-display Space filtering, window ordering) have no public
-equivalent. Rules for touching them:
+Two features have no public equivalent, and the rules for them are:
 
-1. Every private symbol is declared in `Sources/Private`, nowhere else.
-2. Resolve symbols at runtime via `dlopen`/`dlsym` so a missing symbol
-   returns nil instead of crashing the app.
-3. Every dependent feature sits behind a protocol with a working no-op
-   implementation, so the app degrades in function rather than failing.
-4. Anything private is gated through `Capability` and is visibly reported in
-   Settings, so users can see what is and is not available on their macOS.
+1. Every private symbol is resolved with `dlsym` in
+   `Sources/Core/PrivateSymbols.swift`, nowhere else, with a comment naming
+   where it lives and what happens without it. A missing symbol costs the
+   feature, never the app.
+2. Today there are two: `_AXUIElementGetWindow` gives the window keeper and
+   the probe a window number (absent, frames come from the app's own report)
+   and `CoreDockSendNotification` drives Show All Windows (absent, the app is
+   only activated).
 
-This is why DockNanny cannot ship on the Mac App Store. Distribution is a
-notarized DMG and a Homebrew cask.
+This, and the Accessibility use, is why DockNanny cannot ship on the Mac App
+Store. Distribution is an ad hoc signed DMG (notarized once a Developer ID
+exists) and a Homebrew cask that strips the quarantine.
 
 ## Signing for development
 
@@ -158,6 +161,6 @@ After switching how a build is signed, remove any stale DockNanny entry from
 System Settings > Privacy & Security > Accessibility and grant once more.
 
 One caveat with the default: any ad hoc build claiming the identifier
-`app.docknanny` satisfies that requirement, so on a development machine another
-such build would inherit the grant. That is a development convenience only;
-release builds are signed with a certificate.
+`app.docknanny` satisfies that requirement, so another such build on the same
+Mac inherits the grant. Release builds carry the same requirement (RELEASING.md,
+Signing), so the caveat applies to them too until a Developer ID exists.

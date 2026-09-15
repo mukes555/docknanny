@@ -57,7 +57,10 @@ struct AppsSettingsView: View {
                 subtitle: "At the end of every dock. Drop files on it to delete them.",
                 isOn: $store.settings.showTrash
             )
-            if let systemTileSize = mirrored.tileSize, systemTileSize != store.settings.iconSize {
+            // The Dock's slider runs past this app's range; the row offers the
+            // nearest size this app can take, or it could never be satisfied.
+            if let systemTileSize = mirrored.tileSize.map({ $0.clamped(to: Settings.Limits.iconSize) }),
+               systemTileSize != store.settings.iconSize {
                 SettingsDivider()
                 SettingRow(
                     title: "Match the Dock's icon size",
@@ -65,7 +68,7 @@ struct AppsSettingsView: View {
                         + "DockNanny is at \(store.settings.iconSize.wholeNumberLabel) pt."
                 ) {
                     Button("Use \(systemTileSize.wholeNumberLabel) pt") {
-                        store.settings.iconSize = systemTileSize.clamped(to: Settings.Limits.iconSize)
+                        store.settings.iconSize = systemTileSize
                     }
                     .controlSize(.small)
                     .frame(maxWidth: .infinity, alignment: .trailing)

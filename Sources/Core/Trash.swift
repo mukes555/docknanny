@@ -53,14 +53,19 @@ enum Trash {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", "tell application \"Finder\" to empty trash"]
         process.standardError = Pipe()
-        // The handler holds the process until it exits, so the child is
-        // reaped rather than left a zombie when this scope ends.
+        // Foundation keeps a running task alive until it exits, so the child
+        // is reaped rather than left a zombie when this scope ends; the
+        // handler is here for the outcome, on whatever thread it arrives.
         process.terminationHandler = { finished in
             finished.terminationHandler = nil
             guard finished.terminationStatus != 0 else { return }
             let output = (finished.standardError as? Pipe)?.fileHandleForReading.readDataToEndOfFile() ?? Data()
             let reason = (String(bytes: output, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            // "User canceled (-128)" is the person's own answer to Finder's
+            // confirmation, not a failure to ask.
+            let cancelled = reason.contains("-128")
             Task { @MainActor in
+                guard !cancelled else { return }
                 Log.workspace.error("Finder did not empty the Trash: \(reason, privacy: .public)")
                 open()
             }

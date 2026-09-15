@@ -34,7 +34,9 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/DockNanny.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         # Ad-hoc signing so the project builds and runs without a paid
-        # developer account. Release builds are signed and notarized in CI.
+        # developer account. Release builds are ad hoc signed in CI too, with
+        # the bundle identifier as the designated requirement (tools/release.sh);
+        # CODESIGN_IDENTITY and NOTARY_PROFILE switch that to a notarized build.
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""

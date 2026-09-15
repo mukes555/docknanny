@@ -109,7 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// `--probe-windows=<app name or bundle id>`, optionally with
-    /// `--resize-test`. A diagnostic run reports and exits before any dock,
+    /// `--resize-test` or `--set-width=<points>`. A diagnostic run reports and
+    /// exits before any dock,
     /// status item or hot key exists, so it can run beside the real instance.
     private func runProbeIfRequested() -> Bool {
         let prefix = "--probe-windows="
@@ -189,14 +190,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Reopening a running menu-bar app, from its Dock tile, Spotlight, Finder
-    /// or `open -a`: with a window already open that window comes forward,
-    /// which is AppKit's own reopen behaviour; with none, Settings opens.
+    /// or `open -a`: a Settings or Set Up window already open comes forward,
+    /// otherwise Settings opens. AppKit's own count of visible windows is no
+    /// guide here, since the docks are windows too, and activating with
+    /// nothing to focus would only take focus from the app in front.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        guard !hasVisibleWindows else {
-            ActivationPolicy.activate()
-            return true
+        if let settingsWindow, settingsWindow.isShowing {
+            settingsWindow.show()
+        } else if let onboarding, onboarding.isShowing {
+            onboarding.show()
+        } else {
+            showSettings()
         }
-        showSettings()
         return false
     }
 

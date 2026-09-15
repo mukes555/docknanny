@@ -118,4 +118,18 @@ struct PerDisplayTests {
         settings.setOverride(DisplayOverride(isEnabled: true), forDisplay: 4)
         #expect(settings.resolved(for: withDock).isEnabled)
     }
+
+    @Test("Hiding everywhere flips the global value and every display's own")
+    func autoHideEverywhereReachesOverrides() {
+        var settings = Settings()
+        settings.setOverride(DisplayOverride(autoHide: true), forDisplay: 3)
+        settings.setOverride(DisplayOverride(edge: .left), forDisplay: 9)
+
+        settings.setAutoHideEverywhere(false)
+
+        #expect(!settings.autoHide)
+        #expect(settings.override(forDisplay: 3).autoHide == false)
+        // A display that never had a value of its own keeps following the global.
+        #expect(settings.override(forDisplay: 9).autoHide == nil)
+    }
 }

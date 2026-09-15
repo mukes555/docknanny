@@ -21,11 +21,6 @@ final class DockCoordinator {
     private let metadata = AppMetadataCache()
     private var claims: [Claim] = []
 
-    /// Built once and shared by every panel. The closures read current state
-    /// when they run rather than closing over a snapshot, so a panel created
-    /// before a setting changed still behaves correctly afterwards.
-    private lazy var actions = makeActions()
-
     init(
         displays: DisplayRegistry,
         apps: RunningAppsMonitor,
@@ -117,7 +112,7 @@ final class DockCoordinator {
                     display: display,
                     configuration: configuration,
                     items: items,
-                    actions: actions,
+                    actions: makeActions(for: display.id),
                     onDragOutside: { [weak self] item, point in
                         self?.dragReleased(item, atScreenPoint: point, from: display.id) ?? .cancelled
                     }
@@ -181,25 +176,26 @@ final class DockCoordinator {
         var effective = settings.settings
         guard effective.mirrorSystemDock else { return effective }
 
-        let finder = "com.apple.finder"
-        effective.pinnedBundleIdentifiers = [finder] + systemDock.pins.filter { $0 != finder }
+        effective.pinnedBundleIdentifiers = systemDock.snapshot.pinsWithFinder
         effective.pinnedOthers = systemDock.others
         return effective
     }
 
     // MARK: Actions
 
-    /// The coordinator owns the settings store, so pinning lives here rather
-    /// than in a view reaching for global state.
-    private func makeActions() -> DockActions {
+    /// Built per dock, so a drop or a drag knows which dock took it. The
+    /// closures read current state when they run rather than closing over a
+    /// snapshot, so a panel created before a setting changed still behaves
+    /// correctly afterwards.
+    private func makeActions(for displayID: CGDirectDisplayID) -> DockActions {
         DockActions(
             activate: { [weak self] item in self?.activate(item) },
             togglePin: { [weak self] item in self?.togglePin(item) },
             reveal: DockCommands.reveal,
             hide: DockCommands.hide,
             quit: DockCommands.quit,
-            drop: { [weak self] urls in self?.drop(urls) },
-            move: { [weak self] identifier, before in self?.move(identifier, before: before) },
+            drop: { [weak self] urls in self?.drop(urls, on: displayID) },
+            move: { [weak self] identifier, before in self?.move(identifier, before: before, on: displayID) },
             hideOthers: DockCommands.hideOthers,
             emptyTrash: Trash.emptyViaFinder,
             trash: Trash.moveToTrash,
@@ -233,47 +229,66 @@ final class DockCoordinator {
 
     /// "Keep in Dock" and "Remove from Dock", for whatever kind of tile asked.
     private func togglePin(_ item: DockItem) {
-        forkFromMirrorIfNeeded()
+        let current = effectiveSettings
         switch item.kind {
         case .app(let identifier):
-            settings.settings.pinnedBundleIdentifiers = PinList.toggling(
-                identifier, in: settings.settings.pinnedBundleIdentifiers
-            )
+            setPins(PinList.toggling(identifier, in: current.pinnedBundleIdentifiers))
         case .file(let url):
-            settings.settings.pinnedOthers.removeAll { $0 == url.absoluteString }
+            setOthers(current.pinnedOthers.filter { $0 != url.absoluteString })
         case .trash:
             settings.settings.showTrash = false
         case .spacer(let ordinal) where item.section == .others:
-            settings.settings.pinnedOthers = PinList.removingSpacer(
-                ordinal: ordinal, from: settings.settings.pinnedOthers
-            )
+            setOthers(PinList.removingSpacer(ordinal: ordinal, from: current.pinnedOthers))
         case .spacer(let ordinal):
-            settings.settings.pinnedBundleIdentifiers = PinList.removingSpacer(
-                ordinal: ordinal, from: settings.settings.pinnedBundleIdentifiers
-            )
+            setPins(PinList.removingSpacer(ordinal: ordinal, from: current.pinnedBundleIdentifiers))
         }
+    }
+
+    /// An edit to a pin list lands in the custom lists, forking from the
+    /// system Dock's first while mirroring. An edit that changes nothing does
+    /// neither, so a drag that ends where it began leaves mirroring on.
+    private func setPins(_ pins: [String]) {
+        guard pins != effectiveSettings.pinnedBundleIdentifiers else { return }
+        forkFromMirrorIfNeeded()
+        settings.settings.pinnedBundleIdentifiers = pins
+    }
+
+    private func setOthers(_ others: [String]) {
+        guard others != effectiveSettings.pinnedOthers else { return }
+        forkFromMirrorIfNeeded()
+        settings.settings.pinnedOthers = others
+    }
+
+    /// A dock showing only chosen apps would otherwise filter out the very
+    /// app just dropped on it, which would then appear on every other dock
+    /// but this one.
+    private func allow(_ identifiers: [String], on displayID: CGDirectDisplayID) {
+        var override = settings.settings.override(forDisplay: displayID)
+        guard let allowed = override.allowedBundleIdentifiers else { return }
+        let missing = identifiers.filter { !allowed.contains($0) }
+        guard !missing.isEmpty else { return }
+        override.allowedBundleIdentifiers = allowed + missing
+        settings.settings.setOverride(override, forDisplay: displayID)
     }
 
     /// Apps dropped on a dock get pinned; anything else joins the section
     /// after the apps. A stray drag of nothing usable is ignored, not alerted.
-    private func drop(_ urls: [URL]) {
+    private func drop(_ urls: [URL], on displayID: CGDirectDisplayID) {
         let apps = urls.filter { $0.pathExtension == "app" }.compactMap { Bundle(url: $0)?.bundleIdentifier }
         let others = urls.filter { $0.pathExtension != "app" }.map(\.absoluteString)
         guard !apps.isEmpty || !others.isEmpty else { return }
 
-        forkFromMirrorIfNeeded()
-        settings.settings.pinnedBundleIdentifiers = PinList.adding(apps, to: settings.settings.pinnedBundleIdentifiers)
-        settings.settings.pinnedOthers = PinList.adding(others, to: settings.settings.pinnedOthers)
+        setPins(PinList.adding(apps, to: effectiveSettings.pinnedBundleIdentifiers))
+        setOthers(PinList.adding(others, to: effectiveSettings.pinnedOthers))
+        allow(apps, on: displayID)
     }
 
     /// A dragged app lands in front of the tile that was under the pointer,
     /// or at the end of the pinned run. A tile that was merely running becomes
     /// pinned by the act of being arranged, which is what the gesture implies.
-    private func move(_ identifier: String, before target: DockItem?) {
-        forkFromMirrorIfNeeded()
-        let moved = PinList.moving(identifier, before: target, in: settings.settings.pinnedBundleIdentifiers)
-        guard moved != settings.settings.pinnedBundleIdentifiers else { return }
-        settings.settings.pinnedBundleIdentifiers = moved
+    private func move(_ identifier: String, before target: DockItem?, on displayID: CGDirectDisplayID) {
+        setPins(PinList.moving(identifier, before: target, in: effectiveSettings.pinnedBundleIdentifiers))
+        allow([identifier], on: displayID)
     }
 
     /// A tile let go off its own dock: another display's dock under the
@@ -285,7 +300,7 @@ final class DockCoordinator {
     ) -> DragReleaseOutcome {
         for (identifier, controller) in controllers where identifier != source {
             guard let landing = controller.landing(atScreenPoint: point, for: item) else { continue }
-            move(item.id, before: landing.before)
+            move(item.id, before: landing.before, on: identifier)
             return .moved
         }
         guard item.isPinned else { return .cancelled }

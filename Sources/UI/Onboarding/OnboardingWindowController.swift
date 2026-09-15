@@ -31,6 +31,8 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         configureWindow()
     }
 
+    var isShowing: Bool { window.isVisible }
+
     func show() {
         guard !window.isVisible else {
             ActivationPolicy.activate(bringingFront: window)

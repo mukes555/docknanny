@@ -130,6 +130,9 @@ final class HotkeyRegistrations {
     var hotKeys: [UInt32: EventHotKeyRef] = [:]
 
     deinit {
+        // Carbon is not thread safe. The owner lives on the main actor, so
+        // this runs there; a release anywhere else is a bug worth stopping on.
+        dispatchPrecondition(condition: .onQueue(.main))
         for reference in hotKeys.values {
             UnregisterEventHotKey(reference)
         }

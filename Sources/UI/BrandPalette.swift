@@ -22,10 +22,9 @@ enum BrandPalette: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// Read by ``Theme`` for every accent. Set on the main actor whenever
-    /// settings change; declared unsafe only because Theme's statics are
-    /// not actor-isolated.
-    nonisolated(unsafe) static var current: BrandPalette = .lime
+    /// Read by ``Theme`` for every accent, from view bodies, and set by the
+    /// settings store: all on the main actor.
+    @MainActor static var current: BrandPalette = .lime
 
     var localizedName: String {
         switch self {

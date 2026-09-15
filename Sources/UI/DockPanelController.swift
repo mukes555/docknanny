@@ -49,6 +49,10 @@ final class DockPanelController {
     /// The frame the last render asked for. During the reveal animation the
     /// panel's own frame is still on its way there.
     private var targetFrame: CGRect = .zero
+    /// The panel at its largest for the current state: the sliver's reach
+    /// along the dock is this long too, so the zone that keeps a dock shown
+    /// must be at least this long or the two would disagree at the ends.
+    private var panelSpan: CGRect = .zero
 
     private var revealTask: Task<Void, Never>?
     private var concealTask: Task<Void, Never>?
@@ -125,6 +129,7 @@ final class DockPanelController {
             concealTask?.cancel()
             concealTask = nil
             isRevealed = !configuration.autoHide
+            isExpanded = false
         }
         render(animated: false)
     }
@@ -145,11 +150,12 @@ final class DockPanelController {
     /// just revealed, and the dock would hide and show in a loop.
     private var hoverZone: CGRect {
         let frame = targetFrame
+        let span = panelSpan
         let margin = configuration.margin
         return switch configuration.edge {
-        case .bottom: CGRect(x: frame.minX, y: frame.minY - margin, width: frame.width, height: frame.height + margin)
-        case .left: CGRect(x: frame.minX - margin, y: frame.minY, width: frame.width + margin, height: frame.height)
-        case .right: CGRect(x: frame.minX, y: frame.minY, width: frame.width + margin, height: frame.height)
+        case .bottom: CGRect(x: span.minX, y: frame.minY - margin, width: span.width, height: frame.height + margin)
+        case .left: CGRect(x: frame.minX - margin, y: span.minY, width: frame.width + margin, height: span.height)
+        case .right: CGRect(x: frame.minX, y: span.minY, width: frame.width + margin, height: span.height)
         }
     }
 
@@ -239,6 +245,7 @@ final class DockPanelController {
         let showsSlabOnly = isRevealed && !isExpanded
         let frame = showsSlabOnly ? Self.restFrame(within: full, fit: fit, edge: configuration.edge) : full
         targetFrame = frame
+        panelSpan = full
 
         // The content is always laid out at full size; at rest the window is
         // the slab's size and the content is shifted so the slab is what shows.

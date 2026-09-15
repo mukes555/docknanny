@@ -7,8 +7,17 @@ struct BehaviorSettingsView: View {
     /// cross-process call, far too expensive to sit in a binding's getter where
     /// SwiftUI would run it on every body evaluation.
     @State private var launchesAtLogin = false
-    @State private var loginItemRefused = false
+    @State private var loginItemOutcome = LaunchAtLogin.Outcome.applied
     @State private var accessibilityTrusted = Accessibility.isTrusted
+
+    /// Flips every dock, the ones with an auto-hide value of their own
+    /// included, the same as the shortcut does.
+    private var autoHideEverywhere: Binding<Bool> {
+        Binding(
+            get: { store.settings.autoHide },
+            set: { store.settings.setAutoHideEverywhere($0) }
+        )
+    }
 
     var body: some View {
         SettingsPane {
@@ -24,7 +33,7 @@ struct BehaviorSettingsView: View {
                 SettingsToggle(
                     title: "Hide automatically",
                     subtitle: "The dock retreats to a sliver at the screen edge until you point at it.",
-                    isOn: $store.settings.autoHide
+                    isOn: autoHideEverywhere
                 )
                 SettingsDivider()
                 SettingsSlider(
@@ -51,9 +60,7 @@ struct BehaviorSettingsView: View {
             SettingsGroup(title: "Startup") {
                 SettingsToggle(
                     title: "Launch at login",
-                    subtitle: loginItemRefused
-                        ? "macOS refused the change. An unsigned build cannot register a login item."
-                        : "Start DockNanny automatically when you sign in.",
+                    subtitle: launchAtLoginSubtitle,
                     isOn: launchAtLoginBinding
                 )
             }
@@ -120,15 +127,27 @@ struct BehaviorSettingsView: View {
         }
     }
 
+    private var launchAtLoginSubtitle: String {
+        switch loginItemOutcome {
+        case .applied: "Start DockNanny automatically when you sign in."
+        case .requiresApproval: "Waiting for your approval under General > Login Items in System Settings."
+        case .refused: "macOS refused the change. An unsigned build cannot register a login item."
+        }
+    }
+
     /// The service, not the stored value, is the source of truth: the user can
-    /// change the registration in System Settings behind the app's back.
+    /// change the registration in System Settings behind the app's back. An
+    /// item parked for approval opens the pane where approval is given.
     private var launchAtLoginBinding: Binding<Bool> {
         Binding(
             get: { launchesAtLogin },
             set: { requested in
-                loginItemRefused = !LaunchAtLogin.set(requested)
+                loginItemOutcome = LaunchAtLogin.set(requested)
                 launchesAtLogin = LaunchAtLogin.isEnabled
                 store.settings.launchAtLogin = launchesAtLogin
+                if loginItemOutcome == .requiresApproval {
+                    LaunchAtLogin.openLoginItems()
+                }
             }
         )
     }

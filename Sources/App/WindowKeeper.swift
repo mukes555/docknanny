@@ -41,6 +41,10 @@ final class WindowKeeper {
     private struct Settle {
         let generation: Int
         let task: Task<Void, Never>
+        /// The first look is done and the second is pending. A notification
+        /// arriving now begins a new change, and whether the mouse is down
+        /// for it matters again.
+        var hasJudged = false
     }
 
     /// A zoom animates through several resize notifications a frame apart;
@@ -259,7 +263,8 @@ final class WindowKeeper {
     /// before the second look cancels the whole check, so a window the person
     /// has since taken hold of is not moved under them.
     private func scheduleCheck(of pid: pid_t) {
-        if settling[pid] == nil, NSEvent.pressedMouseButtons != 0 {
+        let beginsChange = settling[pid].map(\.hasJudged) ?? true
+        if beginsChange, NSEvent.pressedMouseButtons != 0 {
             beganWithMouseDown.insert(pid)
         }
         settling[pid]?.task.cancel()
@@ -274,6 +279,9 @@ final class WindowKeeper {
                 return
             }
             judgeWindows(of: pid)
+            if settling[pid]?.generation == generation {
+                settling[pid]?.hasJudged = true
+            }
             try? await Task.sleep(for: Self.secondLookDelay)
             guard !Task.isCancelled else { return }
             judgeWindows(of: pid)

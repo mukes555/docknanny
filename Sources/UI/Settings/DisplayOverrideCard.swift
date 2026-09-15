@@ -123,7 +123,9 @@ struct DisplayOverrideCard: View {
     /// The list a dock actually shows: the system Dock's while mirroring,
     /// since mirroring leaves the stored list at its defaults.
     private static func currentPins(in settings: Settings) -> [String] {
-        let pins = settings.mirrorSystemDock ? SystemDockMonitor.read().pins : settings.pinnedBundleIdentifiers
+        let pins = settings.mirrorSystemDock
+            ? SystemDockMonitor.read().pinsWithFinder
+            : settings.pinnedBundleIdentifiers
         return pins.filter { $0 != DockItem.spacerIdentifier }
     }
 }

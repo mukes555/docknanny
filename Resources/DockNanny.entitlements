@@ -4,7 +4,7 @@
 <dict>
 	<!-- The Accessibility and window-server APIs DockNanny depends on are
 	     unavailable inside the App Sandbox, which is also why distribution is
-	     a notarized DMG rather than the Mac App Store. -->
+	     a DMG (ad hoc signed today) and a cask rather than the Mac App Store. -->
 	<key>com.apple.security.app-sandbox</key>
 	<false/>
 </dict>

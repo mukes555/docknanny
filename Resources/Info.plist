@@ -29,10 +29,11 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright (c) 2026 Mukesh Kumar. MIT licensed.</string>
-	<!-- Accessory app: no tile in the system Dock, no command-tab entry.
-	     DockNanny is reached through its menu bar item. -->
 	<key>NSAppleEventsUsageDescription</key>
 	<string>DockNanny asks Finder to empty the Trash when you choose Empty Trash from a dock.</string>
+	<!-- Accessory app at launch: no tile in the system Dock, no command-tab
+	     entry, reached through its menu bar item. ActivationPolicy raises it
+	     to a regular app while a Settings or Set Up window is open. -->
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSSupportsAutomaticTermination</key>

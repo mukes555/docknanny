@@ -12,10 +12,6 @@ struct OnboardingView: View {
     let onDismiss: () -> Void
 
     @State private var isTrusted = Accessibility.isTrusted
-    /// The grant lands in System Settings, behind this window. Polling while
-    /// the window is open means the status flips without a relaunch when
-    /// macOS applies it live, which it usually does.
-    private let poll = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +26,17 @@ struct OnboardingView: View {
         .frame(width: 480)
         .background(Theme.Surface.canvas)
         .preferredColorScheme(.dark)
-        .onReceive(poll) { _ in isTrusted = Accessibility.isTrusted }
+        .task { await watchAccessibility() }
+    }
+
+    /// The grant lands in System Settings, behind this window. Checking back
+    /// each second while the view is up means the status flips without a
+    /// relaunch when macOS applies it live, which it usually does.
+    private func watchAccessibility() async {
+        while !Task.isCancelled {
+            isTrusted = Accessibility.isTrusted
+            try? await Task.sleep(for: .seconds(1))
+        }
     }
 
     private var header: some View {

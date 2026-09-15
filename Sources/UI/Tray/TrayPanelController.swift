@@ -14,7 +14,7 @@ final class TrayPanelController: NSObject, NSPopoverDelegate {
     init(
         store: SettingsStore,
         displays: DisplayRegistry,
-        onOpenSettings: @escaping (SettingsSection) -> Void,
+        onOpenSettings: @escaping (SettingsSection?) -> Void,
         onOpenSetup: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {

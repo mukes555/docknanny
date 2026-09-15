@@ -85,9 +85,11 @@ Banner: Wide 2400 by 900 crop, quokka at the left third, a halo of monitors behi
 ```
 
 Ask for 2048 by 2048 for the squares, 2400 by 900 for the banner,
-transparent background where the tool allows it. The README references the
-results as `docs/media/quokka-wave.png`, `docs/media/quokka-halo.png` (A or
-B) and `docs/media/banner-quokka.png`.
+transparent background where the tool allows it. The README shows the results
+as `docs/media/quokka-wave.png` and `docs/media/quokka-halo.jpg`; the banner
+render is `docs/media/banner-quokka.jpg`, which
+`swift tools/make-banner.swift docs/media` composites with the wordmark into
+`docs/media/banner.png`, the file the README shows at the top.
 
 ### Hero and README
 
@@ -145,18 +147,16 @@ Do not append the mascot style suffix to these.
 23. Same glasses, single continuous line-art style, 2px stroke, monochrome
 ```
 
-Prompt 22 becomes the menu bar template image.
-
 ## App icon
 
-macOS 26 uses a layered icon system. Generate the quokka on a transparent
-background **separately** from the green circle ground, so foreground and
-background can be supplied as distinct layers later and pick up the native
-Liquid Glass depth treatment. The flat composite still renders correctly in
-the meantime.
+macOS 26 uses a layered icon system. `tools/make-icon.swift` draws the ground
+and the glyph as separate passes so they can be supplied as distinct layers
+later and pick up the native Liquid Glass depth treatment. The flat composite
+renders correctly in the meantime.
 
-The `.icns` ladder (16 through 1024, each at 1x and 2x) is produced from a
-single 1024 master by script, never by generating each size separately.
+The iconset ladder (16 to 512 points, each at 1x and 2x) is drawn rung by rung
+from one geometry at each rung's own pixel size, never downscaled from a
+master.
 
 ## Generating the icon
 
@@ -169,18 +169,22 @@ cp assets/branding/DockNanny.iconset/*.png Resources/Assets.xcassets/AppIcon.app
 cp assets/branding/menubar*.png Resources/Assets.xcassets/MenuBarIcon.imageset/
 ```
 
-It emits `DockNanny.iconset/` (the ten rungs macOS expects), a 1024 composite, and
-`mark-foreground-1024.png`: the glasses on transparency, kept separate so the
-foreground can be layered over a new ground when the mascot arrives, which is
-what macOS 26's layered icons want.
+It emits `DockNanny.iconset/` (the ten rungs macOS expects), `icon-1024.png`
+(the composite) and `menubar.png`, `menubar@2x.png`, `menubar@3x.png` (the
+template mark for the menu bar).
 
 Replacing it is a matter of dropping new PNGs into
-`Resources/Assets.xcassets/AppIcon.appiconset/`. Nothing in the code refers to
-the artwork directly; the onboarding header reads the bundle's own icon.
+`Resources/Assets.xcassets/AppIcon.appiconset/`. The code refers to the
+catalogue entries by name only (`AppIcon`, `MenuBarIcon`), so new PNGs are
+enough.
 
 ## Where assets live
 
 ```
-assets/branding/               masters, 1024x1024 transparent PNG
-assets/branding/icon-512.png   README header
+assets/branding/DockNanny.iconset/   the ten rungs
+assets/branding/icon-1024.png        the composite
+assets/branding/menubar*.png         the menu bar template mark
+assets/branding/DockNanny-icon.svg   the icon as vector
+assets/branding/DockNanny-glyph.svg  the bare glyph
+docs/media/banner.png                README header
 ```

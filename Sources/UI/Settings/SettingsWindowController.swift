@@ -23,7 +23,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.setContentSize(CGSize(width: 900, height: 680))
 
-        // The tab band runs the full width beneath the traffic lights, so the
+        // The sidebar's material runs up under the traffic lights, so the
         // title bar has to be transparent and empty rather than merely styled.
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -34,6 +34,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
     }
+
+    var isShowing: Bool { window.isVisible }
 
     /// A window that is already open is brought forward where it is; only a
     /// fresh one is centred. A section named by the caller is shown; nil

@@ -48,9 +48,10 @@ hide the others, drag to rearrange with a live gap, drag a tile off to remove
 it with the poof, and drag one from one display's dock to another's. Right-click
 a running app for its windows, like the Dock. Folder tiles open as a list.
 
-**Windows stay clear of it.** With one optional grant, a window opened or
-zoomed into a dock's space is nudged to sit beside it, the effect the system
-Dock gets from its reserved strip.
+**Windows stay clear of it.** Turn on "Keep windows clear of the dock" in
+Behavior and grant Accessibility once, and a window opened or zoomed into a
+dock's space is nudged to sit beside it, the effect the system Dock gets from
+its reserved strip.
 
 **Every display its own.** Edge, size, tint, hiding and which apps are shown
 can all differ per display, and a display keeps its settings across unplugging.
@@ -117,7 +118,7 @@ is ad hoc signed rather than notarized, so if you install from the DMG, clear
 the quarantine once:
 
 ```bash
-xattr -d com.apple.quarantine /Applications/DockNanny.app
+xattr -dr com.apple.quarantine /Applications/DockNanny.app
 ```
 
 DockNanny lives in the menu bar as two small displays.
@@ -138,7 +139,8 @@ work without it otherwise:
   folder (Downloads, Desktop and the like).
 - **Empty Trash** asks Finder to do the emptying, which is an Automation
   prompt for controlling Finder. Finder keeps its own "permanently erase?"
-  confirmation.
+  confirmation. Decline the prompt and the Trash opens instead, so you can
+  empty it there.
 
 <div align="center"><img src="docs/media/setup.png" width="480" alt="The setup window: nothing to grant for the docks, and the optional Accessibility row with Grant and Relaunch buttons" /></div>
 
@@ -161,7 +163,7 @@ brew install xcodegen swiftlint
 ```
 
 ```bash
-git clone https://github.com/mukes555/docknanny.git && cd DockNanny && xcodegen generate && open DockNanny.xcodeproj
+git clone https://github.com/mukes555/docknanny.git && cd docknanny && xcodegen generate && open DockNanny.xcodeproj
 ```
 
 `tools/dev.sh` builds, signs and relaunches a development build so its
@@ -169,8 +171,12 @@ Accessibility grant survives rebuilds. `tools/release.sh` builds a DMG (ad hoc
 by default; set `CODESIGN_IDENTITY` and `NOTARY_PROFILE` for a notarized
 one). Launch flags: `--settings [--section=layout|appearance|behavior|displays|apps|presets]`,
 `--setup`, `--tray`, `--settings-dir=<folder>` for a separate profile, and
-`--probe-windows=<app>` to record what Accessibility and the window server
-say about an app's windows when one will not stay clear of a dock.
+`--probe-windows=<app name or bundle id>` (optionally with `--resize-test` or
+`--set-width=<points>`) to record what Accessibility and the window server say
+about an app's windows when one will not stay clear of a dock. The probe
+reports in the log under the `probe` category and exits; start it with
+`open -n -a DockNanny --args --probe-windows=<app>` so it runs with the app's
+own Accessibility grant.
 
 The app logs under the `app.docknanny` subsystem:
 

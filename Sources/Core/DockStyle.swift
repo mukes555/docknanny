@@ -47,9 +47,11 @@ enum IndicatorStyle: String, Codable, CaseIterable, Sendable {
 
 /// What clicking a tile does when its app is already frontmost.
 ///
-/// Cycling an app's windows needs window identity, which arrives with
-/// `WindowIndex` in Phase 3. It is deliberately absent rather than present and
-/// quietly doing something else.
+/// The Dock's plain click opens a window when the app has none and otherwise
+/// leaves it be; hiding is the one other thing people expect of it. Cycling
+/// the app's windows is not offered: window identity exists
+/// (PrivateSymbols.windowNumber) but the Dock's ordering does not, so the
+/// option is absent rather than present and quietly doing something else.
 enum ActiveClickBehavior: String, Codable, CaseIterable, Sendable {
     case doNothing
     case hide
