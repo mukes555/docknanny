@@ -116,7 +116,7 @@ struct DockPreview: View {
 
     /// The preview shows what the dock shows, mirrored or custom.
     private var pinnedSource: [String] {
-        settings.mirrorSystemDock ? SystemDockMonitor.read().pins : configuration.pinnedBundleIdentifiers
+        settings.mirrorSystemDock ? SystemDockMonitor.read().pinsWithFinder : configuration.pinnedBundleIdentifiers
     }
 
     private func reload() {

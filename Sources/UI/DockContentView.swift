@@ -102,7 +102,11 @@ struct DockContentView: View {
             spacing: geometry.spacing,
             restOrigin: fit.lengthHeadroom
         )
-        let hole: Int? = dragging.map { landing(for: $0).slot }
+        // A tile that leaves the dock mid-drag (its app quit) no longer needs
+        // a slot held open; holding one would leave the last tile unplaced.
+        let hole: Int? = dragging.flatMap { drag in
+            visibleItems.contains { $0.id == drag.item.id } ? landing(for: drag).slot : nil
+        }
 
         return ZStack(alignment: .topLeading) {
             chrome(geometry.liveSlab(centres: centres, scales: scales))

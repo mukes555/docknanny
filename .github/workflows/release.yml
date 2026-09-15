@@ -66,8 +66,8 @@ jobs:
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          # An -rc, -beta or -alpha tag is a pre-release, so "latest" and the
-          # cask's livecheck skip it.
+          # A tag with a suffix (-rc.1, -beta) is a pre-release, so "latest"
+          # and the cask's livecheck skip it.
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
           body_path: build/release/RELEASE-NOTES.md
           files: |
@@ -116,7 +116,7 @@ jobs:
         if: env.HAS_TAP_TOKEN == 'true'
         run: |
           VERSION="${RELEASE_TAG#v}"
-          case "$RELEASE_TAG" in *-rc*|*-beta*|*-alpha*) echo "pre-release: tap not updated"; exit 0;; esac
+          case "$RELEASE_TAG" in *-*) echo "pre-release: tap not updated"; exit 0;; esac
           SHA="$(awk '/\.dmg$/ {print $1}' checksums/SHA256SUMS)"
           [ -n "$SHA" ] || { echo "no dmg checksum in SHA256SUMS" >&2; exit 1; }
           sed -e "s/__VERSION__/$VERSION/" -e "s/__SHA256__/$SHA/" packaging/homebrew/docknanny.rb.tmpl > tap/Casks/docknanny.rb

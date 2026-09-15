@@ -73,7 +73,12 @@ final class RunningAppsMonitor {
             return false
         }
         guard let identifier = application.bundleIdentifier else { return false }
-        return identifier != ownBundleIdentifier
+        // LaunchServices can go on listing an app whose process the kernel
+        // no longer has, for minutes. Seen in the field: the keeper asked it
+        // for an observer several times a second the whole time. Signal 0
+        // asks the kernel without sending anything.
+        let processExists = kill(application.processIdentifier, 0) == 0 || errno == EPERM
+        return identifier != ownBundleIdentifier && processExists
     }
 
     private static func describe(_ application: NSRunningApplication) -> RunningApp? {

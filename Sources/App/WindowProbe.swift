@@ -97,6 +97,13 @@ enum WindowProbe {
         try? await Task.sleep(for: .milliseconds(500))
         let restored = WindowServer.windowBounds(ofProcess: pid)[number].map(describe) ?? "gone"
         say("Restored to \(restored)")
+
+        // Also the observer's last use: the optimiser may otherwise release
+        // it, and with it its run-loop source, before the waits above are
+        // over, and the test would hear nothing.
+        if let observer {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        }
     }
 
     private static func report(pid: pid_t) {

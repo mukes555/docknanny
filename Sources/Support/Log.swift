@@ -1,9 +1,9 @@
 import OSLog
 
-/// Subsystem-scoped loggers.
+/// One subsystem, a category per concern.
 ///
-/// Categories match the module layout so `log stream --predicate` can follow
-/// one subsystem without the others drowning it out.
+/// `log stream --predicate 'subsystem == "app.docknanny" AND category ==
+/// "workspace"'` follows one concern without the others drowning it out.
 enum Log {
     private static let subsystem = "app.docknanny"
 

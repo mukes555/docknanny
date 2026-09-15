@@ -10,6 +10,10 @@ final class ObserverSources {
     var byProcess: [pid_t: AXObserver] = [:]
 
     deinit {
+        // The callbacks run on the main thread, so retiring their pointer to
+        // the keeper is only safe there. The keeper lives on the main actor;
+        // a release anywhere else is a bug worth stopping on.
+        dispatchPrecondition(condition: .onQueue(.main))
         for observer in byProcess.values {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
         }

@@ -4,10 +4,19 @@ import SwiftUI
 struct TrayView: View {
     @Bindable var store: SettingsStore
     let displays: DisplayRegistry
-    let onOpenSettings: (SettingsSection) -> Void
+    let onOpenSettings: (SettingsSection?) -> Void
     let onOpenSetup: () -> Void
     let onClose: () -> Void
     let onQuit: () -> Void
+
+    /// Flips every dock, the ones with an auto-hide value of their own
+    /// included, the same as the shortcut does.
+    private var autoHideEverywhere: Binding<Bool> {
+        Binding(
+            get: { store.settings.autoHide },
+            set: { store.settings.setAutoHideEverywhere($0) }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,7 +34,7 @@ struct TrayView: View {
                 SettingsDivider()
                 quickToggle("Magnify on hover", $store.settings.isMagnificationEnabled)
                 SettingsDivider()
-                quickToggle("Hide automatically", $store.settings.autoHide)
+                quickToggle("Hide automatically", autoHideEverywhere)
             }
 
             actions
@@ -98,7 +107,7 @@ struct TrayView: View {
 
     private var actions: some View {
         VStack(spacing: 0) {
-            TrayAction(symbol: "gearshape", title: "Settings…", keycap: "⌘,") { onOpenSettings(.layout) }
+            TrayAction(symbol: "gearshape", title: "Settings…", keycap: "⌘,") { onOpenSettings(nil) }
             SettingsDivider()
             TrayAction(symbol: "checkmark.shield", title: "Set Up DockNanny…", keycap: nil, action: onOpenSetup)
             SettingsDivider()
@@ -116,7 +125,7 @@ struct TrayView: View {
 
     /// Command-comma works while the tray is open, as it does everywhere else.
     private var settingsShortcut: some View {
-        Button("") { onOpenSettings(.layout) }
+        Button("") { onOpenSettings(nil) }
             .keyboardShortcut(",", modifiers: .command)
             .hidden()
     }

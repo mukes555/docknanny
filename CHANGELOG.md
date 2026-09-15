@@ -22,6 +22,19 @@
   trip, retries an app that is still starting up with backoff and then
   gives up rather than piling up retries, and cancels a second look when
   the person takes hold of the window.
+- A second review pass. On a mirrored dock, a drag that ended where it
+  began silently switched mirroring off; edits now fork from the system
+  Dock only when they change something. A file dropped on a dock showing
+  only chosen apps is now allowed on that dock rather than appearing on
+  every other one. Reopening DockNanny while its docks are up opens
+  Settings instead of taking focus with nothing to show. A login item
+  parked for approval says so and opens Login Items. "Hide automatically"
+  in the tray and the Behavior pane flips every dock, like the shortcut.
+  The display poll goes through the hot-plug settle, so a tick mid
+  reconfiguration no longer closes and reopens every panel. An app
+  LaunchServices still lists after its process is gone is no longer shown
+  or watched. Clicking the front app opens a window when it has none, as
+  the Dock does. The docs match the code again.
 - Failures are told, not only logged. A Finder that declines to empty the
   Trash (the Automation prompt, answered no) opens the Trash instead; a
   settings file that cannot be written is announced on every pane of the

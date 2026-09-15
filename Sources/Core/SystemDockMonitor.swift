@@ -16,6 +16,14 @@ final class SystemDockMonitor {
     struct Snapshot: Equatable, Sendable {
         var pins: [String] = []
         var others: [String] = []
+
+        /// The Dock's first tile is Finder without ever being in its pin
+        /// list; anything that shows the pins as the Dock shows them wants
+        /// this list.
+        var pinsWithFinder: [String] {
+            let finder = "com.apple.finder"
+            return [finder] + pins.filter { $0 != finder }
+        }
         /// nil when "Show recent applications in Dock" is off.
         var recents: [String]?
         var tileSize: Double?
@@ -54,7 +62,8 @@ final class SystemDockMonitor {
     }
 
     /// A String, not a CFString: only Sendable statics may be nonisolated
-    /// under Swift 6, and the reader runs off the main actor.
+    /// under Swift 6, and the reader is callable from anywhere since it
+    /// touches only CFPreferences and a syscall.
     nonisolated private static let domain = "com.apple.dock"
 
     nonisolated static func read() -> Snapshot {

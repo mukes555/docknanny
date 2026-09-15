@@ -44,7 +44,7 @@ enum ActivationPolicy {
                 // A window gone in the meantime (a transient popover closed
                 // by a click elsewhere) must not be chased: activating then
                 // would take focus from wherever the person went.
-                if let window, !window.isVisible { return }
+                if let window, !window.isVisible, !NSApp.isHidden { return }
                 let done = NSApp.isActive && (window == nil || window?.isKeyWindow == true)
                 if attempt > 0, done { return }
 

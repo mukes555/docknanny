@@ -78,11 +78,11 @@ enum Theme {
     /// The moment the accent appears on something you cannot click, the palette
     /// stops meaning anything. Measured 9.53:1 against ``Surface/canvas``, which
     /// is comfortably past WCAG's 4.5:1 for body text.
-    static var accent: Color { BrandPalette.current.accent }
+    @MainActor static var accent: Color { BrandPalette.current.accent }
 
     /// The same hue with the volume down, for fills large enough that full
     /// accent would shout.
-    static var accentMuted: Color { BrandPalette.current.accentMuted }
+    @MainActor static var accentMuted: Color { BrandPalette.current.accentMuted }
 
     /// State, not decoration. Each is only ever paired with a word saying the
     /// same thing, because colour alone fails anyone who cannot separate these

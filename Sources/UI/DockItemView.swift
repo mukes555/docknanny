@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A single application tile.
+/// A single tile: an app, a folder or document, the Trash, or a spacer.
 ///
 /// Size arrives from the layout rather than being scaled here: a tile drawn
 /// at its magnified size occupies exactly the pixels it appears to, which is

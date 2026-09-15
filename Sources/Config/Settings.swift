@@ -117,6 +117,17 @@ struct Settings: Codable, Equatable, Sendable {
             ?? DisplayOverride()
     }
 
+    /// Every dock together: the ones following the global setting and the
+    /// ones with a value of their own. A display whose auto-hide was ever set
+    /// by hand keeps that value over the global one, so a switch that flipped
+    /// only the global would seem dead there.
+    mutating func setAutoHideEverywhere(_ hidden: Bool) {
+        autoHide = hidden
+        for key in perDisplay.keys where perDisplay[key]?.autoHide != nil {
+            perDisplay[key]?.autoHide = hidden
+        }
+    }
+
     /// Always writes the stable key, which migrates a legacy entry on first
     /// change without a migration pass.
     mutating func setOverride(_ override: DisplayOverride, forDisplay id: CGDirectDisplayID) {

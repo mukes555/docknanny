@@ -29,8 +29,8 @@ final class StatusItemController {
 
         configureButton()
 
-        // Left-click drops the tray panel; right-click keeps the classic menu
-        // for anyone who wants a menu. The menu is attached only for the
+        // Left-click drops the tray panel; right-click and Control-click keep
+        // the classic menu for anyone who wants a menu. The menu is attached only for the
         // duration of the click, or it would swallow left-clicks too.
         guard let button = statusItem.button else { return }
         button.target = self

@@ -27,7 +27,7 @@ final class DisplayRegistry {
     private(set) var primaryHeight: CGFloat = 0
 
     private let observers = ObserverTokens(center: .default)
-    private var rebuildTask: Task<Void, Never>?
+    private let rebuild = TaskBox()
     private let dockWatch = TaskBox()
     private let settleDelay: Duration
 
@@ -36,7 +36,7 @@ final class DisplayRegistry {
     /// so changes are coalesced.
     init(settleDelay: Duration = .milliseconds(500)) {
         self.settleDelay = settleDelay
-        rebuild()
+        rebuildNow()
         observeScreenChanges()
     }
 
@@ -70,32 +70,35 @@ final class DisplayRegistry {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }
-                self?.rebuild()
+                // Through the settle, so a tick that lands mid hot-plug does
+                // not publish a half-built list and close every panel for it.
+                self?.scheduleRebuild()
             }
         }
     }
 
     private func scheduleRebuild() {
-        rebuildTask?.cancel()
-        rebuildTask = Task { [weak self, settleDelay] in
+        rebuild.task = Task { [weak self, settleDelay] in
             try? await Task.sleep(for: settleDelay)
             guard !Task.isCancelled else { return }
-            self?.rebuild()
+            self?.rebuildNow()
         }
     }
 
-    private func rebuild() {
+    private func rebuildNow() {
         let dockDisplay = SystemDockLocator.displayID()
         let rebuilt = NSScreen.screens.compactMap { Self.describe($0, dockDisplay: dockDisplay) }
-        // Keep the last known pivot when the screen list is momentarily empty
-        // (it is, during a display switch). Zeroing it would send every
-        // Accessibility coordinate conversion to the wrong place.
+        // Keep the last known pivot, and the last known displays, when the
+        // screen list is momentarily empty (it is, during a display switch).
+        // Zeroing the pivot would send every Accessibility coordinate
+        // conversion to the wrong place; an empty list would close every
+        // panel only to reopen it a moment later.
         if let height = NSScreen.screens.first?.frame.height {
             primaryHeight = height
         }
 
         defer { watchSystemDockIfNeeded() }
-        guard rebuilt != displays else { return }
+        guard !rebuilt.isEmpty, rebuilt != displays else { return }
         displays = rebuilt
         Log.display.info("Displays changed: \(rebuilt.count, privacy: .public) attached")
     }
