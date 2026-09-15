@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="DockNanny mark">
+  <title>DockNanny mark</title>
+  <!-- The glyph alone, in brand lime on transparent, for use on any ground. -->
+  <rect x="392" y="236" width="470" height="330" rx="54" fill="none" stroke="#C0DD71" stroke-width="34"/>
+  <rect x="446" y="474" width="362" height="52" rx="26" fill="#C0DD71"/>
+  <rect x="162" y="372" width="470" height="330" rx="54" fill="#0E1408" stroke="#C0DD71" stroke-width="34"/>
+  <rect x="216" y="610" width="362" height="52" rx="26" fill="#C0DD71"/>
+  <rect x="340" y="716" width="114" height="34" rx="17" fill="#C0DD71"/>
+  <rect x="256" y="756" width="282" height="34" rx="17" fill="#C0DD71" fill-opacity="0.75"/>
+</svg>
