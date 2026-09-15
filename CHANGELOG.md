@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
 - Release notes come from the changelog section of the version being
   released, and a release refuses a tag whose version disagrees with
