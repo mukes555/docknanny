@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.2
+
+- The setting for clicking the app you are already in is a menu now, so its
+  three choices read in full. As a row of three buttons they were cut to
+  "Do Nothi...", "Hide the..." and "Hide on...". Its explanation is shorter
+  and says plainly how the two ways of hiding differ.
+- Hide on This Screen has been tried by hand on two screens: a window folds
+  away on the screen whose dock was clicked and comes back on the next click,
+  including clicks a second apart.
+
 ## 0.5.1
 
 - Bringing a window back to the screen it came from works however quickly
