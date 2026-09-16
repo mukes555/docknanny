@@ -63,6 +63,13 @@ final class DockCoordinator {
         return Reservation(strip: strip, edge: edge, visibleFrame: display.visibleFrame)
     }
 
+    /// Where a dock sits, for the click behaviours that act on one screen.
+    private func dockScreen(_ displayID: CGDirectDisplayID) -> DockScreen? {
+        displays.display(withID: displayID).map {
+            DockScreen(frame: $0.frame, primaryHeight: displays.primaryHeight)
+        }
+    }
+
     /// The shortcut's target is the dock the person is looking at: the one on
     /// the display under the pointer, or failing that any dock. Spacers do
     /// not count; people count icons.
@@ -74,7 +81,7 @@ final class DockCoordinator {
 
         let apps = controller.items.filter { $0.bundleIdentifier != nil }
         guard number >= 1, number <= apps.count else { return }
-        activate(apps[number - 1])
+        activate(apps[number - 1], on: controller.displayID)
     }
 
     /// `withObservationTracking` fires once per change, so the observation is
@@ -189,7 +196,7 @@ final class DockCoordinator {
     /// correctly afterwards.
     private func makeActions(for displayID: CGDirectDisplayID) -> DockActions {
         DockActions(
-            activate: { [weak self] item in self?.activate(item) },
+            activate: { [weak self] item in self?.activate(item, on: displayID) },
             togglePin: { [weak self] item in self?.togglePin(item) },
             reveal: DockCommands.reveal,
             hide: DockCommands.hide,
@@ -205,10 +212,14 @@ final class DockCoordinator {
         )
     }
 
-    private func activate(_ item: DockItem) {
+    private func activate(_ item: DockItem, on displayID: CGDirectDisplayID) {
         switch item.kind {
         case .app(let identifier):
-            AppActivator.activate(bundleIdentifier: identifier, whenActive: settings.settings.activeClickBehavior)
+            AppActivator.activate(
+                bundleIdentifier: identifier,
+                whenActive: settings.settings.activeClickBehavior,
+                on: dockScreen(displayID)
+            )
         case .file, .trash:
             DockCommands.open(item)
         case .spacer:

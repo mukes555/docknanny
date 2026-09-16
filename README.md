@@ -48,6 +48,11 @@ hide the others, drag to rearrange with a live gap, drag a tile off to remove
 it with the poof, and drag one from one display's dock to another's. Right-click
 a running app for its windows, like the Dock. Folder tiles open as a list.
 
+**One app, one screen at a time.** Clicking the app you are already in can
+fold away just its windows on that screen and leave your other screens alone,
+with another click to bring them back. macOS hides whole applications; a dock
+on every display can be narrower than that.
+
 **Windows stay clear of it.** Turn on "Keep windows clear of the dock" in
 Behavior and grant Accessibility once, and a window opened or zoomed into a
 dock's space is nudged to sit beside it, the effect the system Dock gets from

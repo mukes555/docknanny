@@ -49,6 +49,8 @@ struct BehaviorSettingsView: View {
             SettingsGroup(title: "Clicking") {
                 SettingsSegmented(
                     title: "When the app is already active",
+                    subtitle: "Hiding on this screen folds away only the windows on the screen you clicked, "
+                        + "and clicking again brings them back. macOS hides whole apps, never one screen.",
                     selection: $store.settings.activeClickBehavior
                 )
             }

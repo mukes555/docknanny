@@ -13,7 +13,17 @@ enum WindowServer {
     /// copy of the window list serves every app, which is what a sweep over
     /// all of them wants.
     static func windowBoundsByProcess() -> [pid_t: [CGWindowID: CGRect]] {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        bounds(matching: [.optionOnScreenOnly, .excludeDesktopElements])
+    }
+
+    /// One app's windows including the ones not on screen: minimized, or on
+    /// another Space. Both keep the bounds they had, which is what says which
+    /// screen a folded-away window came from.
+    static func everyWindowBounds(ofProcess pid: pid_t) -> [CGWindowID: CGRect] {
+        bounds(matching: [.optionAll, .excludeDesktopElements])[pid] ?? [:]
+    }
+
+    private static func bounds(matching options: CGWindowListOption) -> [pid_t: [CGWindowID: CGRect]] {
         let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
         var bounds: [pid_t: [CGWindowID: CGRect]] = [:]
         for window in windows where window[kCGWindowLayer as String] as? Int == 0 {

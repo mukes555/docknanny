@@ -48,18 +48,22 @@ enum IndicatorStyle: String, Codable, CaseIterable, Sendable {
 /// What clicking a tile does when its app is already frontmost.
 ///
 /// The Dock's plain click opens a window when the app has none and otherwise
-/// leaves it be; hiding is the one other thing people expect of it. Cycling
-/// the app's windows is not offered: window identity exists
+/// leaves it be; hiding is the one other thing people expect of it. The third
+/// is the one a dock on every display makes possible and the system Dock
+/// cannot: take the app off this screen and leave the other screens alone.
+/// Cycling the app's windows is not offered: window identity exists
 /// (PrivateSymbols.windowNumber) but the Dock's ordering does not, so the
 /// option is absent rather than present and quietly doing something else.
 enum ActiveClickBehavior: String, Codable, CaseIterable, Sendable {
     case doNothing
     case hide
+    case hideOnThisScreen
 
     var localizedName: String {
         switch self {
         case .doNothing: "Do Nothing"
         case .hide: "Hide the App"
+        case .hideOnThisScreen: "Hide on This Screen"
         }
     }
 }
