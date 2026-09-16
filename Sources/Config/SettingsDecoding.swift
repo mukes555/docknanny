@@ -44,6 +44,7 @@ extension Settings {
         autoHide = reader.value(.autoHide, fallback.autoHide)
         autoHideDelay = reader.value(.autoHideDelay, fallback.autoHideDelay).clamped(to: Limits.revealDelay)
         activeClickBehavior = reader.value(.activeClickBehavior, fallback.activeClickBehavior)
+        opensAppsOnClickedScreen = reader.value(.opensAppsOnClickedScreen, fallback.opensAppsOnClickedScreen)
         keepWindowsClear = reader.value(.keepWindowsClear, fallback.keepWindowsClear)
         launchAtLogin = reader.value(.launchAtLogin, fallback.launchAtLogin)
         hasSeenWelcome = reader.value(.hasSeenWelcome, fallback.hasSeenWelcome)

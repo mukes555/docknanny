@@ -137,12 +137,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// what "Hide on This Screen" would do to that app on the screen under
     /// the pointer, and with `--apply`, doing it and checking that it took.
     private func runHidingProbeIfRequested() -> Bool {
+        if runOpeningProbeIfRequested() {
+            return true
+        }
         let prefix = "--probe-hide="
         guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return false }
         let name = String(argument.dropFirst(prefix.count))
         let applies = CommandLine.arguments.contains("--apply")
         Task { @MainActor in
             await ScreenHidingProbe.run(appNamed: name, applies: applies)
+            try? await Task.sleep(for: .milliseconds(300))
+            exit(0)
+        }
+        return true
+    }
+
+    /// `--probe-open=<bundle id>`: a click on that app's tile from the dock on
+    /// the screen under the pointer, reporting where its windows ended up.
+    private func runOpeningProbeIfRequested() -> Bool {
+        let prefix = "--probe-open="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return false }
+        let bundleIdentifier = String(argument.dropFirst(prefix.count))
+        Task { @MainActor in
+            await NewWindowProbe.run(bundleIdentifier: bundleIdentifier)
             try? await Task.sleep(for: .milliseconds(300))
             exit(0)
         }

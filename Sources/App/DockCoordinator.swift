@@ -66,7 +66,7 @@ final class DockCoordinator {
     /// Where a dock sits, for the click behaviours that act on one screen.
     private func dockScreen(_ displayID: CGDirectDisplayID) -> DockScreen? {
         displays.display(withID: displayID).map {
-            DockScreen(frame: $0.frame, primaryHeight: displays.primaryHeight)
+            DockScreen(frame: $0.frame, visibleFrame: $0.visibleFrame, primaryHeight: displays.primaryHeight)
         }
     }
 
@@ -218,7 +218,8 @@ final class DockCoordinator {
             AppActivator.activate(
                 bundleIdentifier: identifier,
                 whenActive: settings.settings.activeClickBehavior,
-                on: dockScreen(displayID)
+                on: dockScreen(displayID),
+                placesNewWindows: settings.settings.opensAppsOnClickedScreen
             )
         case .file, .trash:
             DockCommands.open(item)

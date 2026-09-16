@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Apps open on the screen you clicked. Clicking an app that is not running,
+  or one running with no window, used to put its new window wherever macOS
+  chose, usually the screen with focus. The window now appears on the screen
+  whose dock was clicked, at its own size and centred, shrunk only if it does
+  not fit. Apps already showing a window are left alone, so a window you open
+  by hand is never moved. On by default; Behavior, Clicking to turn it off.
+- Hide on This Screen is the default for clicking the app you are already in.
+  A settings file that already chose something else keeps its choice.
+- `--probe-open=<bundle id>` clicks an app's tile from the dock under the
+  pointer through the same path a real click takes, and reports which screen
+  each of its windows ended up on.
+
 ## 0.5.2
 
 - The setting for clicking the app you are already in is a menu now, so its
