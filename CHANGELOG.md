@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 - A third choice for clicking the app you are already in: "Hide on This
   Screen" folds away only its windows on the screen whose dock you clicked,
