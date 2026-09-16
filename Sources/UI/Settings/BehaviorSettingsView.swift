@@ -46,11 +46,13 @@ struct BehaviorSettingsView: View {
                 )
             }
 
+            // A menu, not a segmented pill: "Hide on This Screen" cannot share
+            // a fixed-width control three ways without being cut to "Hide on...".
             SettingsGroup(title: "Clicking") {
-                SettingsSegmented(
+                SettingsPicker(
                     title: "When the app is already active",
-                    subtitle: "Hiding on this screen folds away only the windows on the screen you clicked, "
-                        + "and clicking again brings them back. macOS hides whole apps, never one screen.",
+                    subtitle: "Hide the App hides it everywhere. "
+                        + "Hide on This Screen hides it only on the screen you clicked.",
                     selection: $store.settings.activeClickBehavior
                 )
             }
