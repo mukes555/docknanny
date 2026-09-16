@@ -51,7 +51,9 @@ a running app for its windows, like the Dock. Folder tiles open as a list.
 **One app, one screen at a time.** Clicking the app you are already in can
 fold away just its windows on that screen and leave your other screens alone,
 with another click to bring them back. macOS hides whole applications; a dock
-on every display can be narrower than that.
+on every display can be narrower than that. The same goes for opening: click
+an app with no window open on one screen's dock, and its window opens on that
+screen rather than wherever macOS would have put it.
 
 **Windows stay clear of it.** Turn on "Keep windows clear of the dock" in
 Behavior and grant Accessibility once, and a window opened or zoomed into a
@@ -176,6 +178,7 @@ Accessibility grant survives rebuilds. `tools/release.sh` builds a DMG (ad hoc
 by default; set `CODESIGN_IDENTITY` and `NOTARY_PROFILE` for a notarized
 one). Launch flags: `--settings [--section=layout|appearance|behavior|displays|apps|presets]`,
 `--setup`, `--tray`, `--settings-dir=<folder>` for a separate profile, and
+`--probe-open=<bundle id>` for where a click opens an app,
 `--probe-hide=<app>` (with `--apply` to do it) for what hiding on a screen
 would do, and
 `--probe-windows=<app name or bundle id>` (optionally with `--resize-test` or

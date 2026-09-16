@@ -34,7 +34,14 @@ struct Settings: Codable, Equatable, Sendable {
     var skipSystemDockDisplay: Bool = true
     var autoHide: Bool = false
     var autoHideDelay: Double = 0.15
-    var activeClickBehavior: ActiveClickBehavior = .doNothing
+    /// Hiding on the clicked screen by default: with a dock on every display,
+    /// the screen you clicked is the one you meant, and hiding the whole app
+    /// would reach across to screens you were not looking at.
+    var activeClickBehavior: ActiveClickBehavior = .hideOnThisScreen
+    /// A click that opens an app with no window puts that window on the screen
+    /// whose dock was clicked, instead of wherever macOS would. On by default
+    /// for the same reason as above.
+    var opensAppsOnClickedScreen: Bool = true
     /// Nudge windows that open or zoom into a dock's space out of it. Off
     /// until asked for: it needs Accessibility and moves other apps' windows.
     var keepWindowsClear: Bool = false
@@ -68,7 +75,7 @@ struct Settings: Codable, Equatable, Sendable {
         case brandPalette, iconSize, itemSpacing, chromeStyle, indicatorStyle, tint
         case isMagnificationEnabled, magnificationScale
         case showRunningApps, skipSystemDockDisplay, autoHide, autoHideDelay
-        case activeClickBehavior, keepWindowsClear, launchAtLogin, hasSeenWelcome
+        case activeClickBehavior, opensAppsOnClickedScreen, keepWindowsClear, launchAtLogin, hasSeenWelcome
         case tileHotkeysEnabled, hidingHotkeyEnabled, hotkeyModifiers
         case mirrorSystemDock, pinnedBundleIdentifiers, pinnedOthers, hiddenBundleIdentifiers, showTrash
         case perDisplay

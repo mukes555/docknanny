@@ -55,6 +55,13 @@ struct BehaviorSettingsView: View {
                         + "Hide on This Screen hides it only on the screen you clicked.",
                     selection: $store.settings.activeClickBehavior
                 )
+                SettingsDivider()
+                SettingsToggle(
+                    title: "Open apps on the screen you clicked",
+                    subtitle: "An app with no window open shows its new one on that dock's screen. "
+                        + "Needs Accessibility.",
+                    isOn: $store.settings.opensAppsOnClickedScreen
+                )
             }
 
             keyboardGroup

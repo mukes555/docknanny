@@ -98,7 +98,7 @@ enum ScreenHidingProbe {
         let screens = NSScreen.screens
         guard let primaryHeight = screens.first?.frame.height else { return nil }
         let screen = screens.first { $0.frame.contains(pointer) } ?? screens.first
-        return screen.map { DockScreen(frame: $0.frame, primaryHeight: primaryHeight) }
+        return screen.map { DockScreen(frame: $0.frame, visibleFrame: $0.visibleFrame, primaryHeight: primaryHeight) }
     }
 
     private static func describe(_ action: ScreenHiding.Action) -> String {
