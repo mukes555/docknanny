@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - Apps open on the screen you clicked. Clicking an app that is not running,
   or one running with no window, used to put its new window wherever macOS
