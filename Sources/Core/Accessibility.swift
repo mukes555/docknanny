@@ -60,12 +60,13 @@ struct AppWindow: Identifiable {
     let element: AXUIElement
 }
 
-/// A window the keeper may move, with what it needs read in one round trip.
-struct KeptWindow {
+/// One of an app's standard windows, with what a single round trip tells.
+struct StandardWindow {
     let element: AXUIElement
     /// Where the app says the window is, in Accessibility's space; nil when
     /// the app would not say. The window server's word is preferred anyway.
     let reportedFrame: CGRect?
+    let isMinimized: Bool
 }
 
 /// Reads and raises an app's windows through Accessibility.
@@ -127,32 +128,50 @@ enum AppWindows {
         }
     }
 
-    /// Every window the keeper should judge: a window by role, not a palette
-    /// or a system dialog by subrole, not minimized, and not full screen (a
-    /// full-screen window has its own Space and nothing to be clear of).
-    static func windowsToKeepClear(processIdentifier pid: pid_t) -> [KeptWindow] {
+    /// A window a person works in: a window by role, not a palette or a system
+    /// dialog by subrole, and not full screen (its own Space, nothing to be
+    /// clear of and nothing to hide it from). Minimized ones are included,
+    /// since bringing them back is half of hiding a screen.
+    static func standardWindows(processIdentifier pid: pid_t) -> [StandardWindow] {
         guard Accessibility.isTrusted else { return [] }
         installMessagingTimeout()
 
         let application = AXUIElementCreateApplication(pid)
         guard let elements = attribute(kAXWindowsAttribute, of: application) as? [AXUIElement] else { return [] }
 
-        return elements.prefix(keeperWindowLimit).compactMap { element -> KeptWindow? in
+        return elements.prefix(keeperWindowLimit).compactMap { element -> StandardWindow? in
             let values = attributes([
                 kAXRoleAttribute, kAXSubroleAttribute, kAXMinimizedAttribute,
                 "AXFullScreen", kAXPositionAttribute, kAXSizeAttribute
             ], of: element)
             let isWindow = values[0] as? String == kAXWindowRole
             let isExcluded = excludedSubroles.contains(values[1] as? String ?? "")
-            let isHidden = values[2] as? Bool == true || values[3] as? Bool == true
-            guard isWindow, !isExcluded, !isHidden else { return nil }
+            let isFullScreen = values[3] as? Bool == true
+            guard isWindow, !isExcluded, !isFullScreen else { return nil }
 
             var reported: CGRect?
             if let position = point(from: values[4]), let size = size(from: values[5]) {
                 reported = CGRect(origin: position, size: size)
             }
-            return KeptWindow(element: element, reportedFrame: reported)
+            return StandardWindow(
+                element: element, reportedFrame: reported, isMinimized: values[2] as? Bool ?? false
+            )
         }
+    }
+
+    /// Every window the keeper should judge: a minimized one is under nothing.
+    static func windowsToKeepClear(processIdentifier pid: pid_t) -> [StandardWindow] {
+        standardWindows(processIdentifier: pid).filter { !$0.isMinimized }
+    }
+
+    /// Folds a window away, or brings it back and puts it in front. This is
+    /// the only way to take one screen's windows out of sight: macOS hides
+    /// whole applications and nothing smaller.
+    static func setMinimized(_ minimized: Bool, of window: AXUIElement) {
+        let value: CFBoolean = minimized ? kCFBooleanTrue : kCFBooleanFalse
+        AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, value)
+        guard !minimized else { return }
+        AXUIElementPerformAction(window, kAXRaiseAction as CFString)
     }
 
     /// Un-minimizes if needed, brings the window forward, then activates the

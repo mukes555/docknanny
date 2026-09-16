@@ -21,7 +21,7 @@ extension WindowKeeper {
         }
     }
 
-    private func nudgeIfNeeded(_ window: KeptWindow, onScreen: CGRect?) {
+    private func nudgeIfNeeded(_ window: StandardWindow, onScreen: CGRect?) {
         guard let reported = onScreen ?? window.reportedFrame else { return }
 
         let primaryHeight = displays.primaryHeight

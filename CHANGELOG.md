@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- A third choice for clicking the app you are already in: "Hide on This
+  Screen" folds away only its windows on the screen whose dock you clicked,
+  and clicking there again brings them back. The other screens are left as
+  they were. macOS hides whole applications and has no per-display hide, so
+  this is a dock on every display doing what the system Dock cannot.
+
 ## 0.4.2
 
 - An app that starts after the keeper is armed has its own windows judged
