@@ -113,6 +113,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// exits before any dock,
     /// status item or hot key exists, so it can run beside the real instance.
     private func runProbeIfRequested() -> Bool {
+        if runHidingProbeIfRequested() {
+            return true
+        }
         let prefix = "--probe-windows="
         guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return false }
         let name = String(argument.dropFirst(prefix.count))
@@ -124,6 +127,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await WindowProbe.run(appNamed: name, resizes: resizes, width: width)
             // Log lines travel to logd asynchronously; leaving at once would
             // drop the last of them.
+            try? await Task.sleep(for: .milliseconds(300))
+            exit(0)
+        }
+        return true
+    }
+
+    /// `--probe-hide=<app name or bundle id>`, optionally with `--apply`:
+    /// what "Hide on This Screen" would do to that app on the screen under
+    /// the pointer, and with `--apply`, doing it and checking that it took.
+    private func runHidingProbeIfRequested() -> Bool {
+        let prefix = "--probe-hide="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else { return false }
+        let name = String(argument.dropFirst(prefix.count))
+        let applies = CommandLine.arguments.contains("--apply")
+        Task { @MainActor in
+            await ScreenHidingProbe.run(appNamed: name, applies: applies)
             try? await Task.sleep(for: .milliseconds(300))
             exit(0)
         }

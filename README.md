@@ -176,6 +176,8 @@ Accessibility grant survives rebuilds. `tools/release.sh` builds a DMG (ad hoc
 by default; set `CODESIGN_IDENTITY` and `NOTARY_PROFILE` for a notarized
 one). Launch flags: `--settings [--section=layout|appearance|behavior|displays|apps|presets]`,
 `--setup`, `--tray`, `--settings-dir=<folder>` for a separate profile, and
+`--probe-hide=<app>` (with `--apply` to do it) for what hiding on a screen
+would do, and
 `--probe-windows=<app name or bundle id>` (optionally with `--resize-test` or
 `--set-width=<points>`) to record what Accessibility and the window server say
 about an app's windows when one will not stay clear of a dock. The probe
