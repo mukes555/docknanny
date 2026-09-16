@@ -57,54 +57,25 @@ enum AppActivator {
     /// away here, so the same tile puts the app on this screen and takes it
     /// off again.
     private static func hideOrShow(_ application: NSRunningApplication, on screen: DockScreen) {
-        let (elements, windows) = placedWindows(of: application, on: screen)
+        let plan = ScreenHider.plan(for: application.processIdentifier, on: screen)
 
-        switch ScreenHiding.action(for: windows, onScreen: screen.frame) {
-        case .minimize(let positions):
+        switch plan.action {
+        case .minimize:
+            // A click on an app in the background brings it forward; folding
+            // away is what a click on the app you are already in means.
             guard application.isActive else {
                 bringForward(application, bundleIdentifier: application.bundleIdentifier)
                 return
             }
-            for position in positions {
-                AppWindows.setMinimized(true, of: elements[position])
-            }
-            Log.workspace.info("Folded \(positions.count, privacy: .public) window(s) away on this screen")
-        case .restore(let positions):
-            for position in positions {
-                AppWindows.setMinimized(false, of: elements[position])
-            }
+            let count = ScreenHider.apply(plan)
+            Log.workspace.info("Folded \(count, privacy: .public) window(s) away on this screen")
+        case .restore:
+            let count = ScreenHider.apply(plan)
             bringForward(application, bundleIdentifier: application.bundleIdentifier)
-            Log.workspace.info("Brought \(positions.count, privacy: .public) window(s) back on this screen")
+            Log.workspace.info("Brought \(count, privacy: .public) window(s) back on this screen")
         case .nothing:
             bringForward(application, bundleIdentifier: application.bundleIdentifier)
         }
-    }
-
-    /// An app's standard windows in AppKit coordinates, and the elements they
-    /// stand for, in step. A window nobody can place is left out of both: it
-    /// belongs to no screen, so no screen's dock should act on it.
-    private static func placedWindows(
-        of application: NSRunningApplication,
-        on screen: DockScreen
-    ) -> ([AXUIElement], [ScreenHiding.Window]) {
-        let pid = application.processIdentifier
-        // The window server's word, which covers minimized windows too; the
-        // app's own report is the fallback, as everywhere else.
-        let bounds = WindowServer.everyWindowBounds(ofProcess: pid)
-
-        var elements: [AXUIElement] = []
-        var windows: [ScreenHiding.Window] = []
-        for window in AppWindows.standardWindows(processIdentifier: pid) {
-            let reported = PrivateSymbols.windowNumber(of: window.element).flatMap { bounds[$0] }
-                ?? window.reportedFrame
-            guard let reported else { continue }
-            elements.append(window.element)
-            windows.append(ScreenHiding.Window(
-                frame: Coordinates.appKitRect(fromAccessibility: reported, primaryHeight: screen.primaryHeight),
-                isMinimized: window.isMinimized
-            ))
-        }
-        return (elements, windows)
     }
 
     /// A hidden app stays hidden through a plain activation, so unhide first;

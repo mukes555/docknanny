@@ -68,3 +68,32 @@ struct ScreenHidingTests {
         #expect(ScreenHiding.action(for: windows, onScreen: external) == .minimize([1]))
     }
 }
+
+@Suite("Where a window is, while it is folded away")
+@MainActor
+struct FoldedWindowPositionTests {
+    private let real = CGRect(x: 195, y: 638, width: 673, height: 439)
+    /// What the window server reports for a window mid-fold: its thumbnail in
+    /// the Dock, which is on whichever screen the Dock happens to be.
+    private let thumbnail = CGRect(x: 23, y: 250, width: 177, height: 85)
+
+    @Test("A folded window is where its app says, not where its thumbnail is")
+    func foldedWindowTrustsTheApp() {
+        #expect(ScreenHider.position(ofMinimized: true, server: thumbnail, app: real) == real)
+        // With nothing from the app, the thumbnail is better than losing the window.
+        #expect(ScreenHider.position(ofMinimized: true, server: thumbnail, app: nil) == thumbnail)
+    }
+
+    @Test("A window on screen is where the window server says, whatever its app claims")
+    func visibleWindowTrustsTheWindowServer() {
+        let claimed = CGRect(x: 0, y: 0, width: 100, height: 100)
+        #expect(ScreenHider.position(ofMinimized: false, server: real, app: claimed) == real)
+        #expect(ScreenHider.position(ofMinimized: false, server: nil, app: claimed) == claimed)
+    }
+
+    @Test("A window neither source can place belongs to no screen")
+    func unplaceableWindowIsLeftOut() {
+        #expect(ScreenHider.position(ofMinimized: true, server: nil, app: nil) == nil)
+        #expect(ScreenHider.position(ofMinimized: false, server: nil, app: nil) == nil)
+    }
+}

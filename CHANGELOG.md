@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Bringing a window back to the screen it came from works however quickly
+  you click. While a window folds away the window server describes its
+  thumbnail in the Dock, which sits on whichever screen the Dock is on, so
+  a second click within about a second looked for the window on the wrong
+  screen and only brought the app forward. The app's own answer is trusted
+  for a window that is folded away, the window server's for one on screen.
+- `--probe-hide=<app>`, with `--apply`, reports what "Hide on This Screen"
+  would do to an app on the screen under the pointer, and does it while
+  watching, which is how the above was found.
+
 ## 0.5.0
 
 - A third choice for clicking the app you are already in: "Hide on This
