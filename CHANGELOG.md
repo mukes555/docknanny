@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.1
 
 - Bringing a window back to the screen it came from works however quickly
   you click. While a window folds away the window server describes its
